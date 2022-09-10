@@ -1,0 +1,5 @@
+error: Sqlo should have one field with attirbute `primary_key` or an `id` field!
+ --> tests/ui/fail/id_is_mandatory.rs:2:8
+  |
+2 | struct Bla {
+  |        ^^^

@@ -1,0 +1,43 @@
+[package]
+name = "sqlo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "sqlo"
+path = "src/lib.rs"
+proc-macro = true
+
+
+[features]
+sqlite = ["sqlx/sqlite"]
+
+[dependencies]
+syn = { version = "1", features = ["full"] }
+quote = "*"
+proc-macro2 = "*"
+heck = "0.4"
+itertools = "*"
+darling = "0.14.1"
+cargo_toml = "0.11"
+
+# only for text expand, remove on release
+sqlx = { version = "0.6", features = [
+  "runtime-async-std-native-tls",
+  "uuid",
+  "chrono",
+  "any",
+] }
+
+[dev-dependencies]
+trybuild = "1"
+sqlx = { version = "0.6", features = [
+  "runtime-async-std-native-tls",
+  "sqlite",
+  "uuid",
+  "chrono",
+] }
+uuid = { version = "1", features = ["v4"] }
+async-std = { version = "1", features = ["attributes"] }
+paste = "*"
