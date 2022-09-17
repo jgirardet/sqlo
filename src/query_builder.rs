@@ -14,6 +14,10 @@ pub fn qmarks(nb: usize, db: &DatabaseType) -> String {
     (0..nb).into_iter().map(|_| db.get_qmark()).join(",")
 }
 
+pub fn qmarks_with_col(cols: &[&str], db: &DatabaseType) -> String {
+    cols.into_iter().map(|c| format!("{c}={}", db.get_qmark())).join(",")
+}
+
 // pub fn qmarks_parenthes(nb: usize, db: &DatabaseType) -> String {
 //     if nb == 0 {
 //         "()".to_string()
@@ -25,7 +29,7 @@ pub fn qmarks(nb: usize, db: &DatabaseType) -> String {
 
 #[cfg(test)]
 mod test_query_builder {
-    use super::{commma_sep_with_parenthes_literal_list, qmarks};
+    use super::{commma_sep_with_parenthes_literal_list, qmarks, qmarks_with_col};
     use crate::sqlo::DatabaseType;
 
     #[test]
@@ -52,9 +56,30 @@ mod test_query_builder {
         };
     }
 
+    const SQLITE:&DatabaseType = &DatabaseType::Sqlite;
+
     test_qmarks!(1 "?" &DatabaseType::Sqlite);
     test_qmarks!(2 "?,?" &DatabaseType::Sqlite);
     test_qmarks!(0 "" &DatabaseType::Sqlite);
+
+    macro_rules! test_qmarks_with_col {
+        ($($col:literal),*; $db:expr, $res:literal) => {
+            paste::paste!{
+
+                #[test]
+                fn [<qmarks_with_col _ $($col)*>]() {
+                    assert_eq!(
+                        qmarks_with_col(&[$($col),*], $db)
+                        ,$res.to_string()
+                    );
+                }
+            }
+            };
+    }
+    
+    test_qmarks_with_col!("bla","bli"; SQLITE, "bla=?,bli=?");
+    test_qmarks_with_col!("bla"; SQLITE, "bla=?");
+    test_qmarks_with_col!(; SQLITE, "");
 
     // macro_rules! test_qmarks_parenthes {
     //     ($nb:literal  $res:literal $db:expr) => {

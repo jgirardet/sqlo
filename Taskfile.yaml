@@ -1,0 +1,122 @@
+# https://taskfile.dev
+
+version: "3"
+
+env:
+  SQLITE_MAISON: sqlite-maison
+
+vars:
+  EDITOR_DB_FILE: "/tmp/sqlo.sqlite"
+
+tasks:
+  install_dependencies:
+    cmds:
+      - sudo apt install -y build-essential libssl-dev pkg-config -y
+      - cargo install sqlx-cli
+  create-sqlite-database:
+    cmds:
+      - tmpfile=$(mktemp /tmp/sqlo-sqlite-tmp.sqlite.XXXXXXX)
+      - export $tmpfile
+  show-db:
+    cmds:
+      - task: create-sqlite-database
+      - echo "tmpfile:${tmpfile}"
+      - echo $tmpfile
+      - echo $SQLITE_DB
+
+  migrate:
+    cmds:
+      - sqlx migrate run --source assets/ -D {{.DATABASE_URL}}
+
+  run:
+    env:
+      DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - cargo run --features={{.FEATURES}} --example {{.PROJECT}}
+
+  run_test:
+    env:
+      DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - cargo test --features={{.FEATURES}} {{.CLI_ARGS}}
+
+  run_expand:
+    env:
+      DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - cargo expand --features={{.FEATURES}} --test expand {{.CLI_ARGS}}
+
+  run-example:
+    vars:
+      SQLITE_DB:
+        sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
+      DATABASE_URL: "{{.DB_TYPE}}://{{.SQLITE_DB}}"
+    cmds:
+      - echo {{.DATABASE_URL}}
+      - task: migrate
+        vars: { PROJECT: "{{.PROJECT}}", DATABASE_URL: "{{.DATABASE_URL}}" }
+      - task: run
+        vars:
+          {
+            PROJECT: "{{.PROJECT}}",
+            DATABASE_URL: "{{.DATABASE_URL}}",
+            FEATURES: "{{.FEATURES}}",
+          }
+
+  remove_editor_db_file:
+    - precondition: test -f {{.EDITOR_DB_FILE}}
+      cmds:
+        - rm {{.EDITOR_DB_FILE}}
+
+  create_editor_db_file:
+    cmds:
+      - touch {{.EDITOR_DB_FILE}}
+
+  sqlite-maison-run:
+    cmds:
+      - task: run-example
+        vars:
+          { DB_TYPE: "sqlite", PROJECT: "sqlite-maison", FEATURES: "sqlite" }
+      # env: {DATABASE_URL: "{{.DB_TYPE}}://{{.PROJECT}}"}
+
+  sqlite-maison:
+    - task: sqlite-maison-run
+
+  test:
+    vars:
+      SQLITE_DB:
+        sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
+      DATABASE_URL: "sqlite://{{.SQLITE_DB}}"
+    cmds:
+      # - task: migrate
+      # vars: {DATABASE_URL: '{{.DATABASE_URL}}'}
+      # - sqlx migrate run --source tests -D {{.DATABASE_URL}}
+      - task: migrate
+        vars: { DATABASE_URL: "{{.DATABASE_URL}}" }
+      - task: run_test
+        vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
+
+  expand:
+    vars:
+      SQLITE_DB:
+        sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
+      DATABASE_URL: "sqlite://{{.SQLITE_DB}}"
+    cmds:
+      - task: migrate
+        vars: { DATABASE_URL: "{{.DATABASE_URL}}" }
+      - task: run_expand
+        vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
+
+  editor:
+    vars:
+      DB_FILE: "/tmp/sqlo.sqlite"
+
+    deps: [remove_editor_db_file]
+    cmds:
+      - task: create_editor_db_file
+      - task: migrate
+        vars: { DATABASE_URL: "sqlite://{{.DB_FILE}}" }
+  
+  check:
+    cmds:
+      - cargo check --features=sqlite

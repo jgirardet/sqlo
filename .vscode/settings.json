@@ -1,0 +1,18 @@
+{
+    "rust-analyzer.checkOnSave.features": [
+        "sqlite"
+    ],
+    "rust-analyzer.cargo.features": [
+        "sqlite"
+    ],
+
+"rust-analyzer.cargo.buildScripts.enable":true,
+"rust-analyzer.procMacro.enable": true,
+    // "rust-analyzer.server.extraEnv":null ,
+    // "rust-analyzer.runnableEnv": {
+    //     "DATABASE_URL": "sqlite:///tmp/sqlo.sqlite"
+    // },
+    "rust-analyzer.server.extraEnv": {
+        "DATABASE_URL": "sqlite:///tmp/sqlo.sqlite"
+    }
+}

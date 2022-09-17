@@ -1,6 +1,6 @@
 use crate::{
     field::Field,
-    methods::{create::impl_create, save::impl_save},
+    methods::{create::impl_create, save::impl_save, get::impl_get},
     sqlo::Sqlo,
 };
 use proc_macro2::TokenStream;
@@ -30,31 +30,11 @@ fn impl_crud_queries(sqlo: &Sqlo) -> TokenStream {
     let save = impl_save(sqlo);
     quote!(
             #get
-            // #create
-            // #save
+            #create
+            #save
     )
 }
 
-// Entity.get(id)
-fn impl_get(s: &Sqlo) -> TokenStream {
-    let Sqlo {
-        ident,
-        tablename,
-        database_type,
-        ..
-    } = s;
-    let all_columns_as_query = s.all_columns_as_query();
-    let pk_ty = &s.pk_field.ty;
-    let pk_column = &s.pk_field.column;
-    quote! {
-            // async fn get<E: sqlx::Executor<'c, Database = sqlx::Any>>(pool: E, id: #pk_ty) -> sqlx::Result<#ident> {
-            async fn get<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, id: #pk_ty) -> sqlx::Result<#ident> {
-                sqlx::query_as!(#ident , "SELECT " + #all_columns_as_query + " FROM " + #tablename + " WHERE "+ #pk_column + "= ?", id)
-                .fetch_one(pool)
-                .await
-            }
-    }
-}
 
 fn impl_update_macro(s: &Sqlo) -> TokenStream {
     let Sqlo {

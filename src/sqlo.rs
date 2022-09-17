@@ -5,6 +5,15 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 
+const DATABASE_TYPE: DatabaseType = if cfg!(feature = "sqlite") {
+    DatabaseType::Sqlite
+} else {
+    panic!(
+        "You need to specify db backend as feature to use Sqlo. Right now only `sqlite` is
+    suppported, PR Welcomed :-)"
+    )
+};
+
 pub struct Sqlo {
     pub ident: syn::Ident,
     pub fields: Vec<Field>,
@@ -20,7 +29,7 @@ impl TryFrom<SqloParse> for Sqlo {
             ident: sp.ident.clone(),
             fields: sp.fields()?,
             tablename: sp.tablename(),
-            database_type: sp.database_type()?,
+            database_type: DATABASE_TYPE,
             pk_field: sp.has_pk_field()?,
         })
     }
@@ -40,7 +49,7 @@ impl Sqlo {
             .collect()
     }
     pub fn all_columns_as_query(&self) -> String {
-        self.fields.iter().map(|x| x.as_query.as_str()).join("'")
+        self.fields.iter().map(|x| x.as_query.as_str()).join(",")
     }
 }
 
@@ -68,7 +77,7 @@ impl ToTokens for DatabaseType {
 impl DatabaseType {
     pub fn get_qmark(&self) -> &str {
         match self {
-            Sqlite => "?",
+            DatabaseType::Sqlite => "?",
         }
     }
 }
