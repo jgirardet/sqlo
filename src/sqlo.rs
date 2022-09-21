@@ -1,6 +1,6 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
-use crate::{field::Field, parse::SqloParse, utils::is_option};
+use crate::{field::Field, parse::SqloParse, serdable::IdentSer, utils::is_option};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
@@ -14,7 +14,9 @@ const DATABASE_TYPE: DatabaseType = if cfg!(feature = "sqlite") {
     )
 };
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Sqlo {
+    #[serde(with = "IdentSer")]
     pub ident: syn::Ident,
     pub fields: Vec<Field>,
     pub tablename: String,
@@ -51,9 +53,23 @@ impl Sqlo {
     pub fn all_columns_as_query(&self) -> String {
         self.fields.iter().map(|x| x.as_query.as_str()).join(",")
     }
+
+    pub fn as_option_struct(&self) -> (syn::Ident, TokenStream) {
+        let option_class = format_ident!("Option{}", &self.ident);
+        let option_struct_name = option_class.clone();
+        let class_args = self.fields_name_and_type_as_option();
+        (
+            option_struct_name,
+            quote! {
+                struct #option_class {
+                    #class_args
+                }
+            },
+        )
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum DatabaseType {
     Sqlite,
 }
@@ -78,6 +94,17 @@ impl DatabaseType {
     pub fn get_qmark(&self) -> &str {
         match self {
             DatabaseType::Sqlite => "?",
+        }
+    }
+}
+
+impl FromStr for DatabaseType {
+    type Err = syn::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "sqlite" => Ok(DatabaseType::Sqlite),
+            _ => Ok(DatabaseType::Sqlite),
         }
     }
 }

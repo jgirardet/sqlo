@@ -1,64 +1,35 @@
 #![allow(dead_code)]
-
 use sqlo::Sqlo;
 
-
-// use sqlx::Connection;
-// use uuid::Uuid;
-// // #[derive(Debug, sqlo::Sqlo, PartialEq)]
-
-#[derive(Sqlo)]
+#[derive(Sqlo, Debug, PartialEq)]
 struct Maison {
-    // #[sqlo(type_override, create_fn = "uuid::Uuid::new_v4")]
-    id: i64, // #[sqlo(column = "content")]
-    adresse: String
-             // active: bool,
+    #[sqlo(type_override, create_fn = "uuid::Uuid::new_v4")]
+    id: i64,
+    adresse: String,
+    taille: i64,
+    piscine: Option<bool>,
 }
 
-// // #[cfg(not(any(features = "sqlite")))]
+#[async_std::main]
+async fn main() {
+    let pool = sqlx::SqlitePool::connect(&std::env::var("DATABASE_URL").unwrap())
+        .await
+        .unwrap();
+    let a = Maison {
+        id: 123,
+        adresse: "zefzef".to_string(),
+        taille: 4,
+        piscine: None,
+    };
+    a.save(&pool).await.unwrap();
+    let b = set_Maison![&pool, a, taille = 1].await.unwrap();
+    assert_eq!(b.taille, 1);
+    assert_eq!(b.id, 123);
+    let c = Maison::get(&pool, 123).await.unwrap();
+    assert_eq!(b, c);
+}
 
-// #[cfg(features = "sqlite")]
-// type DB = sqlx::SqliteConnection;
-
-// #[cfg(features = "default")]
-// type DB = sqlx::AnyConnection;
-
-// async fn get_pool() -> DB {
-//     DB::connect(&std::env::var("DATABASE_URL").unwrap())
-//         .await
-//         .unwrap()
-// }
-
-// #[async_std::test]
-// async fn main() {
-//     // let _t = thisoneok {
-//     //     id: "bla".to_string(),
-//     //     value: 23,
-//     // };
-
-//     println!("SANS QLITE");
-//     let pool = get_pool().await;
-//     dbg!(&pool);
-
-//     #[cfg(feature = "sqlite")]
-//     println!("This is sqlite ");
-//     // let pool = &mut conn;
-
-//     // let l = IdUniqueInt::get(pool, 2);
-
-//     // for (k, v) in std::env::vars() {
-//     //     println!("{k}:{v}");
-//     // }
-//     // assert_eq!(Maison::tablename(), "maison");
-//     // let l = MatcherEntries::create(&mut conn, "bla".to_string(), false)
-//     //     .await
-//     //     .unwrap();
-
-//     // set_MatcherEntries!(&mut conn, l, contenu = "zegergergerg", active = false);
-//     // assert_eq!(l.structname(), "MatcherEntries".to_string());
-//     // sqlo_set!["matcher_entries" l; content="zefzef".to_string(), active=true];
-//     // let m = MatcherEntries::get(&mut conn, l.id).await.unwrap();
-//     // assert_eq!(l, m);
-//     // assert_eq!(WithAttrs::tablename(), "piece");
-//     // assert_eq!(WithTwoAttrs::tablename(), "maison");
-// }
+#[test]
+fn test_main_expand() {
+    main();
+}

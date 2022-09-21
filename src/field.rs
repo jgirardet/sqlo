@@ -1,3 +1,4 @@
+use crate::serdable::{IdentSer, OptionExprPathSer, TypeSer};
 use darling::FromField;
 use syn::spanned::Spanned;
 
@@ -47,13 +48,16 @@ impl FieldParser {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Field {
+    #[serde(with = "IdentSer")]
     pub ident: syn::Ident,
+    #[serde(with = "TypeSer")]
     pub ty: syn::Type,
     pub column: String,
     pub as_query: String,
     pub primary_key: bool,
+    #[serde(with = "OptionExprPathSer")]
     pub create_fn: Option<syn::ExprPath>,
     pub create_arg: bool,
 }

@@ -1,6 +1,5 @@
 use crate::{
-    field::Field,
-    methods::{create::impl_create, save::impl_save, get::impl_get},
+    methods::{create::impl_create, get::impl_get, save::impl_save},
     sqlo::Sqlo,
 };
 use proc_macro2::TokenStream;
@@ -10,11 +9,11 @@ pub fn produce(sqlo: &Sqlo) -> TokenStream {
     let ident = sqlo.ident.clone();
     let additional_utils = impl_additional_utils(sqlo);
     let crud_queries = impl_crud_queries(sqlo);
-    // let set_macro = impl_update_macro(sqlo);
+    let set_macro = impl_update_macro(sqlo);
 
     quote! {
 
-        // #set_macro
+        #set_macro
 
         impl <'c>#ident {
             #additional_utils
@@ -35,33 +34,22 @@ fn impl_crud_queries(sqlo: &Sqlo) -> TokenStream {
     )
 }
 
-
 fn impl_update_macro(s: &Sqlo) -> TokenStream {
-    let Sqlo {
-        ident,
-        tablename,
-        pk_field,
-        fields,
-        ..
-    } = s;
-    let macro_ident = format_ident!("set_{}", ident);
-    let tablename = syn::LitStr::new(tablename, ident.span());
-    let pk_field = &pk_field.ident;
-    // let mut columns = std::collections::HashMap::new();
-    let mut columns = vec![];
-    for Field { ident, column, .. } in fields.iter() {
-        columns.push(format!("{}:{}", ident, column));
+    let Sqlo { ident, fields, .. } = s;
+
+    if fields.len() == 1 {
+        return quote! {}; // no macro if only pk is set for struct
     }
-    let columns = columns.join(",");
+
+    let macro_ident = format_ident!("set_{}", ident);
+    let sqlo_struct = serde_json::to_string(&s).expect("Fail serializing Sqlo to json");
 
     quote! {
     #[allow(unused_macros)]
     macro_rules! #macro_ident {
-        ($pool:expr, $identa:ident) => ();
-        // ($pool:expr, $identa:ident, $($arg:ident=$val:expr),+) => (
-            // sqlo::sqlo_set!(#tablename #pk_field , $pool , $identa , #columns, $($arg:ident=$val:expr),+)
-            // sqlo::sqlo_set!(#tablename #pk_field , $pool , $identa , #columns, $($arg:ident=$val:expr),+)
-        // );
+        ($pool:expr, $instance:ident, $($arg:ident=$val:expr),+) => (
+            sqlo::sqlo_set!(#sqlo_struct, $pool , $instance , $($arg:ident=$val:expr),+)
+        );
     }
     }
 }

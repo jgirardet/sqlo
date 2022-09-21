@@ -25,6 +25,8 @@ itertools = "*"
 proc-macro2 = "*"
 quote = "*"
 syn = {version = "1", features = ["full"]}
+serde = {version = "1", features = ["derive"]}
+serde_json = {version="1"}
 
 [dev-dependencies]
 async-std = {version = "1", features = ["attributes"]}

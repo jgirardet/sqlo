@@ -82,6 +82,9 @@ tasks:
   sqlite-maison:
     - task: sqlite-maison-run
 
+  example:
+    - task: sqlite-maison
+
   test:
     vars:
       SQLITE_DB:
@@ -95,6 +98,16 @@ tasks:
         vars: { DATABASE_URL: "{{.DATABASE_URL}}" }
       - task: run_test
         vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
+
+  trybuild:
+    cmds:
+      - task test -- -- trybuild trybuild={{.CLI_ARGS}}
+
+  trybuild-overwrite:
+    env:
+      TRYBUILD: "overwrite"
+    cmds:
+      - task test -- -- trybuild trybuild={{.CLI_ARGS}}
 
   expand:
     vars:
@@ -116,7 +129,11 @@ tasks:
       - task: create_editor_db_file
       - task: migrate
         vars: { DATABASE_URL: "sqlite://{{.DB_FILE}}" }
-  
+
   check:
     cmds:
       - cargo check --features=sqlite
+        
+  test-all:
+   - task: test
+   - task: example

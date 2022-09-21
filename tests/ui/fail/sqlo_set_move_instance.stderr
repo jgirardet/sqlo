@@ -1,0 +1,12 @@
+error[E0382]: use of moved value: `m`
+  --> tests/ui/fail/sqlo_set_move_instance.rs:18:5
+   |
+1  | #[derive(sqlo::Sqlo)]
+   |          ---------- value moved here
+...
+16 |     let m = Maison::get(&pool, 1).await.unwrap();
+   |         - move occurs because `m` has type `Maison`, which does not implement the `Copy` trait
+17 |     set_Maison![&pool, m, taille = 3].await.unwrap();
+   |                        - variable moved due to use in generator
+18 |     m;
+   |     ^ value used here after move

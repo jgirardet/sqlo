@@ -1,0 +1,5 @@
+error: cannot find macro `set_IdUniqueInt` in this scope
+  --> tests/ui/fail/sqlo_set_only_pk_field_no_update_macro.rs:10:1
+   |
+10 | set_IdUniqueInt!()
+   | ^^^^^^^^^^^^^^^

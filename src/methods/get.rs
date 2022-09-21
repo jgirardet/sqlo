@@ -1,9 +1,7 @@
+use crate::sqlo::Sqlo;
 use proc_macro2::TokenStream;
 use quote::quote;
-use crate::sqlo::Sqlo;
 
-
-// Entity.get(id)
 pub fn impl_get(s: &Sqlo) -> TokenStream {
     let Sqlo {
         ident,

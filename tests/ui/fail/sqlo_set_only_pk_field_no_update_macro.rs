@@ -1,11 +1,11 @@
 use sqlo::Sqlo;
 
 #[derive(Debug, PartialEq, Sqlo)]
-struct Maison {
+struct IdUniqueInt {
     id: i64,
 }
 
 #[async_std::main]
 async fn main() {
-setMaison()
+set_IdUniqueInt!()
 }

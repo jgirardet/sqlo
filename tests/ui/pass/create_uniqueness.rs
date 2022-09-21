@@ -19,8 +19,14 @@ struct IdUniqueIntAuto {
     id: i64,
 }
 
-fn main() {
+#[async_std::main]
+async fn main() {
     let mut conn = sqlx::SqliteConnection::connect(&std::env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();
+   
+    let _a = IdUniqueUuid::create(&mut conn).await.unwrap();
+    let _a = IdUniqueIntCreateArg::create(&mut conn,2).await.unwrap();
+    let _a = IdUniqueIntAuto::create(&mut conn).await.unwrap();
+
 }

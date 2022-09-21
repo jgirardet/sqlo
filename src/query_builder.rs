@@ -15,17 +15,10 @@ pub fn qmarks(nb: usize, db: &DatabaseType) -> String {
 }
 
 pub fn qmarks_with_col(cols: &[&str], db: &DatabaseType) -> String {
-    cols.into_iter().map(|c| format!("{c}={}", db.get_qmark())).join(",")
+    cols.into_iter()
+        .map(|c| format!("{c}={}", db.get_qmark()))
+        .join(",")
 }
-
-// pub fn qmarks_parenthes(nb: usize, db: &DatabaseType) -> String {
-//     if nb == 0 {
-//         "()".to_string()
-//     } else {
-//         let qmarks = qmarks(nb, db);
-//         format!("({qmarks})")
-//     }
-// }
 
 #[cfg(test)]
 mod test_query_builder {
@@ -56,7 +49,7 @@ mod test_query_builder {
         };
     }
 
-    const SQLITE:&DatabaseType = &DatabaseType::Sqlite;
+    const SQLITE: &DatabaseType = &DatabaseType::Sqlite;
 
     test_qmarks!(1 "?" &DatabaseType::Sqlite);
     test_qmarks!(2 "?,?" &DatabaseType::Sqlite);
@@ -76,7 +69,7 @@ mod test_query_builder {
             }
             };
     }
-    
+
     test_qmarks_with_col!("bla","bli"; SQLITE, "bla=?,bli=?");
     test_qmarks_with_col!("bla"; SQLITE, "bla=?");
     test_qmarks_with_col!(; SQLITE, "");
