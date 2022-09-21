@@ -1,2 +1,5 @@
-extract query de sqlo update
 sqlo update by pk
+
+
+à Faire pour tuer le temps:
+-test sqlo_set de query
