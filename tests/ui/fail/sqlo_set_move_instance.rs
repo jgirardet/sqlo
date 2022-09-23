@@ -13,6 +13,6 @@ async fn main() {
         .unwrap();
 
     let m = Maison::get(&pool, 1).await.unwrap();
-    set_Maison![&pool, m, taille = 3].await.unwrap();
+    update_Maison![m; taille = 3](&pool).await.unwrap();
     m;
 }

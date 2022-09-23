@@ -1,4 +1,4 @@
-use crate::sqlo::Sqlo;
+use crate::{sqlo::Sqlo, utils::is_string_type};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -10,7 +10,14 @@ pub fn impl_get(s: &Sqlo) -> TokenStream {
         ..
     } = s;
     let all_columns_as_query = s.all_columns_as_query();
-    let pk_ty = &s.pk_field.ty;
+
+    let pk_ty = if is_string_type(&s.pk_field.ty) {
+        quote![&str]
+    } else {
+        let pkty = &s.pk_field.ty;
+        quote![#pkty]
+    };
+
     let pk_column = &s.pk_field.column;
     let query = format!("SELECT {all_columns_as_query} FROM {tablename} WHERE {pk_column}=?");
     quote! {

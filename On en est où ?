@@ -1,5 +1,5 @@
-sqlo update by pk
-
+A FAIRE parce que ça manque : get literal et non string
+à faire pour tous ? en passant pas ref ?
 
 à Faire pour tuer le temps:
 -test sqlo_set de query

@@ -67,6 +67,37 @@ impl Sqlo {
             },
         )
     }
+
+    // Check for null values on Option_struct when using  `RETURNING`
+    // and return the corresponding strut
+    // called as tuple to not forget sqlx_null_checks.
+    pub fn convert_struct_option_to_struct(&self) -> (TokenStream, TokenStream) {
+        let sqlx_null_checks = self
+            .fields
+            .iter()
+            .map(|x| {
+                let ident = x.ident.clone();
+                if !is_option(&x.ty) {
+                    return quote! {
+                    if res.#ident.is_none() {return Err(sqlx::Error::RowNotFound)}};
+                }
+                return quote! {};
+            })
+            .collect::<TokenStream>();
+
+        let key_values = self
+            .fields
+            .iter()
+            .map(|crate::field::Field { ident, ty, .. }| {
+                if is_option(ty) {
+                    return quote! {#ident:res.#ident,};
+                }
+                return quote! {#ident:res.#ident.unwrap(),}; //unwrap ok because check in sqlx_null_check
+            })
+            .collect::<TokenStream>();
+        let struct_ident = &self.ident;
+        (sqlx_null_checks, quote! [ #struct_ident{#key_values}])
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

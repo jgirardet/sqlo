@@ -1,9 +1,10 @@
 use crate::{
     methods::{create::impl_create, get::impl_get, save::impl_save},
     sqlo::Sqlo,
+    sqlo_update::impl_update_macro,
 };
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 
 pub fn produce(sqlo: &Sqlo) -> TokenStream {
     let ident = sqlo.ident.clone();
@@ -34,26 +35,6 @@ fn impl_crud_queries(sqlo: &Sqlo) -> TokenStream {
     )
 }
 
-fn impl_update_macro(s: &Sqlo) -> TokenStream {
-    let Sqlo { ident, fields, .. } = s;
-
-    if fields.len() == 1 {
-        return quote! {}; // no macro if only pk is set for struct
-    }
-
-    let macro_ident = format_ident!("set_{}", ident);
-    let sqlo_struct = serde_json::to_string(&s).expect("Fail serializing Sqlo to json");
-
-    quote! {
-    #[allow(unused_macros)]
-    macro_rules! #macro_ident {
-        ($pool:expr, $instance:ident, $($arg:ident=$val:expr),+) => (
-            sqlo::sqlo_set!(#sqlo_struct, $pool , $instance , $($arg:ident=$val:expr),+)
-        );
-    }
-    }
-}
-
 fn impl_additional_utils(s: &Sqlo) -> TokenStream {
     let Sqlo {
         ident,
@@ -80,7 +61,7 @@ fn impl_additional_utils(s: &Sqlo) -> TokenStream {
         }
 
         fn pk(&self) -> #pk_ty {
-            self.#pkident
+            self.#pkident.clone()
         }
 
 

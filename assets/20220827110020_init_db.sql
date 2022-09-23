@@ -17,6 +17,11 @@ CREATE TABLE piece (
   FOREIGN KEY(maison_id) REFERENCES maison(id)
 );
 
+CREATE TABLE adresse (
+  id TEXT NOT NULL PRIMARY KEY,
+  rue TEXT
+);
+
 CREATE TABLE id_unique_int (
   id INTEGER NOT NULL PRIMARY KEY
 );
@@ -44,3 +49,9 @@ INSERT INTO piece VALUES
   (X'77777777777777777777777777777777',7,70, 3),
   (X'88888888888888888888888888888888',8,80, 2),
   (X'99999999999999999999999999999999',9,90, 1);
+
+
+INSERT INTO adresse (id, rue) VALUES 
+  ('1', 'adresse1'),
+  ('2', 'adresse2'),
+  ('3', 'adresse3');

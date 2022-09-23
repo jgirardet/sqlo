@@ -3,7 +3,6 @@ use proc_macro2::TokenStream;
 use crate::{
     query_builder::{commma_sep_with_parenthes_literal_list, qmarks},
     sqlo::{DatabaseType, Sqlo},
-    utils::is_option,
 };
 use quote::quote;
 
@@ -83,27 +82,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
 
     let (option_struct_name, option_struct) = s.as_option_struct();
 
-    let sqlx_null_check = s
-        .fields
-        .iter()
-        .map(|crate::field::Field { ident, ty, .. }| {
-            if !is_option(ty) {
-                return quote! { if res.#ident.is_none() {return Err(sqlx::Error::RowNotFound)}};
-            }
-            return quote! {};
-        })
-        .collect::<TokenStream>();
-
-    let convert_option_to_value = s
-        .fields
-        .iter()
-        .map(|crate::field::Field { ident, ty, .. }| {
-            if crate::utils::is_option(ty) {
-                return quote! {#ident:res.#ident,};
-            }
-            return quote! {#ident:res.#ident.unwrap(),}; //unwrap ok because check in sqlx_null_check
-        })
-        .collect::<TokenStream>();
+    let (sqlx_null_check, converted_from_option_struct) = s.convert_struct_option_to_struct();
 
     let query = build_sql_query(
         &s.database_type,
@@ -127,7 +106,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
                 .await?;
 
                 #sqlx_null_check
-                Ok(#ident{#convert_option_to_value})
+                Ok(#converted_from_option_struct)
             }
     }
 }
