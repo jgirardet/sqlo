@@ -31,19 +31,25 @@ struct MyTable {
 ...
 //
 let pool = get_my_db_pool().await?;
+
 // create row
 let a = MyTable::create(&pool, "hello", None).await?;
+
 // retrieve row by primary_key
 let mut b = MyTable::get(&pool, a.id).await?
 assert_eq!(a,b);
+
 // update a full row with instance
 b.text = "bye".to_string();
 b.save(&pool).await?;
+
 // update selected fields only
 let b = update_MyTable![b, text="I'm Back", maybe=Some(12)](&pool).await?;
+
 // or the same by primary_key
 let pk = b.id;
 let c = update_MyTable![pk = pk, text="I'm reBack", maybe=None](&pool).await?;
+
 // remove by instance
 c.remove(&pool).await?
 //or delete with pk
@@ -253,13 +259,13 @@ myrow.some_field = 1; // compile_error
 ### update_Table!
 
 Rust handles variable number of argument with macro (like vec!, ...), but it can't put as method.
-So `Sqlo` generates an update macro which is name : `update_MyStruct`.
+So `Sqlo` generates an update macro which is named as follow : `update_MyStruct`.
 
 `sqlx::query_as!` witch `fetch_one` is used under the hood.
 
-Return: Fn(&DBPool) -> Future<sqlx::Result<T>>.
+Return: `Fn(&DBPool) -> Future<sqlx::Result<T>>`
 
-**The output (a callable) of the macros has to be called with a database pool. It won't work with a simple database connection.**
+**The output of the macros has to be called with a database pool. It won't work with a simple database connection.**
 
 It supports the followings formats:
 
@@ -273,7 +279,7 @@ update_Mystruct![pk = value, field1=value1, field2=value2](&pool).await?
 ```
 
 ```rust
-#[derive[Sqlon Debug, PartialEq]]
+#[derive[Sqlo, Debug, PartialEq]]
 struct House {
     id: i64,
     name: String,
