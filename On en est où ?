@@ -1,5 +1,8 @@
-A FAIRE parce que ça manque : get literal et non string
-à faire pour tous ? en passant pas ref ?
+
+à faire peut être : 
+- a'& str non supporté : il faut supporter les lifetime de la struct pout cela.
+ensuite supporter a'str dans types
+- to_json method
 
 à Faire pour tuer le temps:
 -test sqlo_set de query
