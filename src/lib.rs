@@ -6,6 +6,7 @@ mod query_builder;
 mod serdable;
 mod sqlo;
 mod sqlo_update;
+mod types;
 mod utils;
 use crate::parse::SqloParse;
 use crate::sqlo::Sqlo;
@@ -38,12 +39,3 @@ pub fn sqlo_set(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         Err(e) => e.to_compile_error().into(),
     }
 }
-
-// #[proc_macro]
-// pub fn sqlo_set2(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-//     let pts: SqloSetParse2 = syn::parse_macro_input!(input as SqloSetParse2);
-//     match process_sqlo_set2(pts) {
-//         Ok(ts) => ts.into(),
-//         Err(e) => e.to_compile_error().into(),
-//     }
-// }

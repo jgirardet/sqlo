@@ -41,11 +41,11 @@ impl From<TypeSer> for syn::Type {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "Option<syn::ExprPath>")]
 pub(crate) struct OptionExprPathSer {
-    #[serde(getter = "expr_path_to_string")]
+    #[serde(getter = "option_expr_path_to_string")]
     path: String,
 }
 
-fn expr_path_to_string(exp: &Option<syn::ExprPath>) -> String {
+fn option_expr_path_to_string(exp: &Option<syn::ExprPath>) -> String {
     if let Some(p) = exp {
         darling::util::path_to_string(&p.path)
     } else {

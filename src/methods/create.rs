@@ -3,6 +3,7 @@ use proc_macro2::TokenStream;
 use crate::{
     query_builder::{commma_sep_with_parenthes_literal_list, qmarks},
     sqlo::{DatabaseType, Sqlo},
+    types::get_function_arg_type,
 };
 use quote::quote;
 
@@ -74,6 +75,10 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
     } = s.into();
 
     let insert_query_args = quote! { #(#insert_query_args),*};
+    let non_create_fn_types: Vec<TokenStream> = non_create_fn_types
+        .into_iter()
+        .map(|x| get_function_arg_type(x))
+        .collect();
     let fn_args = quote! {#(#non_create_fn_idents:#non_create_fn_types),*};
 
     let create_fn_impl = quote! {

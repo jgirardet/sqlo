@@ -1,7 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{field::Field, parse::SqloParse, serdable::IdentSer, utils::is_option};
 use itertools::Itertools;
+use crate::{field::Field, parse::SqloParse, serdable::IdentSer, types::is_type_option};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 
@@ -42,7 +42,7 @@ impl Sqlo {
         self.fields
             .iter()
             .map(|Field { ident, ty, .. }| {
-                if is_option(&ty) {
+                if is_type_option(&ty) {
                     quote! {#ident: #ty,}
                 } else {
                     quote! { #ident: Option<#ty>, }
@@ -77,7 +77,7 @@ impl Sqlo {
             .iter()
             .map(|x| {
                 let ident = x.ident.clone();
-                if !is_option(&x.ty) {
+                if !is_type_option(&x.ty) {
                     return quote! {
                     if res.#ident.is_none() {return Err(sqlx::Error::RowNotFound)}};
                 }
@@ -89,7 +89,7 @@ impl Sqlo {
             .fields
             .iter()
             .map(|crate::field::Field { ident, ty, .. }| {
-                if is_option(ty) {
+                if is_type_option(ty) {
                     return quote! {#ident:res.#ident,};
                 }
                 return quote! {#ident:res.#ident.unwrap(),}; //unwrap ok because check in sqlx_null_check

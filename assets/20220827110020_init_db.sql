@@ -31,6 +31,11 @@ CREATE TABLE id_unique_uuid (
 );
 
 
+CREATE TABLE with_a_blob (
+  id INTEGER NOT NULL PRIMARY KEY,
+  data BLOB NOT NULL
+);
+
 
 INSERT INTO maison (id, adresse, taille) VALUES 
   (1, 'adresse1', 101),

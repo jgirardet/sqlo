@@ -1,0 +1,16 @@
+error[E0382]: use of moved value: `m`
+  --> tests/ui/fail/remove_moves_self.rs:18:5
+   |
+16 |     let m = Maison::get(&pool, 1).await.unwrap();
+   |         - move occurs because `m` has type `Maison`, which does not implement the `Copy` trait
+17 |     m.remove(&pool);
+   |       ------------- `m` moved due to this method call
+18 |     m;
+   |     ^ value used here after move
+   |
+note: this function takes ownership of the receiver `self`, which moves `m`
+  --> tests/ui/fail/remove_moves_self.rs:2:10
+   |
+2  | #[derive(sqlo::Sqlo)]
+   |          ^^^^^^^^^^
+   = note: this error originates in the derive macro `sqlo::Sqlo` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -73,19 +73,4 @@ mod test_query_builder {
     test_qmarks_with_col!("bla","bli"; SQLITE, "bla=?,bli=?");
     test_qmarks_with_col!("bla"; SQLITE, "bla=?");
     test_qmarks_with_col!(; SQLITE, "");
-
-    // macro_rules! test_qmarks_parenthes {
-    //     ($nb:literal  $res:literal $db:expr) => {
-    //         paste::paste! {
-
-    //             #[test]
-    //             fn [<qmarks_parenth_  $nb>]() {
-    //                 assert_eq!(qmarks_parenthes($nb, $db), $res);
-    //             }
-    //         }
-    //     };
-    // }
-    // test_qmarks_parenthes!(1 "(?)" &DatabaseType::Sqlite);
-    // test_qmarks_parenthes!(2 "(?,?)" &DatabaseType::Sqlite);
-    // test_qmarks_parenthes!(0 "()" &DatabaseType::Sqlite);
 }

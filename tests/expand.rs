@@ -2,23 +2,29 @@
 
 use sqlo::Sqlo;
 
-#[derive(Sqlo, Debug, PartialEq)]
-struct Maison {
-    #[sqlo(type_override, create_fn = "uuid::Uuid::new_v4")]
-    id: i64,
-    adresse: String,
-    taille: i64,
-    piscine: Option<bool>,
-}
+// #[derive(Sqlo, Debug, PartialEq)]
+// struct Maison {
+//     #[sqlo(type_override, create_fn = "uuid::Uuid::new_v4")]
+//     id: i64,
+//     adresse: String,
+//     taille: i64,
+//     piscine: Option<bool>,
+// }
 
-#[derive(sqlo::Sqlo)]
-struct Adresse {
-    id: String,
-    rue: Option<String>,
+// #[derive(sqlo::Sqlo)]
+// struct Adresse {
+//     id: String,
+//     rue: Option<String>,
+// }
+
+#[derive(Debug, Sqlo)]
+struct IdUniqueUuid {
+    #[sqlo(create_fn = "uuid::Uuid::new_v4")]
+    id: uuid::Uuid,
 }
 #[async_std::main]
 async fn main() {
-    let pool = sqlx::SqlitePool::connect(&std::env::var("DATABASE_URL").unwrap())
+    let _pool = sqlx::SqlitePool::connect(&std::env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();
     // let a = Maison {
@@ -28,6 +34,12 @@ async fn main() {
     //     piscine: None,
     // };
     // a.save(&pool).await.unwrap();
+
+    // let s = "aa".to_string();
+    // let a = update_Maison!(a; adresse = "zefzef")(&pool).await.unwrap();
+    // assert_eq!(&a.adresse, "zefzef");
+    // let a = update_Maison!(a; adresse=s)(&pool).await.unwrap();
+    // assert_eq!(&a.adresse, "aa");
     // let a = Adresse {
     //     id: "1".to_string(),
     //     rue: None,
@@ -36,18 +48,18 @@ async fn main() {
     //     id: "1".to_string(),
     //     rue: None,
     // };
-    struct B {
-        c: Adresse,
-    }
+    // struct B {
+    //     c: Adresse,
+    // }
     // let b = B { c: a };
     // let a = Some("1".to_string());
-    let e = Some("1".to_string());
-    let var = "1".to_string();
+    // let e = Some("1".to_string());
+    // let var = "1".to_string();
     // let b = &a;
     //
-    let v = &var;
-    update_Adresse![pk v; rue = e](&pool).await.unwrap();
-    dbg!(&var);
+    // let v = &var;
+    // update_Adresse![pk v; rue = e](&pool).await.unwrap();
+    // dbg!(&var);
     // let g = set_Adresse![for aa do rue = e](&pool).await.unwrap();
     // assert_eq!(f, g);
 

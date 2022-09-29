@@ -6,3 +6,4 @@ ensuite supporter a'str dans types
 
 à Faire pour tuer le temps:
 -test sqlo_set de query
+_ test Vec<u8>
