@@ -1,18 +1,20 @@
 # sqlo
 
-sqlx syntactic sugar for sqlx.
+Syntactic sugar for sqlx.
 
 ## What is it ?
 
-Sqlo is another attempt to make a nice/pleasant API using relational database.
+Sqlo is another attempt to make a nice/pleasant API in Rust using relational database.
 
 Sqlo is built on top of sqlx and uses sqlx macros so you keep all the power of sqlx at compile time with less boiler plate.
+
+Right now, only sqlite is supported. PR welcomed :-)
 
 ## Install
 
 ```toml
 #Cargo.toml
-sqlo = {version=0.1.0, features=["sqlite"]}
+sqlo = {version="0.1.0", features=["sqlite"]}
 ```
 
 ## How it works ?
@@ -93,7 +95,7 @@ struct MyTable {
 
 #### create_fn and create_arg
 
-By default, `Sqlo` relies on Database Backend `auto-increment` feature for primary key when adding a new row with the `create` method. So there is no argument to provide for primary_key.
+By default, `Sqlo` relies on Database Backend `auto-increment` feature for primary key when adding a new row with the `create` method. So, by default there is no argument to provide for primary_key.
 
 ```rust
 #[derive(Sqlo)]
@@ -121,7 +123,7 @@ let instance = MyTable::create(&pool, 234234, "some string");
 assert_eq!(instance.id, 234234);
 ```
 
-- `create_fn`: provides a no arguement callable which is called as primary_key value.
+- `create_fn`: provides callable as string which is called as primary_key value.
 
 ```rust
 #[derive(Sqlo)]
@@ -144,7 +146,7 @@ This attribute gives you access to [sqlx type override](https://docs.rs/sqlx/lat
 
 ### Introduction
 
-- Every method returning an instance of the derived struct uses `sqlx::squery_as!` under the hood.
+- Every method returning an instance of the derived struct uses `sqlx::query_as!` under the hood.
 - The first parameter is always the database connection.
 
 ### Parameters type
@@ -176,6 +178,7 @@ Return: `sqlx::Result<T>`
 
 ```rust
 let row = MyTable::get(&pool,   23).await?
+assert_eq!(row.id, 23);
 ```
 
 ### create
@@ -196,6 +199,7 @@ struct MyTable {
 }
 //...
 let mytable = MyTable::create(&pool, "bla", true, None).await?;
+assert_eq!(mytable.name, "bla".to_string());
 ```
 
 ### save
@@ -227,7 +231,7 @@ assert_eq!(mytable, mytable2);
 
 Delete a row by it's primary key.
 
-Return: `sqlx::Result<DB::QueryResult>`
+Return: `sqlx::Result<DB::QueryResult>`>>
 
 ```rust
 MyTable::delete(&pool, 43).await?
@@ -242,4 +246,43 @@ Return: `sqlx::Result<DB::QueryResult>`
 ```rust
 myrow.remove(&pool).await?;
 myrow.some_field = 1; // compile_error
+```
+
+## Macros
+
+### update_Table!
+
+Rust handles variable number of argument with macro (like vec!, ...), but it can't put as method.
+So `Sqlo` generates an update macro which is name : `update_MyStruct`.
+
+`sqlx::query_as!` witch `fetch_one` is used under the hood.
+
+Return: Fn(&DBPool) -> Future<sqlx::Result<T>>.
+
+**The output (a callable) of the macros has to be called with a database pool. It won't work with a simple database connection.**
+
+It supports the followings formats:
+
+```rust
+update_MyStruct![instance; field1=value1, field2=value2](&pool).await?
+// this format takes ownership of instance
+
+// or
+
+update_Mystruct![pk = value, field1=value1, field2=value2](&pool).await?
+```
+
+```rust
+#[derive[Sqlon Debug, PartialEq]]
+struct House {
+    id: i64,
+    name: String,
+    width: i64,
+    height: i64
+}
+//...
+let house = House::get(&pool, 2);
+let house = update_House![house; name= "bla", width=34](&pool).await?;
+let other_update = update_House!(pk=2, height=345)(&pool).await?;
+
 ```
