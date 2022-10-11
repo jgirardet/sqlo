@@ -1,4 +1,4 @@
-use crate::serdable::{IdentSer, OptionExprPathSer, TypeSer};
+use crate::serdable::{IdentSer, OptionExprPathSer, OptionIdentSer, TypePathSer};
 use darling::FromField;
 use syn::spanned::Spanned;
 
@@ -16,6 +16,8 @@ pub struct FieldParser {
     create_fn: Option<syn::ExprPath>,
     #[darling(default)]
     pub create_arg: bool,
+    pub fk: Option<syn::Ident>,
+    pub fk_field: Option<syn::Ident>,
 }
 
 impl FieldParser {
@@ -46,20 +48,57 @@ impl FieldParser {
             Ok(name.to_string())
         }
     }
+
+    pub fn fk(&self) -> syn::Result<Option<syn::Ident>> {
+        if self.fk.is_none() {
+            return Ok(self.fk.clone());
+        }
+        let msg =  "This type is not supported as Foreign Key with Sqlo. use `Ident` or `some::path::Ident` without Generic";
+        if let syn::Type::Path(syn::TypePath { ref path, .. }) = self.ty {
+            // validate single ident as type path
+            if let Some(_) = path.get_ident() {
+                return Ok(self.fk.clone());
+            }
+            // validate mutli path as type_path without <>or()
+            for seg in path.segments.iter() {
+                match seg.arguments {
+                    syn::PathArguments::None => continue,
+                    _ => return Err(syn::Error::new_spanned(self.ty.clone(), msg)),
+                };
+            }
+            return Ok(self.fk.clone());
+        }
+        Err(syn::Error::new_spanned(self.ty.clone(), msg))
+    }
+
+    pub fn ty(&self) -> syn::Result<syn::TypePath> {
+        if let syn::Type::Path(ref typepath) = self.ty {
+            Ok(typepath.clone())
+        } else {
+            Err(syn::Error::new_spanned(
+                &self.ty,
+                "Type not supported by sqlo",
+            ))
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Field {
     #[serde(with = "IdentSer")]
     pub ident: syn::Ident,
-    #[serde(with = "TypeSer")]
-    pub ty: syn::Type,
+    #[serde(with = "TypePathSer")]
+    pub ty: syn::TypePath,
     pub column: String,
     pub as_query: String,
     pub primary_key: bool,
     #[serde(with = "OptionExprPathSer")]
     pub create_fn: Option<syn::ExprPath>,
     pub create_arg: bool,
+    #[serde(with = "OptionIdentSer")]
+    pub fk: Option<syn::Ident>,
+    #[serde(with = "OptionIdentSer")]
+    pub fk_field: Option<syn::Ident>,
 }
 
 impl<'a> TryFrom<FieldParser> for Field {
@@ -68,12 +107,16 @@ impl<'a> TryFrom<FieldParser> for Field {
     fn try_from(fp: FieldParser) -> Result<Self, Self::Error> {
         Ok(Field {
             ident: fp.ident()?.to_owned(),
-            ty: fp.ty.clone(),
+            ty: fp.ty()?,
             column: fp.column_name()?.to_string(),
             as_query: fp.as_query()?,
             primary_key: fp.primary_key,
+            fk: fp.fk()?,
             create_fn: fp.create_fn,
             create_arg: fp.create_arg,
+            fk_field: fp.fk_field,
         })
     }
 }
+
+impl Field {}

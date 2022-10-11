@@ -17,24 +17,89 @@ impl From<IdentSer> for syn::Ident {
     }
 }
 
-// syn::Type
+// Option<syn::Ident>
 
 #[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "syn::Type")]
-pub(crate) struct TypeSer {
+#[serde(remote = "Option<syn::Ident>")]
+pub(crate) struct OptionIdentSer {
+    #[serde(getter = "option_ident_to_string")]
+    name: Option<String>,
+}
+
+impl From<OptionIdentSer> for Option<syn::Ident> {
+    fn from(i: OptionIdentSer) -> Self {
+        // syn::Ident::new(&i.name, proc_macro2::Span::call_site())
+        match i.name {
+            None => None,
+            Some(x) => Some(syn::Ident::new(&x, proc_macro2::Span::call_site())),
+        }
+    }
+}
+fn option_ident_to_string(exp: &Option<syn::Ident>) -> Option<String> {
+    if let Some(p) = exp {
+        Some(p.to_string())
+    } else {
+        None
+        // "null".to_string()
+    }
+}
+
+// // syn::Type
+
+// #[derive(serde::Serialize, serde::Deserialize)]
+// #[serde(remote = "syn::Type")]
+// pub(crate) struct TypeSer {
+//     #[serde(getter = "type_to_string")]
+//     ty: String,
+// }
+
+// fn type_to_string(typ: &syn::Type) -> String {
+//     typ.to_token_stream().to_string()
+// }
+
+// impl From<TypeSer> for syn::Type {
+//     fn from(i: TypeSer) -> Self {
+//         syn::parse_str::<syn::Type>(&i.ty).expect("Error deserializing syn::Type")
+//     }
+// }
+
+// syn::TypePath
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "syn::TypePath")]
+pub(crate) struct TypePathSer {
     #[serde(getter = "type_to_string")]
     ty: String,
 }
 
-fn type_to_string(typ: &syn::Type) -> String {
+fn type_to_string(typ: &syn::TypePath) -> String {
     typ.to_token_stream().to_string()
 }
 
-impl From<TypeSer> for syn::Type {
-    fn from(i: TypeSer) -> Self {
-        syn::parse_str::<syn::Type>(&i.ty).expect("Error deserializing syn::Type")
+impl From<TypePathSer> for syn::TypePath {
+    fn from(i: TypePathSer) -> Self {
+        syn::parse_str::<syn::TypePath>(&i.ty).expect("Error deserializing syn::TypePath")
     }
 }
+
+// // syn::ExprPath
+
+// #[derive(serde::Serialize, serde::Deserialize)]
+// #[serde(remote = "syn::ExprPath")]
+// pub(crate) struct ExprPathSer {
+//     #[serde(getter = "expr_path_to_string")]
+//     path: String,
+// }
+
+// impl From<ExprPathSer> for syn::ExprPath {
+//     fn from(i: ExprPathSer) -> Self {
+//         syn::parse_str::<syn::ExprPath>(&i.path).expect("Error deserializing syn::ExprPath")
+//     }
+// }
+
+// fn expr_path_to_string(path: &syn::ExprPath) -> String {
+//     darling::util::path_to_string(&path.path)
+// }
 
 // Option<syn::ExprPath>
 
@@ -63,3 +128,29 @@ impl From<OptionExprPathSer> for Option<syn::ExprPath> {
         }
     }
 }
+
+// Option<syn::Path>
+
+// #[derive(serde::Serialize, serde::Deserialize)]
+// #[serde(remote = "Option<syn::Path>")]
+// pub(crate) struct OptionPathSer {
+//     #[serde(getter = "option_path_to_string")]
+//     path: String,
+// }
+
+// fn option_path_to_string(exp: &Option<syn::Path>) -> String {
+//     if let Some(p) = exp {
+//         darling::util::path_to_string(&p)
+//     } else {
+//         "".to_string()
+//     }
+// }
+
+// impl From<OptionPathSer> for Option<syn::Path> {
+//     fn from(i: OptionPathSer) -> Self {
+//         match i.path.as_str() {
+//             "" => None,
+//             x => Some(syn::parse_str::<syn::Path>(&x).expect("Error deserializing syn::Path")),
+//         }
+//     }
+// }

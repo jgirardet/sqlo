@@ -1,3 +1,14 @@
+Maintenant qu'on en a on peut essayer de read les relations et de les mettres dans SQLO ?
+
+il faut surement mettre alleuir le côté io/serde
+
+fetch all
+fetch stream
+
+
+
+Bug:
+- Serializer de create fn et fk doit retourner null et non empty string
 
 à faire peut être : 
 - a'& str non supporté : il faut supporter les lifetime de la struct pout cela.
@@ -7,3 +18,22 @@ ensuite supporter a'str dans types
 à Faire pour tuer le temps:
 -test sqlo_set de query
 _ test Vec<u8>
+
+
+idées de query
+
+struct Maison {
+    id: String,
+    #[sqlo(Set)]
+    pieces: Vec<Piece>&
+}
+
+Maison
+id5here]
+stream_Maison![(condtion1 && condition2) || condition3]
+stream_Maison![(condtion1 and condition2) or condition3]
+
+select_Maison![pieces.taille = 22]
+let m = Maison::get()
+select![m.expand_pieces]
+SELECT * from maison m INNER JOIN  pieces p ON m.id == p.maison_id

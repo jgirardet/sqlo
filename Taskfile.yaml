@@ -94,6 +94,7 @@ tasks:
       # - task: migrate
       # vars: {DATABASE_URL: '{{.DATABASE_URL}}'}
       # - sqlx migrate run --source tests -D {{.DATABASE_URL}}
+      - cmds: rm -rf .sqlo/
       - task: migrate
         vars: { DATABASE_URL: "{{.DATABASE_URL}}" }
       - task: run_test

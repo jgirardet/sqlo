@@ -1,7 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
-use itertools::Itertools;
 use crate::{field::Field, parse::SqloParse, serdable::IdentSer, types::is_type_option};
+use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 
@@ -14,7 +14,7 @@ const DATABASE_TYPE: DatabaseType = if cfg!(feature = "sqlite") {
     )
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sqlo {
     #[serde(with = "IdentSer")]
     pub ident: syn::Ident,
@@ -100,7 +100,7 @@ impl Sqlo {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum DatabaseType {
     Sqlite,
 }

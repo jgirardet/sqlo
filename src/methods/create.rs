@@ -9,7 +9,7 @@ use quote::quote;
 
 struct CrudCreateImpl<'a> {
     pub non_create_fn_idents: Vec<&'a syn::Ident>,
-    pub non_create_fn_types: Vec<&'a syn::Type>,
+    pub non_create_fn_types: Vec<&'a syn::TypePath>,
     pub create_fn_idents: Vec<&'a syn::Ident>,
     pub create_fns: Vec<&'a syn::ExprPath>,
     pub insert_query_columns: Vec<&'a str>,

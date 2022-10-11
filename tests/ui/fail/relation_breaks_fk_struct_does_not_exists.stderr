@@ -1,0 +1,5 @@
+error: No struct `SomeWrongStruct` was  found as derived from Sqlo
+  --> tests/ui/fail/relation_breaks_fk_struct_does_not_exists.rs:17:17
+   |
+17 |     #[sqlo(fk = "SomeWrongStruct")]
+   |                 ^^^^^^^^^^^^^^^^^

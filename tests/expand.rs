@@ -1,32 +1,52 @@
 #![allow(dead_code)]
+#![allow(unused_variables)]
 
 use sqlo::Sqlo;
 
-// #[derive(Sqlo, Debug, PartialEq)]
-// struct Maison {
-//     #[sqlo(type_override, create_fn = "uuid::Uuid::new_v4")]
-//     id: i64,
-//     adresse: String,
-//     taille: i64,
-//     piscine: Option<bool>,
-// }
-
-// #[derive(sqlo::Sqlo)]
-// struct Adresse {
-//     id: String,
-//     rue: Option<String>,
-// }
-
-#[derive(Debug, Sqlo)]
-struct IdUniqueUuid {
-    #[sqlo(create_fn = "uuid::Uuid::new_v4")]
-    id: uuid::Uuid,
+#[derive(Sqlo)]
+struct Adresse {
+    id: String,
+    rue: Option<String>,
 }
+#[derive(Sqlo, Debug, PartialEq)]
+#[sqlo(tablename = "maison")]
+struct ExpandMaison {
+    #[sqlo(type_override, create_fn = "uuid::Uuid::new_v4")]
+    id: i64,
+    #[sqlo(fk = "Adresse")]
+    adresse: String,
+    // #[sqlo(fk = "Adresse", fk_field = "id")]
+    taille: i64,
+    // #[sqlo(fk = "ExpandPiece")]
+    piscine: Option<bool>,
+}
+
+#[derive(Sqlo, PartialEq, Debug)]
+#[sqlo(tablename = "piece")]
+struct ExpandPiece {
+    #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
+    nb: uuid::Uuid, // keep full path
+    #[sqlo(type_override, column = "lg")]
+    lglg: i32,
+    // #[sqlo(fk = "ExpandMaison", fk_field = "lefield")]
+    la: i64,
+    #[sqlo(fk = "ExpandMaison")]
+    maison_id: i64,
+}
+
+// #[derive(Debug, Sqlo)]
+// struct IdUniqueUuid {
+//     #[sqlo(create_fn = "uuid::Uuid::new_v4")]
+//     id: uuid::Uuid,
+
+// }
 #[async_std::main]
 async fn main() {
-    let _pool = sqlx::SqlitePool::connect(&std::env::var("DATABASE_URL").unwrap())
+    let pool = sqlx::SqlitePool::connect(&std::env::var("DATABASE_URL").unwrap())
         .await
         .unwrap();
+
+    let maison1 = ExpandMaison::get(&pool, 1).await.unwrap();
     // let a = Maison {
     //     id: 123,
     //     adresse: "zefzef".to_string(),

@@ -292,3 +292,11 @@ let house = update_House![house; name= "bla", width=34](&pool).await?;
 let other_update = update_House!(pk=2, height=345)(&pool).await?;
 
 ```
+
+## Relations
+ - use fk
+ - same type needed
+ - compile might fail (order of compilation), relaunch
+ - check: struct exist, same type (in pk)
+ - use ident or some::path::ident
+ - .sqlo dir: may or not be versionned

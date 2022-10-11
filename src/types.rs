@@ -2,43 +2,40 @@ use darling::util::path_to_string;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn get_function_arg_type(ty: &syn::Type) -> TokenStream {
-    // if let Some(ident) = ty.path
-
-    // match ty {
-    // u8 => quote![u8],
-    if let syn::Type::Path(syn::TypePath { path, .. }) = ty {
-        if let Some(ident) = path.get_ident() {
-            return match ident.to_string().as_str() {
-                "u8" => quote![u8],
-                "u16" => quote![u16],
-                "u32" => quote![u32],
-                "u64" => quote![u64],
-                "i8" => quote![i8],
-                "i16" => quote![i16],
-                "i32" => quote![i32],
-                "i64" => quote![i64],
-                "f32" => quote![f32],
-                "f64" => quote![f64],
-                "bool" => quote![bool],
-                "String" => quote![&str],
-                "BString" => quote![&BStr],
-                "bstr::BString" => quote![&bstr::BStr],
-                _ => quote!(&#ty),
-            };
+pub fn get_function_arg_type(ty: &syn::TypePath) -> TokenStream {
+    if let Some(ident) = ty.path.get_ident() {
+        match ident.to_string().as_str() {
+            "u8" => quote![u8],
+            "u16" => quote![u16],
+            "u32" => quote![u32],
+            "u64" => quote![u64],
+            "i8" => quote![i8],
+            "i16" => quote![i16],
+            "i32" => quote![i32],
+            "i64" => quote![i64],
+            "f32" => quote![f32],
+            "f64" => quote![f64],
+            "bool" => quote![bool],
+            "String" => quote![&str],
+            "BString" => quote![&BStr],
+            "bstr::BString" => quote![&bstr::BStr],
+            _ => quote!(&#ty),
+        }
+    } else {
+        if path_is_vec_u8(&ty.path) {
+            quote![&[u8]]
+        } else if is_type_option(&ty) {
+            quote![#ty]
         } else {
-            if path_is_vec_u8(&path) {
-                return quote![&[u8]];
-            } else if is_type_option(&ty) {
-                return quote![#ty];
-            }
-            return match path_to_string(path).as_str() {
+            match path_to_string(&ty.path).as_str() {
                 "bstr::BString" => quote![&bstr::BStr],
-                _ => quote![&#path],
-            };
+                _ => {
+                    let path = ty.path.clone();
+                    quote![&#path]
+                }
+            }
         }
     }
-    return quote![];
 }
 
 fn path_is_vec_u8(path: &syn::Path) -> bool {
@@ -70,17 +67,12 @@ fn path_is_vec_u8(path: &syn::Path) -> bool {
     false
 }
 
-pub fn is_type_option(ty: &syn::Type) -> bool {
-    if let syn::Type::Path(syn::TypePath {
-        path: syn::Path { segments, .. },
-        ..
-    }) = ty
-    {
-        if let Some(p) = segments.first() {
-            return p.ident == "Option";
-        }
+pub fn is_type_option(ty: &syn::TypePath) -> bool {
+    if let Some(p) = ty.path.segments.first() {
+        p.ident == "Option"
+    } else {
+        false
     }
-    false
 }
 
 #[allow(unused)]
@@ -99,7 +91,7 @@ mod test_types {
 
                 #[test]
                 fn [<test_get_function_arg_type $title>]() {
-                    let ty: syn::Type = parse_quote!($input);
+                    let ty : syn::TypePath = parse_quote!($input);
                     assert_eq!(
                         get_function_arg_type(&ty).to_string(),
                         quote![$res].to_string()
