@@ -17,7 +17,7 @@ pub struct FieldParser {
     #[darling(default)]
     pub create_arg: bool,
     pub fk: Option<syn::Ident>,
-    pub fk_field: Option<syn::Ident>,
+    pub related: Option<syn::Ident>,
 }
 
 impl FieldParser {
@@ -81,6 +81,17 @@ impl FieldParser {
             ))
         }
     }
+
+    pub fn related(&self) -> syn::Result<Option<syn::Ident>> {
+        if self.related.is_some() && self.fk.is_none() {
+            Err(syn::Error::new_spanned(
+                self.related.clone(),
+                "`fk` has to be set",
+            ))
+        } else {
+            Ok(self.related.clone())
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -98,7 +109,7 @@ pub struct Field {
     #[serde(with = "OptionIdentSer")]
     pub fk: Option<syn::Ident>,
     #[serde(with = "OptionIdentSer")]
-    pub fk_field: Option<syn::Ident>,
+    pub related: Option<syn::Ident>,
 }
 
 impl<'a> TryFrom<FieldParser> for Field {
@@ -112,11 +123,9 @@ impl<'a> TryFrom<FieldParser> for Field {
             as_query: fp.as_query()?,
             primary_key: fp.primary_key,
             fk: fp.fk()?,
+            related: fp.related()?,
             create_fn: fp.create_fn,
             create_arg: fp.create_arg,
-            fk_field: fp.fk_field,
         })
     }
 }
-
-impl Field {}

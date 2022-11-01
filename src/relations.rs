@@ -1,5 +1,6 @@
 use darling::util::path_to_string;
 use proc_macro2::Span;
+use quote::format_ident;
 use regex::Regex;
 
 use std::{
@@ -15,15 +16,16 @@ use crate::{
 };
 
 // not const so we can use it in macro
+// patter: struct, field, fk_struct, fk_related_name, type
 macro_rules! fk_pattern {
     () => {
-        "fk-{}--{}---{}----{}"
+        "fk-{}--{}---{}--{}----{}"
     };
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Relations {
-    relations: Vec<Relation>,
+    pub(crate) relations: Vec<Relation>,
 }
 
 impl Relations {
@@ -47,13 +49,12 @@ impl Relations {
         let mut relations = vec![];
 
         // foreignkeys
-        let pat = path.join(format!("fk-*--*--*"));
+        let pat = path.join(format!(fk_pattern!(), "*", "*", "*", "*", "*"));
         let fk_relations: Vec<PathBuf> = glob::glob(pat.to_str().unwrap())
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e.msg))?
             .filter_map(Result::ok)
             .collect();
         relations.extend_from_slice(&fk_relations);
-
         Ok(Self {
             relations: relations
                 .into_iter()
@@ -126,6 +127,20 @@ impl Relations {
     }
 }
 
+// query impl block
+impl Relations {
+    pub fn find(&self, to: &syn::Ident, related: &syn::Ident) -> Result<&Relation, SqloError> {
+        match self
+            .relations
+            .iter()
+            .find(|Relation::ForeignKey(r)| &r.to == to && &r.related == related)
+        {
+            Some(r) => Ok(r),
+            None => Err(SqloError::new("No relation found", related.span())),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Relation {
     ForeignKey(RelForeignKey),
@@ -144,7 +159,7 @@ impl TryFrom<PathBuf> for Relation {
 
     fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
         lazy_static::lazy_static! {
-            static ref RE_FK: Regex = Regex::new(r"^fk-(\w+)--(\w+)---(\w+)--(\w+)----(\w+|~)$").unwrap();
+            static ref RE_FK: Regex = Regex::new(r"^fk-(\w+)--(\w+)---(\w+)--(\w+)----([\w~]+)$").unwrap();
         }
         if let Some(filename) = value.file_name() {
             if let Some(filestr) = filename.to_str() {
@@ -155,12 +170,16 @@ impl TryFrom<PathBuf> for Relation {
                         .filter_map(|f| f)
                         .map(|m| m.as_str())
                         .collect::<Vec<_>>();
-                    if res.len() == 4 {
+
+                    if res.len() == 5 {
                         return Ok(Relation::ForeignKey(RelForeignKey {
                             from: syn::Ident::new(&res[0], Span::call_site()),
                             field: syn::Ident::new(&res[1], Span::call_site()),
                             to: syn::Ident::new(&res[2], Span::call_site()),
-                            ty: syn::parse_quote!(res[3]),
+                            related: syn::Ident::new(&res[3], Span::call_site()),
+                            ty: syn::parse_str(&res[4].replace("~", ":")).map_err(|_| {
+                                SqloError::new_lost("Could not parse relation type")
+                            })?,
                         }));
                     }
                 }
@@ -175,10 +194,11 @@ impl TryFrom<PathBuf> for Relation {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RelForeignKey {
-    from: syn::Ident,
-    field: syn::Ident,
-    ty: syn::TypePath,
-    to: syn::Ident,
+    pub from: syn::Ident,
+    pub field: syn::Ident,
+    pub ty: syn::TypePath,
+    pub to: syn::Ident,
+    pub related: syn::Ident,
 }
 
 impl RelForeignKey {
@@ -191,7 +211,7 @@ impl RelForeignKey {
         let matching_sqlo = sqlos.iter().find(|s| s.ident == self.to);
         if matching_sqlo.is_none() {
             return Err(SqloError::new(
-                format!("No struct `{}` was  found as derived from Sqlo", &self.to),
+                &format!("No struct `{}` was  found as derived from Sqlo", &self.to),
                 self.to.span(),
             ));
         }
@@ -204,7 +224,7 @@ impl RelForeignKey {
 
         if matching_sqlo.pk_field.ty.path != self.ty.path {
             return Err(SqloError::new(
-                format!(
+                &format!(
                     "Field type an foreign key field's type don't match. Expected {} found {}",
                     path_to_string(&matching_sqlo.pk_field.ty.path),
                     path_to_string(&self.ty.path)
@@ -220,7 +240,11 @@ impl RelForeignKey {
 impl Display for RelForeignKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ty = darling::util::path_to_string(&self.ty.path).replace("::", "~~");
-        write!(f, fk_pattern!(), self.from, self.field, self.to, ty)
+        write!(
+            f,
+            fk_pattern!(),
+            self.from, self.field, self.to, self.related, ty
+        )
     }
 }
 
@@ -232,7 +256,37 @@ fn make_field_relations(field: &Field, sqlo: &Sqlo) -> Vec<Relation> {
             field: field.ident.clone(),
             ty: field.ty.clone(),
             to: rel.clone(),
+            related: field
+                .related
+                .clone()
+                .unwrap_or(as_related_name(&sqlo.ident)),
         }))
     }
     res
+}
+
+pub fn as_related_name(ident: &syn::Ident) -> syn::Ident {
+    use heck::ToSnakeCase;
+    let name = ident.to_string().to_snake_case();
+    format_ident!("{}", syn::Ident::new(&name, ident.span()))
+}
+
+#[cfg(test)]
+mod test_relations {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn test_try_from_pathbug_for_relation() {
+        let p = PathBuf::from_str(&format!(fk_pattern!(), "Aaa", "f", "Bbb", "g", "i32")).unwrap();
+        let _: Relation = p.try_into().unwrap();
+    }
+
+    #[test]
+    fn test_try_from_pathbug_for_relation_with_tilde_in_type() {
+        let p = PathBuf::from_str(&format!(fk_pattern!(), "Aaa", "f", "Bbb", "g", "path~~i32"))
+            .unwrap();
+        let _: Relation = p.try_into().unwrap();
+    }
 }

@@ -1,6 +1,8 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{field::Field, parse::SqloParse, serdable::IdentSer, types::is_type_option};
+use crate::{
+    field::Field, parse::SqloParse, serdable::IdentSer, types::is_type_option,
+};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
@@ -22,6 +24,7 @@ pub struct Sqlo {
     pub tablename: String,
     pub database_type: DatabaseType,
     pub pk_field: Field,
+    pub parse_only: bool,
 }
 
 impl TryFrom<SqloParse> for Sqlo {
@@ -33,6 +36,7 @@ impl TryFrom<SqloParse> for Sqlo {
             tablename: sp.tablename(),
             database_type: DATABASE_TYPE,
             pk_field: sp.has_pk_field()?,
+            parse_only: sp.parse_only,
         })
     }
 }
@@ -97,6 +101,15 @@ impl Sqlo {
             .collect::<TokenStream>();
         let struct_ident = &self.ident;
         (sqlx_null_checks, quote! [ #struct_ident{#key_values}])
+    }
+}
+
+// utils
+impl Sqlo {
+    /// Get a field if exists.
+    pub fn field<T: Display>(&self, name: T) -> Option<&Field> {
+        let name = name.to_string();
+        self.fields.iter().find(|f| f.ident == name)
     }
 }
 

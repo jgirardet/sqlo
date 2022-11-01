@@ -294,9 +294,15 @@ let other_update = update_House!(pk=2, height=345)(&pool).await?;
 ```
 
 ## Relations
- - use fk
- - same type needed
- - compile might fail (order of compilation), relaunch
- - check: struct exist, same type (in pk)
- - use ident or some::path::ident
- - .sqlo dir: may or not be versionned
+
+- use fk
+- related pour le lom
+- same type needed
+- compile might fail (order of compilation), relaunch
+- check: struct exist, same type (in pk)
+- use ident or some::path::ident
+- .sqlo dir: may or not be versionned
+- no one letter table (because if joins)
+  -sqlo_select: user field or related.field(for fk)
+
+divers: ajouter option parse_only

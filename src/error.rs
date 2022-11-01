@@ -9,8 +9,18 @@ pub struct SqloError {
 }
 
 impl SqloError {
-    pub fn new(msg: String, span: Span) -> Self {
-        SqloError { msg, span }
+    pub fn new(msg: &str, span: Span) -> Self {
+        SqloError {
+            msg: msg.to_string(),
+            span,
+        }
+    }
+
+    pub fn new_lost(msg: &str) -> Self {
+        SqloError {
+            msg: msg.to_string(),
+            span: Span::call_site(),
+        }
     }
 }
 
@@ -23,7 +33,7 @@ impl<T, E: std::error::Error> ToSqloError<T> for Result<T, E> {
     fn sqlo_err(self, span: Span) -> Result<T, SqloError> {
         match self {
             Ok(m) => Ok(m),
-            Err(e) => Err(SqloError::new(e.to_string(), span)),
+            Err(e) => Err(SqloError::new(&e.to_string(), span)),
         }
     }
 }
@@ -42,6 +52,12 @@ impl From<std::io::Error> for SqloError {
             msg: e.to_string(),
             span: Span::call_site(),
         }
+    }
+}
+
+impl From<SqloError> for std::io::Error {
+    fn from(e: SqloError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, e.to_string())
     }
 }
 
@@ -66,5 +82,17 @@ impl serde::de::Error for SqloError {
             msg: msg.to_string(),
             span: Span::call_site(),
         }
+    }
+}
+
+impl From<serde_json::Error> for SqloError {
+    fn from(e: serde_json::Error) -> Self {
+        Self::new_lost(&e.to_string())
+    }
+}
+
+impl From<syn::Error> for SqloError {
+    fn from(e: syn::Error) -> Self {
+        Self::new(&e.to_string(), e.span())
     }
 }

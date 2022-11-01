@@ -5,6 +5,7 @@ use crate::error::SqloError;
 use crate::relations::Relations;
 use crate::sqlo::Sqlo;
 
+/// Handle every Filesystem IO
 pub struct VirtualFile {
     sqlo: Sqlo,
     path: PathBuf,

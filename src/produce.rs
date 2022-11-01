@@ -1,7 +1,7 @@
 use crate::{
+    macros::sqlo_update::impl_update_macro,
     methods::{create::impl_create, delete::impl_delete, get::impl_get, save::impl_save},
     sqlo::Sqlo,
-    sqlo_update::impl_update_macro,
 };
 use proc_macro2::TokenStream;
 use quote::quote;
