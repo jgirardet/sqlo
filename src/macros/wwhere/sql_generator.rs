@@ -265,14 +265,14 @@ impl<'a> WhereSqlGenerator<'a> {
 #[cfg(test)]
 mod test_wwhere_sql_generator {
 
-    use crate::relations::Relations;
+    use crate::{relations::Relations, virtual_file::VirtualFile};
 
     use super::*;
 
     use crate::macros::wwhere::tokenizer::WhereTokenizer;
 
     fn get_sqlos() -> Sqlos {
-        let sqlos = Sqlos::load().expect("cannot load Sqlos");
+        let sqlos = VirtualFile::new().load().expect("cannot load Sqlos");
         let mut entities = vec![];
         let mut relations = vec![];
         // filter only thoose related

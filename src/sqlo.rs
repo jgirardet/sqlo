@@ -1,8 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{
-    field::Field, parse::SqloParse, serdable::IdentSer, types::is_type_option,
-};
+use crate::{field::Field, parse::SqloParse, serdable::IdentSer, types::is_type_option};
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};

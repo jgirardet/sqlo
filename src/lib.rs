@@ -23,9 +23,9 @@ use virtual_file::VirtualFile;
 
 fn process_all(deriveinput: ::syn::DeriveInput) -> syn::Result<TokenStream> {
     let sqlo: Sqlo = SqloParse::from_derive_input(&deriveinput)?.try_into()?;
-    let vf = VirtualFile::new(sqlo.clone());
-    vf.update()?;
-    vf.validate()?;
+    let vf = VirtualFile::new();
+    vf.update(&sqlo)?;
+    vf.validate(&sqlo)?;
     if sqlo.parse_only {
         return Ok(TokenStream::new());
     }

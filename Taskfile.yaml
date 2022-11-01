@@ -134,7 +134,11 @@ tasks:
   check:
     cmds:
       - cargo check --features=sqlite
-        
+
+  build:
+    cmds:
+      - cargo build --features=sqlite
+
   test-all:
-   - task: test
-   - task: example
+    - task: test
+    - task: example

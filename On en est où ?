@@ -1,5 +1,4 @@
 Après le commit:
-- deplacer sqlos::load vers virtalfile
 - debug simple de query(un flag dans macro ? un feature ?)
 
 

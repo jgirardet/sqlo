@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{punctuated::Punctuated, Token};
 
-use crate::{sqlo::Sqlo, sqlos::Sqlos};
+use crate::{sqlo::Sqlo, sqlos::Sqlos, virtual_file::VirtualFile};
 
 use super::{
     wwhere::{tokenizer::WhereTokenizer, where_generate_sql},
@@ -94,7 +94,7 @@ impl SqloSelectParse {
 }
 
 pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {
-    let sqlos = Sqlos::load()?;
+    let sqlos = VirtualFile::new().load()?;
     input.expand(&sqlos)
 }
 
