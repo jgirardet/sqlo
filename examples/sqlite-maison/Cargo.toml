@@ -1,0 +1,12 @@
+[package]
+edition = "2021"
+name = "sqlite-maison"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-std = {version = "1", features = ["attributes"]}
+sqlo = {path = "../../", features = ["sqlite"]}
+sqlx = {version = "0.6", features = ["sqlite", "runtime-async-std-native-tls", "uuid"]}
+uuid = {version = "1", features = ["v4"]}

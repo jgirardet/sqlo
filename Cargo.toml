@@ -3,7 +3,7 @@ edition = "2021"
 name = "sqlo"
 version = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 [lib]
 name = "sqlo"
 path = "src/lib.rs"
@@ -14,8 +14,7 @@ sqlite = ["sqlx/sqlite"]
 
 [[example]]
 name = "sqlite-maison"
-# path = "examples/sqlite-maison/main.rs"
-required-features = ["sqlite"]
+path = "examples/sqlite-maison/src/main.rs"
 
 [dependencies]
 darling = "0.14"
