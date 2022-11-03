@@ -25,7 +25,11 @@ impl From<&WhereTokenizer> for Toks {
             WhereTokenizer::Binary(b) => b.as_param(&mut t),
             // we don't use Expr.as_param, to keep separated the behavior at first node.
             WhereTokenizer::Mono(m) => match m {
-                syn::Expr::Paren(ref p) => p.as_param(&mut t),
+                // if only parenthesis, its first parsed as a group
+                syn::Expr::Group(syn::ExprGroup { expr, .. }) => match **expr {
+                    syn::Expr::Paren(ref p) => p.as_param(&mut t),
+                    _ => t.error(m, "Only Binary, Parenthesis and Not expression supported"),
+                },
                 syn::Expr::Unary(ref p) => p.as_param(&mut t),
                 _ => t.error(m, "Only Binary, Parenthesis and  Not expression supported"),
             },

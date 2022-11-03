@@ -1,10 +1,8 @@
-Après le commit:
-- debug simple de query(un flag dans macro ? un feature ?)
 
-
-avant le commit:
-- fait: inner join, where and between
-- ç faire : order limit distinct group by having
+- les fonction INavec usage de array/tupple comme argument
+- le vrai like
+_did you mean == for = quand message est "only paren, ident, not alloawes)
+- à faire : order limit distinct group by having
 
 Program de query :
 

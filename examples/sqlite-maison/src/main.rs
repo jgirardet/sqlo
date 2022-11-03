@@ -13,6 +13,9 @@
 //   FOREIGN KEY(maison_id) REFERENCES maison(id)
 // );
 
+use sqlo::sqlo_select;
+use sqlx::Executor;
+
 #[rustfmt::skip]
 macro_rules! uu4 {
     (1) => {uuid::uuid!("11111111111111111111111111111111")};
@@ -58,6 +61,17 @@ struct Adresse {
     rue: Option<String>,
 }
 
+#[derive(sqlo::Sqlo, PartialEq, Debug)]
+#[sqlo(tablename = "piece")]
+struct PieceFk {
+    #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
+    nb: uuid::Uuid, // keep full path
+    #[sqlo(type_override)]
+    lg: i32,
+    la: i64,
+    #[sqlo(fk = "Maison", related = "lespieces")]
+    maison_id: i64,
+}
 #[async_std::main]
 async fn main() {
     let pool = sqlx::SqlitePool::connect(&std::env::var("DATABASE_URL").unwrap())
@@ -262,6 +276,89 @@ async fn main() {
         .unwrap();
     assert_eq!(a.rue, Some("aze".to_string()));
 
+    // ----------------- select --------------------------------//
+
+    // #### REset DB #########
+
+    sqlx::query("DROP TABLE adresse;DROP TABLE piece;DROP TABLE maison")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    pool.execute(include_str!("../../../assets/20220827110020_init_db.sql"))
+        .await
+        .unwrap();
+
+    // --------------------- select easy -----------------------//
+
+    // pk
+    let res = sqlo_select!(Maison where id == 1)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res.id, 1);
+    assert_eq!(res.adresse, "adresse1");
+    assert_eq!(res.taille, 101);
+
+    // one attribute
+    let res = sqlo_select!(Maison where taille > 101)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res.len(), 2);
+    assert_eq!(res[0].id, 2);
+    assert_eq!(res[1].id, 3);
+
+    macro_rules! comp_many {
+        ($ident:ident, $exp:expr, $res:literal) => {
+            assert_eq!(
+                sqlo_select!($ident where $exp)
+                    .fetch_all(&pool)
+                    .await
+                    .unwrap()
+                    .len(),
+                $res
+            );
+        }
+    }
+    // standard expressions - use literal as arg
+    comp_many!(PieceFk, la == 30, 1);
+    comp_many!(PieceFk, la != 30, 8);
+    comp_many!(PieceFk, la > 30, 6);
+    comp_many!(PieceFk, la >= 30, 7);
+    comp_many!(PieceFk, la < 30, 2);
+    comp_many!(PieceFk, la <= 30, 3);
+    // IS NULL/ IS NOT NULL
+    comp_many!(Maison, piscine == None, 3);
+    comp_many!(Maison, piscine != None, 0);
+    // between
+    comp_many!(PieceFk, la <= 30 && la < 60, 3);
+    comp_many!(PieceFk, la <= 30 && la > 30 || la == 50, 1);
+    let la = 34;
+    // ident/variable as arg
+    comp_many!(PieceFk, la > la, 6);
+    // index as arg
+    let array = [0, 1, 2, 3];
+    comp_many!(PieceFk, lg == array[1], 1);
+    comp_many!(PieceFk, lg > array[1], 8);
+    // field as arg
+    struct A {
+        a: i32,
+    }
+    let a = A { a: 2 };
+    comp_many!(PieceFk, lg > a.a, 7);
+    // use String
+    let adr = "adresse2".to_string();
+    comp_many!(Maison, adresse == adr, 1);
+    // Parenthesis
+    comp_many!(PieceFk, (la > 100 || la < 60) && maison_id == 1, 2);
+    comp_many!(PieceFk, (la < 100), 9);
+    comp_many!(PieceFk, !(la < 100), 0);
+
+    // Disctint
+    comp_many!(Maison, lespieces.la > 10, 3);
+
+    // comparaison
     // ----------------- End -----------------------------------//
     println!("Sqlite Maison succeds !!!")
 }

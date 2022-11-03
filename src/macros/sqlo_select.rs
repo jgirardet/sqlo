@@ -74,7 +74,8 @@ impl SqloSelectParse {
         let main = sqlos.get(&self.entity)?;
         if let Some(ref wwhere) = self.wwhere {
             let where_sql = where_generate_sql(&self.entity.to_string(), &sqlos, wwhere)?;
-            return Ok(self.query(main, &where_sql));
+            let res = self.query(main, &where_sql);
+            return Ok(res);
         }
         Ok(quote!())
     }
@@ -86,7 +87,10 @@ impl SqloSelectParse {
         } = main;
         let where_query = &wwhere.query;
         let where_params = &wwhere.params;
-        let qquery = format!("SELECT {columns} FROM {tablename} {where_query}");
+        let qquery = format!("SELECT DISTINCT {columns} FROM {tablename} {where_query}");
+        if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
+            dbg!(&qquery);
+        }
         quote! {
             sqlx::query_as!(#ident,#qquery, #(#where_params),*)
         }

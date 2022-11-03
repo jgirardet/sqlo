@@ -22,16 +22,16 @@ CREATE TABLE adresse (
   rue TEXT
 );
 
-CREATE TABLE id_unique_int (
+CREATE TABLE IF NOT EXISTS id_unique_int (
   id INTEGER NOT NULL PRIMARY KEY
 );
 
-CREATE TABLE id_unique_uuid (
+CREATE TABLE IF NOT EXISTS id_unique_uuid (
   id UUID NOT NULL PRIMARY KEY
 );
 
 
-CREATE TABLE with_a_blob (
+CREATE TABLE IF NOT EXISTS with_a_blob (
   id INTEGER NOT NULL PRIMARY KEY,
   data BLOB NOT NULL
 );

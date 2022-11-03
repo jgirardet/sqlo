@@ -34,11 +34,11 @@ impl ToTok for syn::Expr {
 
     fn as_value(&self, acc: &mut Toks) {
         match self {
-            Expr::Array(_)
+            Expr::Array(_) 
             | Expr::Field(_)
             | Expr::Index(_)
             | Expr::Lit(_)
-            | Expr::Reference(_)
+            // | Expr::Reference(_) //doesn't work either with sqlx
             | Expr::Tuple(_) => acc.value(self),
             // | Expr::MethodCall(_)
             // | Expr::Call(_)
