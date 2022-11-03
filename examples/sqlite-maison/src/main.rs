@@ -310,6 +310,16 @@ async fn main() {
     assert_eq!(res[1].id, 3);
 
     macro_rules! comp_many {
+        ($ident:ident, $res:literal) => {
+            assert_eq!(
+                sqlo_select!($ident)
+                    .fetch_all(&pool)
+                    .await
+                    .unwrap()
+                    .len(),
+                $res
+            );
+        };
         ($ident:ident, $exp:expr, $res:literal) => {
             assert_eq!(
                 sqlo_select!($ident where $exp)
@@ -321,6 +331,9 @@ async fn main() {
             );
         }
     }
+
+    //empty where
+    comp_many!(Maison, 3);
     // standard expressions - use literal as arg
     comp_many!(PieceFk, la == 30, 1);
     comp_many!(PieceFk, la != 30, 8);

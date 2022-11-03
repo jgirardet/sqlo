@@ -19,6 +19,8 @@ type PunctuatedExprComma = Punctuated<syn::Expr, Token![,]>;
 
 pub struct SqloSelectParse {
     entity: syn::Ident,
+    related: Option<syn::Expr>,
+    instance: Option<syn::Expr>,
     wwhere: Option<WhereTokenizer>,
     order_by: Option<PunctuatedExprComma>,
 }
@@ -27,6 +29,8 @@ impl SqloSelectParse {
     fn new(ident: syn::Ident) -> Self {
         Self {
             entity: ident,
+            related: None,
+            instance: None,
             wwhere: None,
             order_by: None,
         }
@@ -36,11 +40,22 @@ impl SqloSelectParse {
 // select![Maison where some_binary_ops order_by some,comma_separated,fields limit u32]
 impl syn::parse::Parse for SqloSelectParse {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        // Parse first part: simple ident, ident[pk].related
+
         // Parse sqlo struct
         let entity: syn::Ident = input
             .parse()
             .map_err(|_| syn::Error::new(input.span(), "Deriving Sqlo struct expected"))?;
         let mut res = SqloSelectParse::new(entity);
+
+        //related select
+        if input.peek(syn::token::Bracket) {
+            let content;
+            syn::bracketed!(content in input);
+            res.related = Some(content.parse::<syn::Expr>()?);
+            input.parse::<Token![.]>()?;
+            res.instance = Some(input.parse::<syn::Expr>()?);
+        }
 
         // parse where
         if !input.is_empty() {
@@ -72,21 +87,29 @@ impl syn::parse::Parse for SqloSelectParse {
 impl SqloSelectParse {
     fn expand(self, sqlos: &Sqlos) -> syn::Result<TokenStream> {
         let main = sqlos.get(&self.entity)?;
-        if let Some(ref wwhere) = self.wwhere {
-            let where_sql = where_generate_sql(&self.entity.to_string(), &sqlos, wwhere)?;
-            let res = self.query(main, &where_sql);
-            return Ok(res);
-        }
-        Ok(quote!())
+        let where_sql = if let Some(ref wwhere) = self.wwhere {
+            Some(where_generate_sql(
+                &self.entity.to_string(),
+                &sqlos,
+                wwhere,
+            )?)
+        } else {
+            None
+        };
+        let res = self.query(main, where_sql);
+        return Ok(res);
     }
 
-    fn query(self, main: &Sqlo, wwhere: &SqlQuery) -> TokenStream {
+    fn query(self, main: &Sqlo, wwhere: Option<SqlQuery>) -> TokenStream {
         let columns = main.all_columns_as_query();
         let Sqlo {
             ident, tablename, ..
         } = main;
-        let where_query = &wwhere.query;
-        let where_params = &wwhere.params;
+        let (where_query, where_params) = if let Some(wwhere) = wwhere {
+            (wwhere.query, wwhere.params)
+        } else {
+            ("".to_string(), vec![])
+        };
         let qquery = format!("SELECT DISTINCT {columns} FROM {tablename} {where_query}");
         if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
             dbg!(&qquery);
@@ -111,7 +134,7 @@ mod test_select_macro {
             paste::paste! {
 
                 #[test]
-                fn [<test_parse_select_syntax_ success $case>]() {
+                fn [<test_parse_select_syntax_ success_ $case>]() {
                     syn::parse_str::<SqloSelectParse>($input).unwrap();
                 }
             }
@@ -134,6 +157,7 @@ mod test_select_macro {
         order_by_many,
         r#"Maison where  1 == 1 && 2 == 2 order_by bla,bli"#
     );
+    success_parse_sqlo_select_syntax!(ident_related, "Maison[1].related");
 
     macro_rules! fail_parse_sqlo_select_syntax {
         ($case:ident, $input:literal, $err:literal) => {
