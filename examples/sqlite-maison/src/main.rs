@@ -310,7 +310,7 @@ async fn main() {
     assert_eq!(res[1].id, 3);
 
     macro_rules! comp_many {
-        ($ident:ident, $res:literal) => {
+        ($ident:expr, $res:literal) => {
             assert_eq!(
                 sqlo_select!($ident)
                     .fetch_all(&pool)
@@ -320,7 +320,7 @@ async fn main() {
                 $res
             );
         };
-        ($ident:ident, $exp:expr, $res:literal) => {
+        ($ident:expr, $exp:expr, $res:literal) => {
             assert_eq!(
                 sqlo_select!($ident where $exp)
                     .fetch_all(&pool)
@@ -370,6 +370,21 @@ async fn main() {
 
     // Disctint
     comp_many!(Maison, lespieces.la > 10, 3);
+
+    // ForeignKey
+    comp_many!(Maison[1].lespieces, 4);
+    let res: Vec<PieceFk> = sqlo_select!(Maison[1].lespieces)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[3].la, 90);
+
+    let c = 1;
+    comp_many!(Maison[c].lespieces, 4);
+    comp_many!(Maison[1].lespieces, lg > 2, 2);
+    comp_many!(Maison[c].lespieces, lg >= 1 && la < 90, 3);
+    comp_many!(Maison[a.a].lespieces, 3); //a=2
+    comp_many!(Maison[array[2]].lespieces, 3); //=2
 
     // comparaison
     // ----------------- End -----------------------------------//
