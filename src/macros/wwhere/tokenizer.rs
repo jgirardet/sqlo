@@ -4,7 +4,7 @@ use super::tok::Toks;
 use super::totok::ToTok;
 
 #[derive(Debug, Clone)]
-pub(crate) enum WhereTokenizer {
+pub enum WhereTokenizer {
     Mono(syn::Expr),
     Binary(syn::ExprBinary),
 }
@@ -96,37 +96,6 @@ pub(crate) fn parse_operator(op: &BinOp, acc: &mut Toks) {
     acc.sign(op_to_str(op))
 }
 
-// return Some:true=succes, Some:false=not a ternary, None:error
-// pub(crate) fn parse_between(left: &Expr, op: &BinOp, right: &Expr, acc: &mut Toks) -> Option<bool> {
-//     let mut flag = Some(true);
-//     match left {
-//         // This seems ot be Between vi ternary comparison
-//         Expr::Binary(lhs) =>         //_ => left.as_param(acc),
-//         {
-//             let mut toks = Toks::default();
-//             lhs.left.as_value(& mut toks);
-//             match lhs.op {
-//                 BinOp::Lt(_) | BinOp::Le(_) | BinOp::Gt(_) | BinOp::Ge(_) => {
-//                     parse_operator(&lhs.op, &mut toks)
-//                 }
-
-//                 _ => {
-//                     acc.error(lhs.op, "Only <, >, <=,>= allowed in ternary comparison");
-//                     flag = None;
-//                 }
-//             };
-//             lhs.right.as_param(&mut toks);//midle in ternary is the param, others are value
-//             parse_operator(op, &mut toks);
-//             right.as_value(&mut toks);
-//             acc.between(toks);
-//         }
-//         _=> {flag=Some(false);}
-//     };
-
-//     // if let Some(true) = flag {}
-//     flag
-// }
-
 #[cfg(test)]
 mod wwhere {
     use super::*;
@@ -154,7 +123,7 @@ mod wwhere {
     parse_wwhere!(eq_simple_fk_field, "a.b == 1", "a.b==1");
     parse_wwhere!(eq_simple_array, "a.b == [1,2,3]", "a.b==[1,2,3]");
     parse_wwhere!(eq_simple_index, "a.b == bla[1]", "a.b==bla[1]");
-    parse_wwhere!(eq_simple_reference, "a == &bla", "a==&bla");
+    // parse_wwhere!(eq_simple_reference, "a == &bla", "Not supported as rhs of comparison expression");
     parse_wwhere!(eq_simple_path, "a == bla", "a==bla");
     parse_wwhere!(eq_long_path, "a == bla::bli", "a==bla::bli");
     parse_wwhere!(eq_simple_tuple, "a == (1,2,3)", "a==(1,2,3)");

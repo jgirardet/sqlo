@@ -34,7 +34,7 @@ impl ToTok for syn::Expr {
 
     fn as_value(&self, acc: &mut Toks) {
         match self {
-            Expr::Array(_) 
+            Expr::Array(_)
             | Expr::Field(_)
             | Expr::Index(_)
             | Expr::Lit(_)
@@ -139,15 +139,8 @@ impl ToTok for syn::ExprPath {
     }
 
     fn as_value(&self, acc: &mut Toks) {
-        // if let Some(p) = self.path.get_ident() {
-        //     if p.to_string() == "None" {
-        //         acc.none();
-        //         return;
-        //     }
-        // }
         let e: Expr = self.clone().into();
         acc.value(&e);
-        // acc.error(self, "Can't be used on right side of binary expression")
     }
 }
 

@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::{error::SqloError, macros::SqlQuery, relations::Relation, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{
+    error::SqloError, macros::sql_query::SqlQuery, relations::Relation, sqlo::Sqlo, sqlos::Sqlos,
+};
 
 use itertools::Itertools;
 use syn::{spanned::Spanned, Expr, ExprField, Ident, Member};
@@ -88,11 +90,6 @@ impl<'a> WhereSqlGenerator<'a> {
     }
 }
 
-// pub trait  ToSql<T:ToTok>{
-//     fn to_sql(self) -> Result<String,SqloError>;
-
-// }
-
 impl<'a> WhereSqlGenerator<'a> {
     fn error(&mut self, e: syn::Error) -> Result<String, SqloError> {
         Err(e.into())
@@ -151,26 +148,9 @@ impl<'a> WhereSqlGenerator<'a> {
             )
         })?;
 
-        // let alias = if let Some(v) = self.aliases.get(&slave_sqlo.ident) {
-        //     *v
-        // } else {
-        //     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        //         .bytes()
-        //         .nth(self.aliases.len())
-        //         .map(|c| std::str::from_utf8([c].as_slice()).unwrap()) //unwrap is safe
-        //         .expect("The number of table in the same query is limited to 26 ;-)")
-        // };
-        // self.aliases.insert(slave_sqlo.ident.clone(), alias);
-        if self.joins.get(&slave_sqlo.ident).is_none() {
-            let join = format!(
-                "INNER JOIN {} ON {}.{}={}.{}",
-                &slave_sqlo.tablename,
-                &self.main.tablename,
-                &self.main.pk_field.column,
-                &slave_sqlo.tablename,
-                &rel.field
-            );
-            self.joins.insert(&slave_sqlo.ident, join);
+        // add join if not already added
+        if self.joins.get(&rel.from).is_none() {
+            self.joins.insert(&rel.from, rel.to_inner_join(&self.sqlos));
         }
 
         Ok(format!("{}.{}", slave_sqlo.tablename, slave_field.column))
@@ -232,34 +212,6 @@ impl<'a> WhereSqlGenerator<'a> {
         self.arguments.push(v);
         Ok("?".to_string())
     }
-
-    // fn between(&mut self, v: Toks) -> Result<String, SqloError> {
-    //     // self.dispatch(v
-    //     dbg!(&v);
-    //     let mut res = vec!["BETWEEN".to_string()];
-    //     let mut iter = v.into_iter();
-    //     if let Some(Tok::Value(v1)) = iter.next() {
-    //         res.push(self.value(v1)?);
-    //         if let Some(Tok::Sign(sign1)) = iter.next() {
-    //             res.push(self.sign(sign1)?);
-    //             match iter.next() {
-    //                 Some(Tok::Field(f)) => {
-    //                     res.insert(0, self.field(f)?);
-    //                 }
-    //                 _ => return Err(SqloError::new_lost("Param in betwen should be ident")),
-    //             }
-    //             if let Some(Tok::Sign(sign2)) = iter.next() {
-    //                 res.push(self.sign(sign2)?);
-    //                 if let Some(Tok::Value(rhs)) = iter.next() {
-    //                     res.push(self.value(rhs)?);
-    //                     return Ok(res.join(" "));
-    //                 }
-    //             }
-    //         }
-    //         // res.push(self.disp)
-    //     };
-    //     Err(SqloError::new_lost("something went wrong with between"))
-    // }
 }
 
 #[cfg(test)]
@@ -296,8 +248,6 @@ mod test_wwhere_sql_generator {
                 let contt: WhereTokenizer = syn::parse_str($content).expect("test setup error");
                 let sql_query =
                     where_generate_sql($main, &sqlos, &contt).expect("generate_where_sql failed");
-                // let toks = Toks::from(contt);
-                // gen.dispatch(toks).unwrap();
                 assert_eq!(sql_query.query, $res);
                 assert_eq!(sql_query.params.len(), $arguments);
             }

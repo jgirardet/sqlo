@@ -30,6 +30,7 @@ impl From<&WhereTokenizer> for Toks {
                     syn::Expr::Paren(ref p) => p.as_param(&mut t),
                     _ => t.error(m, "Only Binary, Parenthesis and Not expression supported"),
                 },
+                syn::Expr::Paren(ref p) => p.as_param(&mut t),
                 syn::Expr::Unary(ref p) => p.as_param(&mut t),
                 _ => t.error(m, "Only Binary, Parenthesis and  Not expression supported"),
             },
@@ -39,10 +40,6 @@ impl From<&WhereTokenizer> for Toks {
 }
 
 impl Toks {
-    // pub fn between(&mut self, toks: Toks) {
-    //     self.0.push(Tok::Between(toks))
-    // }
-
     pub fn field(&mut self, ident: &syn::Ident) {
         self.0.push(Tok::Field(ident.clone()))
     }
@@ -108,7 +105,6 @@ impl Display for Toks {
 #[derive(Debug, Clone)]
 pub enum Tok {
     // Call(syn::Expr),
-    // Between(Toks),
     Field(syn::Ident),
     ForeignKey(syn::ExprField),
     Null(Toks),
@@ -137,7 +133,6 @@ impl Display for Tok {
             Self::Sign(s) => write!(f, "{}", s),
             Self::Value(v) => write!(f, "{}", display_expr(v)),
             Self::Error(e) => write!(f, "{}", e),
-            // Self::Between(b) => write!(f, "{}", b.to_string()),
             Self::Null(t) => write!(f, "{}None", t),
             Self::Not(n) => write!(f, "!{}", &n.to_string()),
             // Self::Call(n) => write!(f, "{}", display_expr(n)),

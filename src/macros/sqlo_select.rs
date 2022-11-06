@@ -3,12 +3,9 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{punctuated::Punctuated, Token};
 
-use crate::{sqlo::Sqlo, sqlos::Sqlos, virtual_file::VirtualFile};
+use crate::{relations::Relation, sqlo::Sqlo, sqlos::Sqlos, virtual_file::VirtualFile};
 
-use super::{
-    wwhere::{tokenizer::WhereTokenizer, where_generate_sql},
-    SqlQuery,
-};
+use super::{sql_query::SqlQuery, wwhere::tokenizer::WhereTokenizer};
 
 mod kw {
     syn::custom_keyword!(order_by);
@@ -19,7 +16,7 @@ type PunctuatedExprComma = Punctuated<syn::Expr, Token![,]>;
 
 pub struct SqloSelectParse {
     entity: syn::Ident,
-    related: Option<syn::Expr>,
+    related: Option<syn::Ident>,
     instance: Option<syn::Expr>,
     wwhere: Option<WhereTokenizer>,
     order_by: Option<PunctuatedExprComma>,
@@ -52,9 +49,9 @@ impl syn::parse::Parse for SqloSelectParse {
         if input.peek(syn::token::Bracket) {
             let content;
             syn::bracketed!(content in input);
-            res.related = Some(content.parse::<syn::Expr>()?);
+            res.instance = Some(content.parse::<syn::Expr>()?);
             input.parse::<Token![.]>()?;
-            res.instance = Some(input.parse::<syn::Expr>()?);
+            res.related = Some(input.parse::<syn::Ident>()?);
         }
 
         // parse where
@@ -85,35 +82,58 @@ impl syn::parse::Parse for SqloSelectParse {
 }
 
 impl SqloSelectParse {
-    fn expand(self, sqlos: &Sqlos) -> syn::Result<TokenStream> {
+    fn expand(&self, sqlos: &Sqlos) -> syn::Result<TokenStream> {
         let main = sqlos.get(&self.entity)?;
-        let where_sql = if let Some(ref wwhere) = self.wwhere {
-            Some(where_generate_sql(
-                &self.entity.to_string(),
-                &sqlos,
-                wwhere,
-            )?)
+
+        if let Some(ref related) = self.related {
+            self.expand_related(related, main, sqlos)
         } else {
-            None
-        };
-        let res = self.query(main, where_sql);
-        return Ok(res);
+            self.expand_simple(main, sqlos)
+        }
     }
 
-    fn query(self, main: &Sqlo, wwhere: Option<SqlQuery>) -> TokenStream {
-        let columns = main.all_columns_as_query();
+    fn expand_simple(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> syn::Result<TokenStream> {
+        let wwhere_sql =
+            SqlQuery::try_from_option_where_tokenizer(self.wwhere.clone(), sqlos, main_sqlo)?;
+        Ok(SqloSelectParse::query(main_sqlo, wwhere_sql))
+    }
+
+    fn expand_related(
+        &self,
+        related: &syn::Ident,
+        main_sqlo: &Sqlo,
+        sqlos: &Sqlos,
+    ) -> syn::Result<TokenStream> {
+        let Relation::ForeignKey(relation) = sqlos.relations.find(&main_sqlo.ident, related)?;
+        let related_sqlo = sqlos.get(&relation.from)?;
+        let mut wwhere_sql =
+            SqlQuery::try_from_option_where_tokenizer(self.wwhere.clone(), &sqlos, related_sqlo)?;
+        let prefix = if wwhere_sql.query.is_empty() {
+            "WHERE "
+        } else {
+            " AND "
+        };
+        wwhere_sql
+            .query
+            .push_str(&format!("{}{}=?", prefix, &relation.from_column(&sqlos)));
+
+        wwhere_sql.params.push(self.instance.clone().unwrap()); // ok since related exists only if instance is parsed.
+        Ok(SqloSelectParse::query(related_sqlo, wwhere_sql))
+    }
+
+    fn query(from: &Sqlo, wwhere: SqlQuery) -> TokenStream {
         let Sqlo {
             ident, tablename, ..
-        } = main;
-        let (where_query, where_params) = if let Some(wwhere) = wwhere {
-            (wwhere.query, wwhere.params)
-        } else {
-            ("".to_string(), vec![])
-        };
+        } = from;
+        let columns = from.all_columns_as_query();
+        let (where_query, where_params) = (wwhere.query, wwhere.params);
+
         let qquery = format!("SELECT DISTINCT {columns} FROM {tablename} {where_query}");
         if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
             dbg!(&qquery);
         }
+
+        // build res tokenstream
         quote! {
             sqlx::query_as!(#ident,#qquery, #(#where_params),*)
         }

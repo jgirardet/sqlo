@@ -13,6 +13,7 @@ use crate::{
     error::{SqloError, ToSqloError},
     field::Field,
     sqlo::Sqlo,
+    sqlos::Sqlos,
 };
 
 // not const so we can use it in macro
@@ -234,6 +235,39 @@ impl RelForeignKey {
         }
 
         Ok(())
+    }
+
+    pub fn to_inner_join(&self, sqlos: &Sqlos) -> String {
+        let from_sqlo = sqlos
+            .get(&self.from)
+            .expect("Error: Entity not found from Relation"); //should never happen except on first pass
+        let to_sqlo = sqlos
+            .get(&self.to)
+            .expect("Error: Entity not found from Relation"); //should never happen except on first pass
+        let from_field = from_sqlo
+            .field(&self.field)
+            .expect("Sqlo Field not Found, please rebuild");
+        format!(
+            "INNER JOIN {} ON {}.{}={}.{}",
+            &from_sqlo.tablename,
+            &to_sqlo.tablename,
+            &to_sqlo.pk_field.column,
+            &from_sqlo.tablename,
+            &from_field.column
+        )
+    }
+
+    pub fn from_column<'a>(&self, sqlos: &'a Sqlos) -> &'a str {
+        let from_sqlo = sqlos
+            .get(&self.from)
+            .expect("Error: Entity not found from Relation"); //should never happen except on first pass
+                                                              // let to_sqlo = sqlos
+                                                              //     .get(&self.to)
+                                                              //     .expect("Error: Entity not found from Relation"); //should never happen except on first pass
+        let from_field = from_sqlo
+            .field(&self.field)
+            .expect("Sqlo Field not Found, please rebuild");
+        from_field.column.as_str()
     }
 }
 
