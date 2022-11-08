@@ -144,6 +144,84 @@ impl ToTok for syn::ExprPath {
     }
 }
 
+impl ToTok for syn::ExprRange {
+    fn as_param(&self, acc: &mut Toks) {
+        let mut toks = Toks::default();
+        if let Some(ref from) = self.from {
+            // get the column
+            from.as_param(&mut toks);
+            if let Some(ref to) = self.to {
+                match to.as_ref() {
+                    // a..[1,2,3]
+                    syn::Expr::Array(a) => {
+                        for v in &a.elems {
+                            v.as_value(&mut toks);
+                        }
+                        acc.iin(&toks);
+                        return;
+                    }
+                    // a..(1,2,3)
+                    syn::Expr::Tuple(a) => {
+                        for v in &a.elems {
+                            v.as_value(&mut toks);
+                        }
+                        acc.iin(&toks);
+                        return;
+                    }
+                    // a..(1..2)
+                    syn::Expr::Paren(ref p) => match p.expr.as_ref() {
+                        syn::Expr::Range(r) => {
+                            r.as_value(&mut toks);
+                            acc.iin(&toks);
+                            return;
+                        }
+                        _ => {}
+                    },
+                    _ => {}
+                }
+            }
+        }
+
+        acc.error(self, "In Sql use range with column as start and exp as end")
+    }
+
+    fn as_value(&self, acc: &mut Toks) {
+        // let mut toks = Toks::default();
+        if let Some(b) = self.from.as_ref() {
+            if let syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Int(l),
+                ..
+            }) = b.as_ref()
+            {
+                let from = l.base10_parse::<usize>().unwrap();
+
+                if let Some(b) = self.to.as_ref() {
+                    if let syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Int(l),
+                        ..
+                    }) = b.as_ref()
+                    {
+                        let mut to = l.base10_parse::<usize>().unwrap();
+                        if let syn::RangeLimits::Closed(_) = self.limits {
+                            to += 1;
+                        }
+                        for v in from..to {
+                            let exp: syn::Expr = syn::ExprLit {
+                                lit: syn::Lit::new(proc_macro2::Literal::usize_unsuffixed(v)),
+                                attrs: vec![],
+                            }
+                            .into();
+                            exp.as_value(acc)
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+        acc.error(self, "This range is not a valid input")
+    }
+}
+
 // Comment utiliser le Unaray<!> ?
 // - cas du None:
 // - Reste:

@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use itertools::Itertools;
 use quote::ToTokens;
 
 use crate::utils::display_expr;
@@ -28,8 +29,10 @@ impl From<&WhereTokenizer> for Toks {
                 // if only parenthesis, its first parsed as a group
                 syn::Expr::Group(syn::ExprGroup { expr, .. }) => match **expr {
                     syn::Expr::Paren(ref p) => p.as_param(&mut t),
+                    syn::Expr::Range(ref p) => p.as_param(&mut t),
                     _ => t.error(m, "Only Binary, Parenthesis and Not expression supported"),
                 },
+                syn::Expr::Range(ref p) => p.as_param(&mut t),
                 syn::Expr::Paren(ref p) => p.as_param(&mut t),
                 syn::Expr::Unary(ref p) => p.as_param(&mut t),
                 _ => t.error(m, "Only Binary, Parenthesis and  Not expression supported"),
@@ -46,6 +49,9 @@ impl Toks {
 
     pub fn foreign_key(&mut self, field: &syn::ExprField) {
         self.0.push(Tok::ForeignKey(field.clone()))
+    }
+    pub fn iin(&mut self, toks: &Toks) {
+        self.0.push(Tok::In(toks.clone()))
     }
 
     // pub fn call(&mut self, expr: &syn::Expr) {
@@ -107,6 +113,7 @@ pub enum Tok {
     // Call(syn::Expr),
     Field(syn::Ident),
     ForeignKey(syn::ExprField),
+    In(Toks),
     Null(Toks),
     Not(Toks),
     Paren(Toks),
@@ -133,6 +140,10 @@ impl Display for Tok {
             Self::Sign(s) => write!(f, "{}", s),
             Self::Value(v) => write!(f, "{}", display_expr(v)),
             Self::Error(e) => write!(f, "{}", e),
+            Self::In(i) => {
+                let mut iter = i.clone().into_iter();
+                write!(f, "{} in ({})", &iter.next().unwrap(), &iter.join(","))
+            }
             Self::Null(t) => write!(f, "{}None", t),
             Self::Not(n) => write!(f, "!{}", &n.to_string()),
             // Self::Call(n) => write!(f, "{}", display_expr(n)),

@@ -303,6 +303,7 @@ let other_update = update_House!(pk=2, height=345)(&pool).await?;
 - use ident or some::path::ident
 - .sqlo dir: may or not be versionned
 - no one letter table (because if joins)
-  -sqlo_select: user field or related.field(for fk)
+  -sqlo*select: user field or related.field(for fk)
+  * instruction in: (tuple), (array), (range, inclusif ou exclusif)
 
 divers: ajouter option parse_only

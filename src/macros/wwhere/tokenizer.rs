@@ -185,6 +185,10 @@ mod wwhere {
     parse_wwhere!(mono_paren, "(a==1)");
     parse_wwhere!(mono_not, "!(a==1)");
 
+    //In
+    parse_wwhere!(simple_in_bracket, "a..[1,2,3,4]", "a in (1,2,3,4)");
+    parse_wwhere!(simple_in_parent, "a..(1,2,3,4)", "a in (1,2,3,4)");
+
     // Divers
     parse_wwhere!(bad_left, "a[1] == 1", "Not supported as parameter==1");
     parse_wwhere!(bad_sign, "a[1] << 1", "Operator not permitted");

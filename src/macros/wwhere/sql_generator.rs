@@ -80,7 +80,9 @@ impl<'a> WhereSqlGenerator<'a> {
             Tok::Sign(s) => self.sign(s)?,
             Tok::Value(v) => self.value(v)?,
             Tok::Not(n) => self.not(n)?,
-            Tok::Error(e) => self.error(e)?, // _ => unimplemented!("Not yet all Tok implemented"),
+            Tok::Error(e) => self.error(e)?,
+            Tok::In(t) => self.iin(t)?,
+            // _ => unimplemented!("Not yet all Tok implemented"),
         };
         Ok(res)
     }
@@ -154,6 +156,19 @@ impl<'a> WhereSqlGenerator<'a> {
         }
 
         Ok(format!("{}.{}", slave_sqlo.tablename, slave_field.column))
+    }
+
+    fn iin(&mut self, toks: Toks) -> Result<String, SqloError> {
+        let mut iter = toks.into_iter();
+        if let Some(lhs) = iter.next() {
+            let lhs = self.dispatch_tok(lhs)?;
+            let mut res = vec![];
+            for r in iter {
+                res.push(self.dispatch_tok(r)?)
+            }
+            return Ok(format!("{lhs} IN ({})", res.join(",")));
+        }
+        Err(SqloError::new_lost("Sqlo API Error, In is invalid"))
     }
 
     fn not(&mut self, toks: Toks) -> Result<String, SqloError> {
@@ -380,4 +395,27 @@ mod test_wwhere_sql_generator {
         r#"bbb.fstring == "bla" && bbb.fi32==1 && the_ddds.size>3"#,
         "INNER JOIN bbb ON aaa.id=bbb.aaa_fk INNER JOIN ddd ON aaa.id=ddd.aaa_if WHERE bbb.fstringcol = ? AND bbb.fi32 = ? AND ddd.size > ?",
         3);
+
+    // IN
+    test_where_sql_generator!(
+        in_field_array,
+        "Aaa",
+        "fi32..[1,2,3]",
+        "WHERE fi32col IN (?,?,?)",
+        3
+    );
+    test_where_sql_generator!(
+        in_fk_array,
+        "Aaa",
+        "the_ddds.size..[1,2,3]",
+        "INNER JOIN ddd ON aaa.id=ddd.aaa_if WHERE ddd.size IN (?,?,?)",
+        3
+    );
+    test_where_sql_generator!(
+        in_field_tupple,
+        "Aaa",
+        "fi32..(1,2,3)",
+        "WHERE fi32col IN (?,?,?)",
+        3
+    );
 }

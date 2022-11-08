@@ -1,5 +1,5 @@
-- on essaie de faire une requête des 
-- les fonction INavec usage de array/tupple comme argument
+- essai les sub query
+- les fonction IN avec subquery
 - le vrai like
 _did you mean == for = quand message est "only paren, ident, not alloawes)
 - à faire : order limit distinct group by having

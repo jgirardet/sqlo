@@ -386,6 +386,18 @@ async fn main() {
     comp_many!(Maison[a.a].lespieces, 3); //a=2
     comp_many!(Maison[array[2]].lespieces, 3); //=2
 
+    // In
+    comp_many!(PieceFk, maison_id..[1, 3], 6);
+    comp_many!(PieceFk, maison_id..(1, 3), 6);
+    comp_many!(Maison, lespieces.lg..[1, 2, 13], 1); //et non 2 car distinct
+    comp_many!(PieceFk, maison_id..(0..2), 4);
+    comp_many!(PieceFk, maison_id..(1..2), 4);
+    comp_many!(PieceFk, maison_id..(2..=3), 5);
+    comp_many!(PieceFk, maison_id..(1..4), 9);
+    let (d, e, f) = (1, 2, 4);
+    comp_many!(PieceFk, maison_id..(d, e, f), 7);
+    let [d, e, f] = [1, 2, 4];
+    comp_many!(PieceFk, maison_id..[d, e, f], 7);
     // comparaison
     // ----------------- End -----------------------------------//
     println!("Sqlite Maison succeds !!!")
