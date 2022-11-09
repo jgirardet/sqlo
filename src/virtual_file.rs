@@ -52,11 +52,9 @@ impl VirtualFile {
     pub fn load(&self) -> Result<Sqlos, SqloError> {
         let relations = Relations::from_path(&self.relation_path)?;
         let mut entities = vec![];
-        for f in std::fs::read_dir(&self.path)? {
-            if let Ok(file) = f {
-                let sqlo = serde_json::from_str(&std::fs::read_to_string(file.path())?)?;
-                entities.push(sqlo);
-            }
+        for file in std::fs::read_dir(&self.path)?.flatten() {
+            let sqlo = serde_json::from_str(&std::fs::read_to_string(file.path())?)?;
+            entities.push(sqlo);
         }
 
         Ok(Sqlos {
@@ -82,7 +80,7 @@ impl VirtualFile {
     pub fn update(&self, current_sqlo: &Sqlo) -> Result<(), SqloError> {
         self.write_entity(current_sqlo)?;
 
-        let fresh_relations = Relations::from_sqlo(&current_sqlo);
+        let fresh_relations = Relations::from_sqlo(current_sqlo);
         let existing_relations = Relations::from_path(&self.relation_path)?
             .filter_entity("from", &current_sqlo.ident.to_string());
         self.delete_old_relations_files(
@@ -94,7 +92,7 @@ impl VirtualFile {
 
     /// Validate relations
     pub fn validate(&self, sqlo: &Sqlo) -> Result<(), SqloError> {
-        let fresh_relations = Relations::from_sqlo(&sqlo);
-        fresh_relations.validate(&sqlo, &self.path)
+        let fresh_relations = Relations::from_sqlo(sqlo);
+        fresh_relations.validate(sqlo, &self.path)
     }
 }

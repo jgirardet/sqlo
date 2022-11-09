@@ -28,20 +28,12 @@ pub(crate) struct OptionIdentSer {
 
 impl From<OptionIdentSer> for Option<syn::Ident> {
     fn from(i: OptionIdentSer) -> Self {
-        // syn::Ident::new(&i.name, proc_macro2::Span::call_site())
-        match i.name {
-            None => None,
-            Some(x) => Some(syn::Ident::new(&x, proc_macro2::Span::call_site())),
-        }
+        i.name
+            .map(|x| syn::Ident::new(&x, proc_macro2::Span::call_site()))
     }
 }
 fn option_ident_to_string(exp: &Option<syn::Ident>) -> Option<String> {
-    if let Some(p) = exp {
-        Some(p.to_string())
-    } else {
-        None
-        // "null".to_string()
-    }
+    exp.as_ref().map(|p| p.to_string())
 }
 
 // // syn::Type
@@ -122,9 +114,9 @@ impl From<OptionExprPathSer> for Option<syn::ExprPath> {
     fn from(i: OptionExprPathSer) -> Self {
         match i.path.as_str() {
             "" => None,
-            x => Some(
-                syn::parse_str::<syn::ExprPath>(&x).expect("Error deserializing syn::ExprPath"),
-            ),
+            x => {
+                Some(syn::parse_str::<syn::ExprPath>(x).expect("Error deserializing syn::ExprPath"))
+            }
         }
     }
 }

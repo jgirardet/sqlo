@@ -28,7 +28,7 @@ impl syn::parse::Parse for SqloSetParse {
             InstanceOrValue::Instance(input.parse::<syn::Ident>()?)
         } else if input.peek(Token![where]) {
             input.parse::<Token!(where)>()?;
-            InstanceOrValue::Value(input.parse::<syn::Expr>()?)
+            InstanceOrValue::Value(Box::new(input.parse::<syn::Expr>()?))
         } else {
             return Err(input.error("Only for,where are allowed"));
         };
@@ -135,7 +135,7 @@ fn build_sql_query(
     let columns_names = fields
         .iter()
         .filter_map(|f| {
-            if parse_fields.contains(&&f.ident) {
+            if parse_fields.contains(&f.ident) {
                 Some(f.column.as_str())
             } else {
                 None
@@ -152,13 +152,13 @@ fn build_sql_query(
 #[derive(Debug)]
 enum InstanceOrValue {
     Instance(syn::Ident),
-    Value(syn::Expr),
+    Value(Box<syn::Expr>),
 }
 
 fn get_pk_value(iov: &InstanceOrValue, pk_field: &syn::Ident) -> TokenStream {
-    match *iov {
+    match iov {
         InstanceOrValue::Instance(ref ident) => quote![#ident.#pk_field],
-        InstanceOrValue::Value(ref expr_value) => match expr_value {
+        InstanceOrValue::Value(expr_value) => match expr_value.as_ref() {
             syn::Expr::Lit(expr_lit) => expr_lit.to_token_stream(),
             syn::Expr::Path(expr_path) => expr_path.to_token_stream(),
             syn::Expr::Index(expr_index) => expr_index.to_token_stream(),

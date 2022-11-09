@@ -31,7 +31,7 @@ impl FieldParser {
         ))
     }
 
-    pub fn column_name<'a>(&'a self) -> syn::Result<String> {
+    pub fn column_name(&self) -> syn::Result<String> {
         if let Some(ref nom) = self.column {
             return Ok(nom.to_string());
         }
@@ -42,10 +42,10 @@ impl FieldParser {
         let name = self.column_name()?;
         let struct_name = self.ident()?;
         // we write full query if name or type isn't the same between rust struct and database
-        if self.type_override || name != struct_name.to_string() || struct_name == "id" {
-            Ok(format!(r#"{} as "{}:_""#, &name, &struct_name).replace("\\", ""))
+        if self.type_override || *struct_name != name || struct_name == "id" {
+            Ok(format!(r#"{} as "{}:_""#, &name, &struct_name).replace('\\', ""))
         } else {
-            Ok(name.to_string())
+            Ok(name)
         }
     }
 
@@ -56,7 +56,7 @@ impl FieldParser {
         let msg =  "This type is not supported as Foreign Key with Sqlo. use `Ident` or `some::path::Ident` without Generic";
         if let syn::Type::Path(syn::TypePath { ref path, .. }) = self.ty {
             // validate single ident as type path
-            if let Some(_) = path.get_ident() {
+            if path.get_ident().is_some() {
                 return Ok(self.fk.clone());
             }
             // validate mutli path as type_path without <>or()
@@ -94,7 +94,7 @@ impl FieldParser {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Field {
     #[serde(with = "IdentSer")]
     pub ident: syn::Ident,
@@ -112,14 +112,14 @@ pub struct Field {
     pub related: Option<syn::Ident>,
 }
 
-impl<'a> TryFrom<FieldParser> for Field {
+impl TryFrom<FieldParser> for Field {
     type Error = syn::Error;
 
     fn try_from(fp: FieldParser) -> Result<Self, Self::Error> {
         Ok(Field {
             ident: fp.ident()?.to_owned(),
             ty: fp.ty()?,
-            column: fp.column_name()?.to_string(),
+            column: fp.column_name()?,
             as_query: fp.as_query()?,
             primary_key: fp.primary_key,
             fk: fp.fk()?,

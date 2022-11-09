@@ -6,7 +6,7 @@ pub fn commma_sep_with_parenthes_literal_list(list: &[&str]) -> String {
     if list.is_empty() {
         return "".to_string();
     }
-    let sep_comad = list.into_iter().join(",");
+    let sep_comad = list.iter().join(",");
     format!("({sep_comad})")
 }
 
@@ -15,7 +15,7 @@ pub fn qmarks(nb: usize, db: &DatabaseType) -> String {
 }
 
 pub fn qmarks_with_col(cols: &[&str], db: &DatabaseType) -> String {
-    cols.into_iter()
+    cols.iter()
         .map(|c| format!("{c}={}", db.get_qmark()))
         .join(",")
 }

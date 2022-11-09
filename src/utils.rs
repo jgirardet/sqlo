@@ -30,7 +30,7 @@ fn print_expr(expr: &Expr, acc: &mut String) {
         Expr::Array(a) => {
             acc.push('[');
             for it in a.elems.iter() {
-                print_expr(&it, acc);
+                print_expr(it, acc);
                 acc.push(',');
             }
             if acc.ends_with(',') {
@@ -46,7 +46,7 @@ fn print_expr(expr: &Expr, acc: &mut String) {
         }
         Expr::Lit(l) => match l.lit {
             Lit::Bool(ref b) => acc.push_str(&b.value().to_string()),
-            Lit::Str(ref s) => acc.push_str(&s.value().to_string()),
+            Lit::Str(ref s) => acc.push_str(&s.value()),
             Lit::Int(ref i) => acc.push_str(i.base10_digits()),
             Lit::Float(ref f) => acc.push_str(f.base10_digits()),
             _ => unimplemented!("Print of some Expr literal"),
@@ -57,7 +57,7 @@ fn print_expr(expr: &Expr, acc: &mut String) {
             acc.push_str(&m.method.to_string());
             acc.push('(');
             for it in m.args.iter() {
-                print_expr(&it, acc);
+                print_expr(it, acc);
                 acc.push(',')
             }
             if acc.ends_with(',') {
@@ -69,7 +69,7 @@ fn print_expr(expr: &Expr, acc: &mut String) {
             print_expr(&m.func, acc);
             acc.push('(');
             for it in m.args.iter() {
-                print_expr(&it, acc);
+                print_expr(it, acc);
                 acc.push(',')
             }
             if acc.ends_with(',') {
@@ -84,7 +84,7 @@ fn print_expr(expr: &Expr, acc: &mut String) {
         Expr::Tuple(t) => {
             acc.push('(');
             for it in t.elems.iter() {
-                print_expr(&it, acc);
+                print_expr(it, acc);
                 acc.push(',');
             }
             if acc.ends_with(',') {

@@ -5,7 +5,7 @@ use super::totok::ToTok;
 
 #[derive(Debug, Clone)]
 pub enum WhereTokenizer {
-    Mono(syn::Expr),
+    Mono(Box<syn::Expr>),
     Binary(syn::ExprBinary),
 }
 
@@ -15,8 +15,8 @@ impl syn::parse::Parse for WhereTokenizer {
         match input.parse::<ExprBinary>() {
             Ok(binary) => Ok(WhereTokenizer::Binary(binary)),
             Err(_) => match forked.parse::<syn::Expr>() {
-                Ok(expr) => Ok(WhereTokenizer::Mono(expr)),
-                Err(e) => return Err(syn::Error::new(e.span(), "Not a valid where expression")),
+                Ok(expr) => Ok(WhereTokenizer::Mono(Box::new(expr))),
+                Err(e) => Err(syn::Error::new(e.span(), "Not a valid where expression")),
             },
         }
     }
@@ -30,7 +30,7 @@ pub(crate) fn parse_binary_eq(left: &Expr, op: &BinOp, right: &Expr, acc: &mut T
                 match left {
                     Expr::Field(_) | Expr::Path(_) => match op {
                         BinOp::Eq(_) | BinOp::Ne(_) => {
-                            acc.null(&left, &op);
+                            acc.null(left, op);
                             return;
                         }
 

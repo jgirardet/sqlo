@@ -13,6 +13,6 @@ impl Sqlos {
         self.entities
             .iter()
             .find(|s| s.ident == name)
-            .ok_or(SqloError::new_lost(&format!("Can't find entity {}", &name)))
+            .ok_or_else(|| SqloError::new_lost(&format!("Can't find entity {}", &name)))
     }
 }

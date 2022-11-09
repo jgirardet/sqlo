@@ -21,18 +21,16 @@ pub fn get_function_arg_type(ty: &syn::TypePath) -> TokenStream {
             "bstr::BString" => quote![&bstr::BStr],
             _ => quote!(&#ty),
         }
+    } else if path_is_vec_u8(&ty.path) {
+        quote![&[u8]]
+    } else if is_type_option(ty) {
+        quote![#ty]
     } else {
-        if path_is_vec_u8(&ty.path) {
-            quote![&[u8]]
-        } else if is_type_option(&ty) {
-            quote![#ty]
-        } else {
-            match path_to_string(&ty.path).as_str() {
-                "bstr::BString" => quote![&bstr::BStr],
-                _ => {
-                    let path = ty.path.clone();
-                    quote![&#path]
-                }
+        match path_to_string(&ty.path).as_str() {
+            "bstr::BString" => quote![&bstr::BStr],
+            _ => {
+                let path = ty.path.clone();
+                quote![&#path]
             }
         }
     }
@@ -49,15 +47,14 @@ fn path_is_vec_u8(path: &syn::Path) -> bool {
                 ..
             }) = arguments
             {
-                if let Some(arg) = args.first() {
-                    if let syn::GenericArgument::Type(syn::Type::Path(syn::TypePath {
-                        path, ..
-                    })) = arg
-                    {
-                        if let Some(ident) = path.get_ident() {
-                            if ident == "u8" {
-                                return true;
-                            }
+                if let Some(syn::GenericArgument::Type(syn::Type::Path(syn::TypePath {
+                    path,
+                    ..
+                }))) = args.first()
+                {
+                    if let Some(ident) = path.get_ident() {
+                        if ident == "u8" {
+                            return true;
                         }
                     }
                 }

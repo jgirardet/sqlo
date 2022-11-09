@@ -10,14 +10,8 @@ use super::{
     totok::ToTok,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Toks(Vec<Tok>);
-
-impl Default for Toks {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
 
 impl From<&WhereTokenizer> for Toks {
     fn from(b: &WhereTokenizer) -> Self {
@@ -25,7 +19,7 @@ impl From<&WhereTokenizer> for Toks {
         match b {
             WhereTokenizer::Binary(b) => b.as_param(&mut t),
             // we don't use Expr.as_param, to keep separated the behavior at first node.
-            WhereTokenizer::Mono(m) => match m {
+            WhereTokenizer::Mono(m) => match m.as_ref() {
                 // if only parenthesis, its first parsed as a group
                 syn::Expr::Group(syn::ExprGroup { expr, .. }) => match **expr {
                     syn::Expr::Paren(ref p) => p.as_param(&mut t),
@@ -133,7 +127,7 @@ impl Display for Tok {
                         syn::Member::Named(ref x) => x.to_string(),
                         syn::Member::Unnamed(ref x) => x.index.to_string(),
                     };
-                    return write!(f, "{}.{}", base, attre);
+                    write!(f, "{}.{}", base, attre)
                 }
                 _ => unimplemented!(),
             },

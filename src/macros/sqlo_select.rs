@@ -1,4 +1,5 @@
 use proc_macro2::TokenStream;
+use std::fmt::Write;
 
 use quote::quote;
 use syn::{punctuated::Punctuated, Token};
@@ -107,15 +108,19 @@ impl SqloSelectParse {
         let Relation::ForeignKey(relation) = sqlos.relations.find(&main_sqlo.ident, related)?;
         let related_sqlo = sqlos.get(&relation.from)?;
         let mut wwhere_sql =
-            SqlQuery::try_from_option_where_tokenizer(self.wwhere.clone(), &sqlos, related_sqlo)?;
+            SqlQuery::try_from_option_where_tokenizer(self.wwhere.clone(), sqlos, related_sqlo)?;
         let prefix = if wwhere_sql.query.is_empty() {
             "WHERE "
         } else {
             " AND "
         };
-        wwhere_sql
-            .query
-            .push_str(&format!("{}{}=?", prefix, &relation.from_column(&sqlos)));
+        write!(
+            wwhere_sql.query,
+            "{}{}=?",
+            prefix,
+            &relation.get_from_column(sqlos)
+        )
+        .expect("Error formatting where related where query");
 
         wwhere_sql.params.push(self.instance.clone().unwrap()); // ok since related exists only if instance is parsed.
         Ok(SqloSelectParse::query(related_sqlo, wwhere_sql))

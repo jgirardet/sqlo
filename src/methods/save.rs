@@ -19,7 +19,7 @@ pub fn impl_save(sqlo: &Sqlo) -> TokenStream {
     let columns_no_pk = q_columns
         .iter()
         .filter(|c| c != &&pk_field.column.as_str())
-        .map(|c| *c)
+        .copied()
         .collect::<Vec<_>>();
 
     let idents = fields.iter().map(|f| f.ident.clone()).collect::<Vec<_>>();
@@ -32,11 +32,11 @@ pub fn impl_save(sqlo: &Sqlo) -> TokenStream {
     let q_self_fields = quote! {#(self.#self_fields),*};
 
     let query = build_sql_query(
-        &database_type,
-        &tablename,
+        database_type,
+        tablename,
         &q_columns,
         &pk_field.column,
-        &columns_no_pk.as_slice(),
+        columns_no_pk.as_slice(),
     );
 
     quote! {
@@ -60,8 +60,8 @@ fn build_sql_query(
     pk_column: &str,
     col_if_update: &[&str],
 ) -> String {
-    let mut qmarks = qmarks(columns_array.len(), &database_type);
-    if qmarks == "" {
+    let mut qmarks = qmarks(columns_array.len(), database_type);
+    if qmarks.is_empty() {
         qmarks = "NULL".to_string();
     }
     let col_qmarks_if_update = qmarks_with_col(col_if_update, database_type);

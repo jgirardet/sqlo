@@ -24,7 +24,7 @@ macro_rules! fk_pattern {
     };
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Relations {
     pub(crate) relations: Vec<Relation>,
 }
@@ -38,8 +38,7 @@ impl Relations {
             relations: sqlo
                 .fields
                 .iter()
-                .map(|f| make_field_relations(f, sqlo))
-                .flatten()
+                .flat_map(|f| make_field_relations(f, sqlo))
                 .collect(),
         }
     }
@@ -102,7 +101,7 @@ impl Relations {
     pub fn difference_of_other(&self, other: &[PathBuf]) -> Vec<PathBuf> {
         let list = self.to_files();
         other
-            .into_iter()
+            .iter()
             .filter(|x| !list.contains(x))
             .cloned()
             .collect()
@@ -111,18 +110,16 @@ impl Relations {
     pub fn validate(&self, sqlo: &Sqlo, path: &Path) -> Result<(), SqloError> {
         let files = std::fs::read_dir(path).sqlo_err(sqlo.ident.span())?;
         let mut sqlos: Vec<Sqlo> = vec![];
-        for file in files {
-            if let Ok(f) = file {
-                let parsed_sqlo: Sqlo = serde_json::from_str(
-                    &std::fs::read_to_string(f.path()).sqlo_err(sqlo.ident.span())?,
-                )
-                .sqlo_err(sqlo.ident.span())?;
-                sqlos.push(parsed_sqlo)
-            }
+        for file in files.flatten() {
+            let parsed_sqlo: Sqlo = serde_json::from_str(
+                &std::fs::read_to_string(file.path()).sqlo_err(sqlo.ident.span())?,
+            )
+            .sqlo_err(sqlo.ident.span())?;
+            sqlos.push(parsed_sqlo)
         }
         for relation in self.relations.iter() {
             let Relation::ForeignKey(rel_fk) = relation;
-            rel_fk.validate(&sqlo, &sqlos)?;
+            rel_fk.validate(sqlo, &sqlos)?;
         }
         Ok(())
     }
@@ -142,7 +139,7 @@ impl Relations {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Relation {
     ForeignKey(RelForeignKey),
 }
@@ -168,17 +165,17 @@ impl TryFrom<PathBuf> for Relation {
                     let res = captures
                         .iter()
                         .skip(1)
-                        .filter_map(|f| f)
+                        .flatten()
                         .map(|m| m.as_str())
                         .collect::<Vec<_>>();
 
                     if res.len() == 5 {
                         return Ok(Relation::ForeignKey(RelForeignKey {
-                            from: syn::Ident::new(&res[0], Span::call_site()),
-                            field: syn::Ident::new(&res[1], Span::call_site()),
-                            to: syn::Ident::new(&res[2], Span::call_site()),
-                            related: syn::Ident::new(&res[3], Span::call_site()),
-                            ty: syn::parse_str(&res[4].replace("~", ":")).map_err(|_| {
+                            from: syn::Ident::new(res[0], Span::call_site()),
+                            field: syn::Ident::new(res[1], Span::call_site()),
+                            to: syn::Ident::new(res[2], Span::call_site()),
+                            related: syn::Ident::new(res[3], Span::call_site()),
+                            ty: syn::parse_str(&res[4].replace('~', ":")).map_err(|_| {
                                 SqloError::new_lost("Could not parse relation type")
                             })?,
                         }));
@@ -193,7 +190,7 @@ impl TryFrom<PathBuf> for Relation {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelForeignKey {
     pub from: syn::Ident,
     pub field: syn::Ident,
@@ -257,7 +254,7 @@ impl RelForeignKey {
         )
     }
 
-    pub fn from_column<'a>(&self, sqlos: &'a Sqlos) -> &'a str {
+    pub fn get_from_column<'a>(&self, sqlos: &'a Sqlos) -> &'a str {
         let from_sqlo = sqlos
             .get(&self.from)
             .expect("Error: Entity not found from Relation"); //should never happen except on first pass
@@ -293,7 +290,7 @@ fn make_field_relations(field: &Field, sqlo: &Sqlo) -> Vec<Relation> {
             related: field
                 .related
                 .clone()
-                .unwrap_or(as_related_name(&sqlo.ident)),
+                .unwrap_or_else(|| as_related_name(&sqlo.ident)),
         }))
     }
     res

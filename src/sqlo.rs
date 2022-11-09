@@ -44,7 +44,7 @@ impl Sqlo {
         self.fields
             .iter()
             .map(|Field { ident, ty, .. }| {
-                if is_type_option(&ty) {
+                if is_type_option(ty) {
                     quote! {#ident: #ty,}
                 } else {
                     quote! { #ident: Option<#ty>, }
@@ -83,7 +83,7 @@ impl Sqlo {
                     return quote! {
                     if res.#ident.is_none() {return Err(sqlx::Error::RowNotFound)}};
                 }
-                return quote! {};
+                quote! {}
             })
             .collect::<TokenStream>();
 
@@ -94,7 +94,7 @@ impl Sqlo {
                 if is_type_option(ty) {
                     return quote! {#ident:res.#ident,};
                 }
-                return quote! {#ident:res.#ident.unwrap(),}; //unwrap ok because check in sqlx_null_check
+                quote! {#ident:res.#ident.unwrap(),} //unwrap ok because check in sqlx_null_check
             })
             .collect::<TokenStream>();
         let struct_ident = &self.ident;

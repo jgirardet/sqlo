@@ -27,7 +27,6 @@ impl ToTok for syn::Expr {
             // Expr::Lit(l) => l.to_tok_left(acc),
             _ => {
                 acc.error(self, "Not supported as parameter");
-                return;
             }
         }
     }
@@ -169,14 +168,13 @@ impl ToTok for syn::ExprRange {
                         return;
                     }
                     // a..(1..2)
-                    syn::Expr::Paren(ref p) => match p.expr.as_ref() {
-                        syn::Expr::Range(r) => {
+                    syn::Expr::Paren(ref p) => {
+                        if let syn::Expr::Range(r) = p.expr.as_ref() {
                             r.as_value(&mut toks);
                             acc.iin(&toks);
                             return;
                         }
-                        _ => {}
-                    },
+                    }
                     _ => {}
                 }
             }

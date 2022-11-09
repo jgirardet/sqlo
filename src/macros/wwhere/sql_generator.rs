@@ -152,7 +152,7 @@ impl<'a> WhereSqlGenerator<'a> {
 
         // add join if not already added
         if self.joins.get(&rel.from).is_none() {
-            self.joins.insert(&rel.from, rel.to_inner_join(&self.sqlos));
+            self.joins.insert(&rel.from, rel.to_inner_join(self.sqlos));
         }
 
         Ok(format!("{}.{}", slave_sqlo.tablename, slave_field.column))

@@ -142,3 +142,6 @@ tasks:
   test-all:
     - task: test
     - task: example
+
+  clippy:
+    - cargo clippy --features=sqlite

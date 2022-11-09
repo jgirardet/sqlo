@@ -77,7 +77,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
     let insert_query_args = quote! { #(#insert_query_args),*};
     let non_create_fn_types: Vec<TokenStream> = non_create_fn_types
         .into_iter()
-        .map(|x| get_function_arg_type(x))
+        .map(get_function_arg_type)
         .collect();
     let fn_args = quote! {#(#non_create_fn_idents:#non_create_fn_types),*};
 
@@ -91,7 +91,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
 
     let query = build_sql_query(
         &s.database_type,
-        &tablename,
+        tablename,
         &insert_query_columns,
         &all_columns_as_query,
     );
@@ -122,8 +122,8 @@ fn build_sql_query(
     set_columns_names: &[&str],
     returnin_columns: &str,
 ) -> String {
-    let mut qmarks = qmarks(set_columns_names.len(), &database_type);
-    if qmarks == "" {
+    let mut qmarks = qmarks(set_columns_names.len(), database_type);
+    if qmarks.is_empty() {
         qmarks = "NULL".to_string();
     }
 
