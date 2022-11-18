@@ -151,7 +151,7 @@ pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {
 }
 
 #[cfg(test)]
-mod test_select_macro {
+mod test_sqlo_select_macro {
     use super::*;
 
     macro_rules! success_parse_sqlo_select_syntax {

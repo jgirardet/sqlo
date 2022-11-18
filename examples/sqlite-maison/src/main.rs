@@ -13,7 +13,7 @@
 //   FOREIGN KEY(maison_id) REFERENCES maison(id)
 // );
 
-use sqlo::sqlo_select;
+use sqlo::{select, sqlo_select};
 use sqlx::Executor;
 
 #[rustfmt::skip]
@@ -72,6 +72,18 @@ struct PieceFk {
     #[sqlo(fk = "Maison", related = "lespieces")]
     maison_id: i64,
 }
+
+async fn reset_db(pool: &sqlx::SqlitePool) {
+    sqlx::query("DROP TABLE adresse;DROP TABLE piece;DROP TABLE maison")
+        .execute(pool)
+        .await
+        .unwrap();
+
+    pool.execute(include_str!("../../../assets/20220827110020_init_db.sql"))
+        .await
+        .unwrap();
+}
+
 #[async_std::main]
 async fn main() {
     let pool = sqlx::SqlitePool::connect(&std::env::var("DATABASE_URL").unwrap())
@@ -276,18 +288,9 @@ async fn main() {
         .unwrap();
     assert_eq!(a.rue, Some("aze".to_string()));
 
-    // ----------------- select --------------------------------//
+    // ----------------- sqlo_select --------------------------------//
 
-    // #### REset DB #########
-
-    sqlx::query("DROP TABLE adresse;DROP TABLE piece;DROP TABLE maison")
-        .execute(&pool)
-        .await
-        .unwrap();
-
-    pool.execute(include_str!("../../../assets/20220827110020_init_db.sql"))
-        .await
-        .unwrap();
+    reset_db(&pool).await;
 
     // --------------------- select easy -----------------------//
 
@@ -398,7 +401,166 @@ async fn main() {
     comp_many!(PieceFk, maison_id..(d, e, f), 7);
     let [d, e, f] = [1, 2, 4];
     comp_many!(PieceFk, maison_id..[d, e, f], 7);
-    // comparaison
+
+    // SELECT MACRO
+    reset_db(&pool).await;
+
+    // #simple
+    let res = select![Maison; id,adresse, taille, piscine FROM Maison]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res.len(), 3);
+
+    // # some columns with alias
+    struct Bli {
+        adresse: String,
+        tail: i64,
+    }
+    let res = select![Bli; adresse, taille AS tail FROM Maison]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[0].adresse, "adresse1");
+    assert_eq!(res[1].tail, 102);
+
+    // Distinct
+    #[allow(dead_code)]
+    struct MaisonId {
+        maison_id: i64,
+    }
+    let res = select![MaisonId; maison_id FROM PieceFk]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res.len(), 9);
+    let res = select![MaisonId;DISTINCT maison_id FROM PieceFk]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res.len(), 3);
+
+    // #table alias
+    let res = select![Maison; id,adresse, taille, m.piscine FROM Maison m]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res.len(), 3);
+
+    // #two tables alias
+    let res = select![Bli;b.la AS tail, a.adresse FROM Maison a, PieceFk b ]
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res.adresse, "adresse1");
+    assert_eq!(res.tail, 10);
+
+    // ## Columns ##
+    // #function
+    struct OptionI32 {
+        res: Option<i32>,
+    }
+    struct I32 {
+        res: i32,
+    }
+    struct OptionF64 {
+        res: Option<f64>,
+    }
+
+    macro_rules! sql_func {
+        ($type:ident, $func:ident, $res:expr) => {
+
+    assert_eq!(select![$type; $func(id) AS res FROM Maison]
+        .fetch_one(&pool)
+        .await
+        .unwrap().res, $res)
+        };
+    }
+    sql_func!(OptionI32, SUM, Some(6));
+    sql_func!(OptionI32, MIN, Some(1));
+    sql_func!(OptionI32, MAX, Some(3));
+    sql_func!(I32, COUNT, 3);
+    sql_func!(OptionF64, AVG, Some(2f64));
+
+    assert_eq!(
+        select![OptionI32; SUM(a.id) AS res FROM Maison a]
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+            .res,
+        Some(6)
+    );
+
+    // #Literal
+    #[derive(Debug, PartialEq)]
+    struct Literal {
+        string: String,
+        // cchar: char,
+        int: i32,
+        float: f64,
+        bbool: bool,
+    }
+
+    let res =
+        select![Literal; "bla" AS string, 4 AS int, 5.6 AS float, true AS "bbool:_" FROM Maison]
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        res,
+        Literal {
+            string: "bla".to_string(),
+            int: 4,
+            float: 5.6,
+            bbool: true
+        }
+    );
+
+    // Operation
+    // simple
+    let res = select![I32; id + 3 AS res FROM Maison ]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[1].res, 5);
+
+    // with function
+    let res = select![OptionI32; SUM(id)+COUNT(id) AS res FROM Maison ]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[0].res, Some(9));
+
+    // all arythmetic operator
+    let res = select![I32; id*id - id/id AS res FROM Maison ]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[0].res, 0);
+    assert_eq!(res[1].res, 3);
+
+    // all logic operator
+    let res = select![I32; 0 || id==id && id!=taille AS res FROM Maison ]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[0].res, 1);
+    assert_eq!(res[1].res, 1);
+
+    // parenthesis
+    let res = select![I32; (id+id)/id AS res FROM Maison]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[0].res, 2);
+    assert_eq!(res[1].res, 2);
+
+    // parenthes with function and field
+    let res = select![OptionI32; (SUM(a.id)+COUNT(a.id)) + 2 AS res FROM Maison a]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[0].res, Some(11));
     // ----------------- End -----------------------------------//
     println!("Sqlite Maison succeds !!!")
 }

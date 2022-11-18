@@ -1,4 +1,9 @@
+sur macro select:
+- penser à select sans class pour valeur unique
+
+
 - essai les sub query
+select!(count() FROM Maison)
 - les fonction IN avec subquery
 - le vrai like
 _did you mean == for = quand message est "only paren, ident, not alloawes)
@@ -11,7 +16,7 @@ FAits:
     =	Égale
     <>	Pas égale
     !=	Pas égale
-    >	Supérieur à
+    >	Supérieur à &
     <	Inférieur à
     >=	Supérieur ou égale à
     <=	Inférieur ou égale à

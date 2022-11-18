@@ -78,7 +78,7 @@ pub(crate) fn parse_binary_bool_member(expr: &Expr, acc: &mut Toks, err_msg: &st
     }
 }
 
-pub(crate) fn op_to_str(op: &BinOp) -> &str {
+pub fn op_to_str(op: &BinOp) -> &str {
     match op {
         BinOp::Eq(_) => "==",
         BinOp::Ne(_) => "!=",
@@ -88,7 +88,7 @@ pub(crate) fn op_to_str(op: &BinOp) -> &str {
         BinOp::Gt(_) => ">",
         BinOp::And(_) => "&&",
         BinOp::Or(_) => "||",
-        _ => unimplemented!(),
+        _ => unimplemented!("Sign not supported"),
     }
 }
 
