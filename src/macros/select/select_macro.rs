@@ -1,14 +1,12 @@
 use proc_macro2::TokenStream;
-use syn::{Ident, Token};
 
 use super::{column::Columns, distinct::Distinct, sql::ToSql, table::Tables};
 
 #[derive(Debug, Default)]
 pub struct Select {
-    query_as: Option<Ident>,
-    distinct: Distinct,
-    columns: Columns,
-    tables: Tables,
+    pub distinct: Distinct,
+    pub columns: Columns,
+    pub tables: Tables,
 }
 
 impl Select {
@@ -19,26 +17,17 @@ impl Select {
 
 impl syn::parse::Parse for Select {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let mut res = Select::default();
-
-        if input.peek2(Token![;]) {
-            res.query_as = input.parse()?;
-            input.parse::<Token![;]>()?;
-        }
-
-        //distinct
-        res.distinct = input.parse()?;
-        //parse columns,  count, max, ....
-        res.columns = input.parse()?;
-        // parse from table
-        res.tables = input.parse()?;
-
+        let res = Select {
+            distinct: input.parse()?,
+            columns: input.parse()?,
+            tables: input.parse()?,
+        };
         res.validate()
     }
 }
 
 impl Select {
-    fn to_sql(&self) -> syn::Result<String> {
+    pub fn to_sql(&self) -> syn::Result<String> {
         let Select {
             distinct,
             columns,
@@ -52,21 +41,13 @@ impl Select {
     }
 
     pub fn expand(self) -> syn::Result<TokenStream> {
-        let target_struct = if let Some(target) = &self.query_as {
-            target
-        } else {
-            return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
-                "Not implemented without query as",
-            ));
-        };
         let sql = self.to_sql()?;
 
         if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
             dbg!(&sql);
         }
         let res = quote::quote! {
-            sqlx::query_as!(#target_struct, #sql)
+            sqlx::query!(#sql)
         };
         Ok(res)
     }

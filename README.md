@@ -306,4 +306,5 @@ let other_update = update_House!(pk=2, height=345)(&pool).await?;
   -sqlo*select: user field or related.field(for fk)
   * instruction in: (tuple), (array), (range, inclusif ou exclusif)
 
+## macro select and select_as
 divers: ajouter option parse_only
