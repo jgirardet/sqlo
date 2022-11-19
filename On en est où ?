@@ -1,6 +1,11 @@
 sur macro select:
-- penser à select sans class pour valeur unique
-
+- faides des tokens
+- where
+- JOIN
+- order_by
+-desc
+-group_by
+- having
 
 - essai les sub query
 select!(count() FROM Maison)
