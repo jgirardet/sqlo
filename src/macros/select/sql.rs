@@ -15,6 +15,6 @@ macro_rules! peek_kw {
     };
 }
 
-pub fn is_a_keyword(input: &syn::parse::ParseBuffer) -> bool {
+pub fn is_a_keyword(input: syn::parse::ParseStream) -> bool {
     peek_kw!(input; FROM, from, WHERE, JOIN, join, distinct, AS) || peek_kw!(k;input ; where, as)
 }

@@ -74,7 +74,7 @@ mod test_parse_select_macro {
         };
     }
 
-    test_select_syntax!(query_as, "MyStruct ; id FROM Aaa", true);
+    test_select_syntax!(query_as, "MyStruct , id FROM Aaa", true);
     test_select_syntax!(distinct, "DISTINCT id FROM Aaa", true);
     test_select_syntax!(ident, "id FROM Aaa", true);
     test_select_syntax!(func, "count(id) FROM Aaa", true);

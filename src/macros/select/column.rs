@@ -21,12 +21,6 @@ enum ColumnParse {
     Paren(Box<ColumnParse>),
 }
 
-macro_rules! return_error {
-    ($it:expr,$msg:expr) => {
-        return Err(syn::Error::new_spanned($it, $msg))
-    };
-}
-
 impl syn::parse::Parse for ColumnParse {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let col = input.parse::<Expr>()?;
