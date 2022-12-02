@@ -1,5 +1,7 @@
 use syn::{BinOp, Expr, ExprBinary};
 
+use crate::utils::op_to_str;
+
 use super::tok::Toks;
 use super::totok::ToTok;
 
@@ -75,20 +77,6 @@ pub(crate) fn parse_binary_bool_member(expr: &Expr, acc: &mut Toks, err_msg: &st
         Expr::Unary(u) => u.as_param(acc),
         Expr::Paren(p) => p.as_param(acc),
         _ => acc.error(expr, &format!("Expression not supported {err_msg} and/or")),
-    }
-}
-
-pub fn op_to_str(op: &BinOp) -> &str {
-    match op {
-        BinOp::Eq(_) => "==",
-        BinOp::Ne(_) => "!=",
-        BinOp::Le(_) => "<=",
-        BinOp::Lt(_) => "<",
-        BinOp::Ge(_) => ">=",
-        BinOp::Gt(_) => ">",
-        BinOp::And(_) => "&&",
-        BinOp::Or(_) => "||",
-        _ => unimplemented!("Sign not supported"),
     }
 }
 

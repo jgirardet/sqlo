@@ -23,3 +23,10 @@ impl TryFrom<Expr> for TokenCall {
         return_error!(expr, "invalid expression: not a call expression")
     }
 }
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for TokenCall {
+    fn stry(&self) -> String {
+        format!("{}({})", &self.func.stry(), &self.content.stry())
+    }
+}

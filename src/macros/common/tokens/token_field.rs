@@ -31,3 +31,10 @@ impl TryFrom<Expr> for TokenField {
         )
     }
 }
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for TokenField {
+    fn stry(&self) -> String {
+        format!("{}.{}", self.base.stry(), self.member.stry())
+    }
+}

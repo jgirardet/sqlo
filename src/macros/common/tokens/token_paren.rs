@@ -21,3 +21,10 @@ impl TryFrom<Expr> for TokenParen {
         return_error!(parent, "invalid input, not a parenthes expression")
     }
 }
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for TokenParen {
+    fn stry(&self) -> String {
+        format!("({})", self.content.as_ref().stry(),)
+    }
+}

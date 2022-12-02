@@ -30,14 +30,22 @@ impl syn::parse::Parse for Phrase {
 }
 
 #[cfg(test)]
+impl crate::macros::common::stringify::Stringify for Phrase {
+    fn stry(&self) -> String {
+        use itertools::Itertools;
+        self.into_iter().map(|x| x.stry()).join(" ")
+    }
+}
+
+#[cfg(test)]
 mod test_phrase {
     use super::*;
 
     #[test]
     fn select_from_where() {
-        syn::parse_str::<Phrase>(
-            "SELECT a,COUNT(b+c) AS bla, c.d FROM  aaa, ccc c, bbb WHERE (a+1) > 4 && c.d<COUNT(a)",
-        )
-        .unwrap();
+        stry_cmp!(
+            "SELECT a,COUNT(b + c) AS bla,c.d FROM aaa,ccc c,bbb WHERE (a + 1) > 4 && c.d < COUNT(a)",
+            Phrase
+        );
     }
 }

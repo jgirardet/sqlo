@@ -128,3 +128,21 @@ impl_from_tokens_to_sqltoken!(
     (TokenParen, ExprParen),
     (TokenSeq, ExprSeq)
 );
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for SqlToken {
+    fn stry(&self) -> String {
+        match self {
+            Self::Ident(x) => x.stry(),
+            Self::Cast(x) => x.stry(),
+            Self::ExprBinary(x) => x.stry(),
+            Self::ExprCall(x) => x.stry(),
+            Self::ExprField(x) => x.stry(),
+            Self::ExprParen(x) => x.stry(),
+            Self::ExprSeq(x) => x.stry(),
+            Self::Literal(x) => x.stry(),
+            Self::Keyword(x) => x.stry(),
+            Self::Operator(x) => x.stry(),
+        }
+    }
+}

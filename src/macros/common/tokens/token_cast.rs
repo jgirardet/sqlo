@@ -75,3 +75,25 @@ impl syn::parse::Parse for CastSeparator {
 //         })
 //     }
 // }
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for CastSeparator {
+    fn stry(&self) -> String {
+        match self {
+            Self::AS(_) => " AS ".to_string(),
+            Self::None => " ".to_string(),
+        }
+    }
+}
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for TokenCast {
+    fn stry(&self) -> String {
+        format!(
+            "{}{}{}",
+            self.initial.as_ref().stry(),
+            self.sep.stry(),
+            self.alias.stry()
+        )
+    }
+}

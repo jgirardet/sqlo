@@ -30,3 +30,15 @@ impl TryFrom<Expr> for TokenBinary {
         return_error!(expr, "invalid expression: not a binary expression")
     }
 }
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for TokenBinary {
+    fn stry(&self) -> String {
+        format!(
+            "{} {} {}",
+            self.lhs.as_ref().stry(),
+            &self.op.stry(),
+            &self.rhs.as_ref().stry()
+        )
+    }
+}

@@ -33,3 +33,11 @@ impl From<Punctuated<SqlToken, Token!(,)>> for TokenSeq {
         TokenSeq { content: p }
     }
 }
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for TokenSeq {
+    fn stry(&self) -> String {
+        use itertools::Itertools;
+        self.content.iter().map(|x| x.stry()).join(",")
+    }
+}

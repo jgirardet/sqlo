@@ -13,3 +13,10 @@ impl TryFrom<BinOp> for TokenOperator {
 }
 
 impl_to_tokens_for_tokens!(TokenOperator, op);
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for TokenOperator {
+    fn stry(&self) -> String {
+        crate::utils::op_to_str(&self.op).to_string()
+    }
+}

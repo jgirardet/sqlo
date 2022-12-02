@@ -49,3 +49,10 @@ impl TryFrom<Expr> for TokenIdent {
         return_error!(p, "invalid column identifier")
     }
 }
+
+#[cfg(test)]
+impl crate::macros::common::stringify::Stringify for TokenIdent {
+    fn stry(&self) -> String {
+        self.ident.to_string()
+    }
+}

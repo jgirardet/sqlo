@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use proc_macro2::TokenStream;
 use quote::ToTokens;
-use syn::{Expr, Lit, Member};
+use syn::{BinOp, Expr, Lit, Member};
 
 use darling::util::path_to_string;
 
@@ -107,5 +107,23 @@ fn print_expr(expr: &Expr, acc: &mut String) {
             print_expr(&u.expr, acc)
         }
         _ => unimplemented!("Print of some Expr"),
+    }
+}
+
+pub fn op_to_str(op: &BinOp) -> &str {
+    match op {
+        BinOp::Eq(_) => "==",
+        BinOp::Ne(_) => "!=",
+        BinOp::Le(_) => "<=",
+        BinOp::Lt(_) => "<",
+        BinOp::Ge(_) => ">=",
+        BinOp::Gt(_) => ">",
+        BinOp::And(_) => "&&",
+        BinOp::Or(_) => "||",
+        BinOp::Add(_) => "+",
+        BinOp::Sub(_) => "-",
+        BinOp::Mul(_) => "*",
+        BinOp::Div(_) => "/",
+        _ => unimplemented!("Sign to str not supported"),
     }
 }
