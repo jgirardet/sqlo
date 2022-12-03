@@ -1,3 +1,4 @@
+use darling::util::IdentString;
 use proc_macro2::TokenStream;
 use std::fmt::Write;
 
@@ -16,8 +17,8 @@ mod kw {
 type PunctuatedExprComma = Punctuated<syn::Expr, Token![,]>;
 
 pub struct SqloSelectParse {
-    entity: syn::Ident,
-    related: Option<syn::Ident>,
+    entity: IdentString,
+    related: Option<IdentString>,
     instance: Option<syn::Expr>,
     wwhere: Option<WhereTokenizer>,
     order_by: Option<PunctuatedExprComma>,
@@ -26,7 +27,7 @@ pub struct SqloSelectParse {
 impl SqloSelectParse {
     fn new(ident: syn::Ident) -> Self {
         Self {
-            entity: ident,
+            entity: ident.into(),
             related: None,
             instance: None,
             wwhere: None,
@@ -52,7 +53,7 @@ impl syn::parse::Parse for SqloSelectParse {
             syn::bracketed!(content in input);
             res.instance = Some(content.parse::<syn::Expr>()?);
             input.parse::<Token![.]>()?;
-            res.related = Some(input.parse::<syn::Ident>()?);
+            res.related = Some(input.parse::<syn::Ident>()?.into());
         }
 
         // parse where
@@ -101,7 +102,7 @@ impl SqloSelectParse {
 
     fn expand_related(
         &self,
-        related: &syn::Ident,
+        related: &IdentString,
         main_sqlo: &Sqlo,
         sqlos: &Sqlos,
     ) -> syn::Result<TokenStream> {

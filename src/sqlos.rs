@@ -8,11 +8,10 @@ pub struct Sqlos {
 }
 
 impl Sqlos {
-    pub fn get<T: Display>(&self, name: T) -> Result<&Sqlo, SqloError> {
-        let name = name.to_string();
+    pub fn get<T: AsRef<str> + Display>(&self, name: T) -> Result<&Sqlo, SqloError> {
         self.entities
             .iter()
-            .find(|s| s.ident == name)
-            .ok_or_else(|| SqloError::new_lost(&format!("Can't find entity {}", &name)))
+            .find(|s| s.ident == name.as_ref())
+            .ok_or_else(|| SqloError::new_lost(&format!("Can't find entity {}", name)))
     }
 }

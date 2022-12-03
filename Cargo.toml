@@ -3,7 +3,6 @@ edition = "2021"
 name = "sqlo"
 version = "0.1.0"
 
-
 [lib]
 name = "sqlo"
 path = "src/lib.rs"

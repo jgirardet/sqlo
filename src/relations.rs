@@ -1,4 +1,4 @@
-use darling::util::path_to_string;
+use darling::util::{path_to_string, IdentString};
 use proc_macro2::Span;
 use quote::format_ident;
 use regex::Regex;
@@ -127,7 +127,7 @@ impl Relations {
 
 // query impl block
 impl Relations {
-    pub fn find(&self, to: &syn::Ident, related: &syn::Ident) -> Result<&Relation, SqloError> {
+    pub fn find(&self, to: &IdentString, related: &IdentString) -> Result<&Relation, SqloError> {
         match self
             .relations
             .iter()
@@ -171,10 +171,10 @@ impl TryFrom<PathBuf> for Relation {
 
                     if res.len() == 5 {
                         return Ok(Relation::ForeignKey(RelForeignKey {
-                            from: syn::Ident::new(res[0], Span::call_site()),
-                            field: syn::Ident::new(res[1], Span::call_site()),
-                            to: syn::Ident::new(res[2], Span::call_site()),
-                            related: syn::Ident::new(res[3], Span::call_site()),
+                            from: syn::Ident::new(res[0], Span::call_site()).into(),
+                            field: syn::Ident::new(res[1], Span::call_site()).into(),
+                            to: syn::Ident::new(res[2], Span::call_site()).into(),
+                            related: syn::Ident::new(res[3], Span::call_site()).into(),
                             ty: syn::parse_str(&res[4].replace('~', ":")).map_err(|_| {
                                 SqloError::new_lost("Could not parse relation type")
                             })?,
@@ -192,11 +192,11 @@ impl TryFrom<PathBuf> for Relation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelForeignKey {
-    pub from: syn::Ident,
-    pub field: syn::Ident,
+    pub from: IdentString,
+    pub field: IdentString,
     pub ty: syn::TypePath,
-    pub to: syn::Ident,
-    pub related: syn::Ident,
+    pub to: IdentString,
+    pub related: IdentString,
 }
 
 impl RelForeignKey {
@@ -296,10 +296,10 @@ fn make_field_relations(field: &Field, sqlo: &Sqlo) -> Vec<Relation> {
     res
 }
 
-pub fn as_related_name(ident: &syn::Ident) -> syn::Ident {
+pub fn as_related_name(ident: &IdentString) -> IdentString {
     use heck::ToSnakeCase;
     let name = ident.to_string().to_snake_case();
-    format_ident!("{}", syn::Ident::new(&name, ident.span()))
+    format_ident!("{}", syn::Ident::new(&name, ident.span())).into()
 }
 
 #[cfg(test)]

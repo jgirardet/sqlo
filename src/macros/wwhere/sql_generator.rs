@@ -4,8 +4,9 @@ use crate::{
     error::SqloError, macros::sql_query::SqlQuery, relations::Relation, sqlo::Sqlo, sqlos::Sqlos,
 };
 
+use darling::util::IdentString;
 use itertools::Itertools;
-use syn::{spanned::Spanned, Expr, ExprField, Ident, Member};
+use syn::{spanned::Spanned, Expr, ExprField, Member};
 
 use super::{
     tok::{Tok, Toks},
@@ -35,7 +36,7 @@ struct WhereSqlGenerator<'a> {
     sqlos: &'a Sqlos,
     main: &'a Sqlo,
     query: Vec<String>,
-    joins: BTreeMap<&'a syn::Ident, String>,
+    joins: BTreeMap<&'a IdentString, String>,
     arguments: Vec<Expr>,
 }
 
@@ -97,7 +98,7 @@ impl<'a> WhereSqlGenerator<'a> {
         Err(e.into())
     }
 
-    fn field(&mut self, v: Ident) -> Result<String, SqloError> {
+    fn field(&mut self, v: IdentString) -> Result<String, SqloError> {
         if let Some(field) = self.main.field(&v) {
             Ok(field.column.to_string())
         } else {
@@ -113,7 +114,7 @@ impl<'a> WhereSqlGenerator<'a> {
         let related = match *f.base {
             Expr::Path(p) => {
                 if let Some(base) = p.path.get_ident() {
-                    base.clone()
+                    base.clone().into()
                 } else {
                     return Err(SqloError::new(
                         "Foreign Key field must be single ident, can't use ::",
@@ -130,8 +131,8 @@ impl<'a> WhereSqlGenerator<'a> {
         };
 
         // get related
-        let from_field = if let Member::Named(ref ident) = f.member {
-            ident
+        let from_field: IdentString = if let Member::Named(ref ident) = f.member {
+            ident.clone().into()
         } else {
             return Err(SqloError::new(
                 "Invalid, can't be numeric. Should be a field name.",

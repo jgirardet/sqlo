@@ -1,3 +1,4 @@
+use darling::util::IdentString;
 use proc_macro2::TokenStream;
 
 use crate::{
@@ -8,12 +9,12 @@ use crate::{
 use quote::quote;
 
 struct CrudCreateImpl<'a> {
-    pub non_create_fn_idents: Vec<&'a syn::Ident>,
+    pub non_create_fn_idents: Vec<&'a IdentString>,
     pub non_create_fn_types: Vec<&'a syn::TypePath>,
-    pub create_fn_idents: Vec<&'a syn::Ident>,
+    pub create_fn_idents: Vec<&'a IdentString>,
     pub create_fns: Vec<&'a syn::ExprPath>,
     pub insert_query_columns: Vec<&'a str>,
-    pub insert_query_args: Vec<&'a syn::Ident>,
+    pub insert_query_args: Vec<&'a IdentString>,
 }
 
 impl<'a> From<&'a Sqlo> for CrudCreateImpl<'a> {

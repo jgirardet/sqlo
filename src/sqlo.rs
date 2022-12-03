@@ -1,6 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{field::Field, parse::SqloParse, serdable::IdentSer, types::is_type_option};
+use crate::{field::Field, parse::SqloParse, serdable::IdentStringSer, types::is_type_option};
+use darling::util::IdentString;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
@@ -16,8 +17,8 @@ const DATABASE_TYPE: DatabaseType = if cfg!(feature = "sqlite") {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sqlo {
-    #[serde(with = "IdentSer")]
-    pub ident: syn::Ident,
+    #[serde(with = "IdentStringSer")]
+    pub ident: IdentString,
     pub fields: Vec<Field>,
     pub tablename: String,
     pub database_type: DatabaseType,
@@ -29,11 +30,11 @@ impl TryFrom<SqloParse> for Sqlo {
     type Error = syn::Error;
     fn try_from(sp: SqloParse) -> Result<Sqlo, syn::Error> {
         Ok(Self {
-            ident: sp.ident.clone(),
             fields: sp.fields()?,
             tablename: sp.tablename(),
-            database_type: DATABASE_TYPE,
             pk_field: sp.has_pk_field()?,
+            ident: sp.ident.into(),
+            database_type: DATABASE_TYPE,
             parse_only: sp.parse_only,
         })
     }
@@ -57,7 +58,7 @@ impl Sqlo {
     }
 
     pub fn as_option_struct(&self) -> (syn::Ident, TokenStream) {
-        let option_class = format_ident!("Option{}", &self.ident);
+        let option_class = format_ident!("Option{}", self.ident.as_str());
         let option_struct_name = option_class.clone();
         let class_args = self.fields_name_and_type_as_option();
         (
@@ -105,9 +106,8 @@ impl Sqlo {
 // utils
 impl Sqlo {
     /// Get a field if exists.
-    pub fn field<T: Display>(&self, name: T) -> Option<&Field> {
-        let name = name.to_string();
-        self.fields.iter().find(|f| f.ident == name)
+    pub fn field<T: AsRef<str>>(&self, name: T) -> Option<&Field> {
+        self.fields.iter().find(|f| f.ident == name.as_ref())
     }
 }
 

@@ -1,8 +1,26 @@
+use darling::util::IdentString;
 use quote::ToTokens;
 
 // Serde Adaptor for various type
 
 // syn::Ident
+
+// syn::Ident
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "darling::util::IdentString")]
+pub(crate) struct IdentStringSer {
+    #[serde(getter = "darling::util::IdentString::to_string")]
+    name: String,
+}
+
+impl From<IdentStringSer> for darling::util::IdentString {
+    fn from(i: IdentStringSer) -> Self {
+        darling::util::IdentString::new(syn::Ident::new(&i.name, proc_macro2::Span::call_site()))
+    }
+}
+
+// darlug::util::IdentString
 
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "syn::Ident")]
@@ -33,6 +51,25 @@ impl From<OptionIdentSer> for Option<syn::Ident> {
     }
 }
 fn option_ident_to_string(exp: &Option<syn::Ident>) -> Option<String> {
+    exp.as_ref().map(|p| p.to_string())
+}
+
+// Option<IdentString>
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(remote = "Option<darling::util::IdentString>")]
+pub(crate) struct OptionIdentStringSer {
+    #[serde(getter = "option_ident_string_to_string")]
+    name: Option<String>,
+}
+
+impl From<OptionIdentStringSer> for Option<IdentString> {
+    fn from(i: OptionIdentStringSer) -> Self {
+        i.name
+            .map(|x| syn::Ident::new(&x, proc_macro2::Span::call_site()).into())
+    }
+}
+fn option_ident_string_to_string(exp: &Option<IdentString>) -> Option<String> {
     exp.as_ref().map(|p| p.to_string())
 }
 

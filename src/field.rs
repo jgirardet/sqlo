@@ -1,5 +1,5 @@
-use crate::serdable::{IdentSer, OptionExprPathSer, OptionIdentSer, TypePathSer};
-use darling::FromField;
+use crate::serdable::{IdentStringSer, OptionExprPathSer, OptionIdentStringSer, TypePathSer};
+use darling::{util::IdentString, FromField};
 use syn::spanned::Spanned;
 
 #[derive(Debug, FromField, Clone)]
@@ -16,14 +16,14 @@ pub struct FieldParser {
     create_fn: Option<syn::ExprPath>,
     #[darling(default)]
     pub create_arg: bool,
-    pub fk: Option<syn::Ident>,
-    pub related: Option<syn::Ident>,
+    pub fk: Option<IdentString>,
+    pub related: Option<IdentString>,
 }
 
 impl FieldParser {
-    pub fn ident(&self) -> syn::Result<&syn::Ident> {
+    pub fn ident(&self) -> syn::Result<IdentString> {
         if let Some(ref ident) = self.ident {
-            return Ok(ident);
+            return Ok(ident.clone().into());
         }
         Err(syn::Error::new(
             self.ty.span(),
@@ -42,14 +42,14 @@ impl FieldParser {
         let name = self.column_name()?;
         let struct_name = self.ident()?;
         // we write full query if name or type isn't the same between rust struct and database
-        if self.type_override || *struct_name != name || struct_name == "id" {
+        if self.type_override || struct_name != name || struct_name == "id" {
             Ok(format!(r#"{} as "{}:_""#, &name, &struct_name).replace('\\', ""))
         } else {
             Ok(name)
         }
     }
 
-    pub fn fk(&self) -> syn::Result<Option<syn::Ident>> {
+    pub fn fk(&self) -> syn::Result<Option<IdentString>> {
         if self.fk.is_none() {
             return Ok(self.fk.clone());
         }
@@ -82,7 +82,7 @@ impl FieldParser {
         }
     }
 
-    pub fn related(&self) -> syn::Result<Option<syn::Ident>> {
+    pub fn related(&self) -> syn::Result<Option<IdentString>> {
         if self.related.is_some() && self.fk.is_none() {
             Err(syn::Error::new_spanned(
                 self.related.clone(),
@@ -96,8 +96,8 @@ impl FieldParser {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Field {
-    #[serde(with = "IdentSer")]
-    pub ident: syn::Ident,
+    #[serde(with = "IdentStringSer")]
+    pub ident: darling::util::IdentString,
     #[serde(with = "TypePathSer")]
     pub ty: syn::TypePath,
     pub column: String,
@@ -106,10 +106,10 @@ pub struct Field {
     #[serde(with = "OptionExprPathSer")]
     pub create_fn: Option<syn::ExprPath>,
     pub create_arg: bool,
-    #[serde(with = "OptionIdentSer")]
-    pub fk: Option<syn::Ident>,
-    #[serde(with = "OptionIdentSer")]
-    pub related: Option<syn::Ident>,
+    #[serde(with = "OptionIdentStringSer")]
+    pub fk: Option<IdentString>,
+    #[serde(with = "OptionIdentStringSer")]
+    pub related: Option<IdentString>,
 }
 
 impl TryFrom<FieldParser> for Field {
@@ -117,7 +117,7 @@ impl TryFrom<FieldParser> for Field {
 
     fn try_from(fp: FieldParser) -> Result<Self, Self::Error> {
         Ok(Field {
-            ident: fp.ident()?.to_owned(),
+            ident: fp.ident()?.clone().into(),
             ty: fp.ty()?,
             column: fp.column_name()?,
             as_query: fp.as_query()?,

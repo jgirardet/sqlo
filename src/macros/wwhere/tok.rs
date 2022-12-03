@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use darling::util::IdentString;
 use itertools::Itertools;
 use quote::ToTokens;
 
@@ -38,7 +39,7 @@ impl From<&WhereTokenizer> for Toks {
 
 impl Toks {
     pub fn field(&mut self, ident: &syn::Ident) {
-        self.0.push(Tok::Field(ident.clone()))
+        self.0.push(Tok::Field(ident.clone().into()))
     }
 
     pub fn foreign_key(&mut self, field: &syn::ExprField) {
@@ -105,7 +106,7 @@ impl Display for Toks {
 #[derive(Debug, Clone)]
 pub enum Tok {
     // Call(syn::Expr),
-    Field(syn::Ident),
+    Field(IdentString),
     ForeignKey(syn::ExprField),
     In(Toks),
     Null(Toks),

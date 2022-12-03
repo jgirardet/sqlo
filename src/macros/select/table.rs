@@ -1,3 +1,4 @@
+use darling::util::IdentString;
 use syn::{Ident, Token};
 
 use crate::{field::Field, sqlo::Sqlo, virtual_file::VirtualFile};
@@ -11,7 +12,7 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn ident(&self) -> &Ident {
+    pub fn ident(&self) -> &IdentString {
         &self.sqlo.ident
     }
 }
@@ -56,9 +57,11 @@ impl TableParse {
         let mut res = Vec::with_capacity(tables.len());
         let sqlos = VirtualFile::new().load()?;
         for tab in tables {
-            if let Ok(sqlo) = sqlos.get(&tab.ident) {
+            if let Ok(sqlo) = sqlos.get(tab.ident.to_string()) {
                 let mut sqlo = sqlo.clone();
-                sqlo.ident.set_span(tab.ident.span());
+                let mut ident = sqlo.ident.as_ident().clone();
+                ident.set_span(tab.ident.span());
+                sqlo.ident = ident.into();
                 res.push(Table {
                     sqlo,
                     alias: tab.alias,
@@ -79,11 +82,11 @@ impl TableParse {
 pub struct Tables(Vec<Table>);
 
 impl Tables {
-    pub fn field(&self, field_name: &Ident, tab: Option<&Ident>) -> syn::Result<&Field> {
+    pub fn field(&self, field_name: &IdentString, tab: Option<&Ident>) -> syn::Result<&Field> {
         for t in &self.0 {
             if let Some(field) = t.sqlo.field(field_name) {
                 if let Some(ident) = tab {
-                    if t.ident() == ident {
+                    if t.ident().as_ident() == ident {
                         return Ok(field);
                     }
                 } else {

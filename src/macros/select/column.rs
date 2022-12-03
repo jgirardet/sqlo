@@ -1,3 +1,4 @@
+use darling::util::IdentString;
 use syn::{
     BinOp, Expr, ExprBinary, ExprCast, ExprLit, ExprParen, ExprPath, Ident, Lit, LitStr, Member,
     Token,
@@ -140,7 +141,7 @@ impl ToSql for Column {
 impl ColumnParse {
     pub fn to_sql(&self, tables: &Tables) -> syn::Result<String> {
         match *self {
-            ColumnParse::Col(ref i) => Ok(tables.field(i, None)?.column.to_string()),
+            ColumnParse::Col(ref i) => Ok(tables.field(&i.clone().into(), None)?.column.to_string()),
             ColumnParse::Literal(ref l) => match l {
                 Lit::Str(s) => {
                     let res = format!("'{}'", s.value());
@@ -157,12 +158,12 @@ impl ColumnParse {
             },
             ColumnParse::Field(ref base, ref member) => {
                 let table = tables.get(base)?;
-                let member_ident = if let ColumnParse::Col(ident) = member.as_ref() {
-                    ident
+                let member_ident: IdentString = if let ColumnParse::Col(ident) = member.as_ref() {
+                    ident.clone().into()
                 } else {
                     return_error!(base, "Invalid associated field");
                 };
-                if table.sqlo.field(member_ident).is_some() {
+                if table.sqlo.field(&member_ident).is_some() {
                     let table_base = if table.alias.is_some() {
                         base.to_string()
                     } else {
