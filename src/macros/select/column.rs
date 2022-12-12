@@ -141,7 +141,9 @@ impl ToSql for Column {
 impl ColumnParse {
     pub fn to_sql(&self, tables: &Tables) -> syn::Result<String> {
         match *self {
-            ColumnParse::Col(ref i) => Ok(tables.field(&i.clone().into(), None)?.column.to_string()),
+            ColumnParse::Col(ref i) => {
+                Ok(tables.field(&i.clone().into(), None)?.column.to_string())
+            }
             ColumnParse::Literal(ref l) => match l {
                 Lit::Str(s) => {
                     let res = format!("'{}'", s.value());

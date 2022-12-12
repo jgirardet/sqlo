@@ -13,7 +13,7 @@
 //   FOREIGN KEY(maison_id) REFERENCES maison(id)
 // );
 
-use sqlo::{select, select_as, sqlo_select};
+use sqlo::{select, select_as, sqlo, sqlo_as, sqlo_select};
 use sqlx::Executor;
 
 #[rustfmt::skip]
@@ -579,6 +579,33 @@ async fn main() {
         .await
         .unwrap();
     assert_eq!(res[0].res, Some(11));
+
+    //
+    // ----------------- sqlo -----------------------------------//
+    reset_db(&pool).await;
+    // ------------------- --------------------------------------//
+    struct I64 {
+        un: i64,
+    }
+    let res = sqlo![SELECT id FROM Maison].fetch_all(&pool).await.unwrap();
+    assert_eq!(res[0].id, 1);
+    assert_eq!(res[1].id, 2);
+
+    let res = sqlo_as![I64, SELECT id AS un FROM Maison]
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res[0].un, 1);
+    assert_eq!(res[1].un, 2);
+
+    let res = sqlo_as![I32, SELECT COUNT(id) AS res FROM Maison]
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(res.res, 3);
+    // struct MaisonPiece {
+    //     maison_id
+    // }
     // ----------------- End -----------------------------------//
     println!("Sqlite Maison succeds !!!")
 }

@@ -1,31 +1,74 @@
 use std::slice;
 
-use crate::macros::common::keyword::peek_keyword;
+use proc_macro2::TokenStream;
 
-use super::clause::Clause;
+use crate::sqlos::Sqlos;
 
-pub struct Phrase(Vec<Clause>);
+use super::{clause::Clause, sqlize::Sqlized, FromContext, SelectContext, Sqlize, Validate};
+
+pub struct Phrase {
+    clauses: Vec<Clause>,
+}
 
 impl<'a> IntoIterator for &'a Phrase {
     type Item = &'a Clause;
     type IntoIter = slice::Iter<'a, Clause>;
 
     fn into_iter(self) -> slice::Iter<'a, Clause> {
-        self.0.iter()
+        self.clauses.iter()
     }
 }
 
 impl syn::parse::Parse for Phrase {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let mut res = vec![];
-        res.push(input.parse()?);
+        let mut clauses = vec![];
         while !input.is_empty() {
-            if !peek_keyword(input) {
-                return Err(input.error("Each clause should start with a keyword"));
-            }
-            res.push(input.parse()?)
+            clauses.push(input.parse()?)
         }
-        Ok(Self(res))
+        Ok(Self { clauses })
+    }
+}
+
+impl Phrase {
+    pub fn sqlize(&self, sqlos: &Sqlos) -> syn::Result<Sqlized> {
+        let mut acc = Sqlized::default();
+        let mut iter = self.into_iter();
+        if let Some(Clause::Select(ref sel)) = iter.next() {
+            if let Some(Clause::From(from_clause)) = iter.next() {
+                let context_select = SelectContext::from_clausefrom(from_clause, sqlos)?;
+                sel.sselect(&mut acc, &context_select)?;
+                let context_from = FromContext::from_clausefrom(from_clause, sqlos)?;
+                from_clause.ffrom(&mut acc, &context_from)?;
+            } else {
+                return_error!(&sel.tokens, "a FROM clause should follow a SELECT clause")
+            }
+        }
+        Ok(acc)
+    }
+
+    pub fn expand(self, sqlos: &Sqlos) -> syn::Result<TokenStream> {
+        self.validate(sqlos)?;
+        let sqlized = self.sqlize(sqlos)?;
+        let sql = sqlized.to_string();
+        let params = sqlized.params();
+        if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
+            dbg!(&sql);
+        }
+        Ok(quote::quote! {
+            sqlx::query![#sql,#(#params),*]
+        })
+    }
+}
+
+impl Validate for Phrase {
+    fn validate(&self, sqlos: &crate::sqlos::Sqlos) -> syn::Result<()> {
+        // first validate Clause
+        for i in self {
+            i.validate(sqlos)?
+        }
+        // then validate cross-Clause
+        // is it needed  since we are passing context to sqlize methods?
+        Ok(())
     }
 }
 
@@ -39,13 +82,32 @@ impl crate::macros::common::stringify::Stringify for Phrase {
 
 #[cfg(test)]
 mod test_phrase {
+    use crate::virtual_file::VirtualFile;
+
     use super::*;
 
     #[test]
     fn select_from_where() {
         stry_cmp!(
-            "SELECT a,COUNT(b + c) AS bla,c.d FROM aaa,ccc c,bbb WHERE (a + 1) > 4 && c.d < COUNT(a)",
-            Phrase
-        );
+        "SELECT a,COUNT(b + c) AS bla,c.d FROM aaa,ccc c,bbb WHERE (a + 1) > 4 && c.d < COUNT(a)",
+        Phrase
+    );
+    }
+
+    #[test]
+    fn validate_cascade() {
+        let sqlos = VirtualFile::new().load().unwrap();
+        let p: Phrase = syn::parse_str("SELECT bla(a) FROM bli").unwrap();
+        assert!(p.validate(&sqlos).is_err());
+        if let Err(e) = p.validate(&sqlos) {
+            assert_eq!(e.to_string(), "SQL functions must be uppercase.");
+            return;
+        }
+        panic!("sould have failed")
+    }
+
+    #[test]
+    fn distinct_in_select() {
+        syn::parse_str::<Phrase>("SELECT DISTINCT a FROM bli").unwrap();
     }
 }

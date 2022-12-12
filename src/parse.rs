@@ -1,5 +1,5 @@
 use crate::field::{Field, FieldParser};
-use darling::{FromDeriveInput};
+use darling::FromDeriveInput;
 
 #[derive(Debug, FromDeriveInput)]
 #[darling(attributes(sqlo), supports(struct_named))]

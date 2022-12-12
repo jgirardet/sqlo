@@ -1,4 +1,7 @@
+use crate::macros::common::{SelectContext, Sqlize, Sqlized};
 use syn::{Expr, Member};
+
+use crate::macros::common::Validate;
 
 use super::token_ident::TokenIdent;
 
@@ -8,7 +11,7 @@ pub struct TokenField {
     member: TokenIdent,
 }
 
-impl_to_tokens_for_tokens!(TokenField, base, member);
+impl_trait_to_tokens_for_tokens!(TokenField, base, member);
 
 impl TryFrom<Expr> for TokenField {
     type Error = syn::Error;
@@ -29,6 +32,34 @@ impl TryFrom<Expr> for TokenField {
             expr,
             "Invalid expression: should be sqlo_struct.fieldname or alias.fieldname"
         )
+    }
+}
+
+impl Validate for TokenField {}
+
+impl Sqlize for TokenField {
+    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+        let mut group = Sqlized::default();
+        let mut base = String::new();
+        for sqlo_alias in context.alias_sqlos.iter() {
+            if let Some(alias) = sqlo_alias.alias {
+                if alias == &self.base {
+                    base = alias.to_string();
+                    break;
+                }
+            }
+            if sqlo_alias.sqlo.ident == self.base {
+                base = sqlo_alias.sqlo.tablename.to_string();
+                break;
+            }
+        }
+        if !base.is_empty() {
+            group.append_sql(base);
+            self.member.sselect(&mut group, context)?;
+            acc.append_sql(group.sql().join("."));
+            return Ok(());
+        }
+        return_error!(&self.base, "No Sqlo struct or alias found in FROM clause")
     }
 }
 

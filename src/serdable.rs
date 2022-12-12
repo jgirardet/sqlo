@@ -37,22 +37,22 @@ impl From<IdentSer> for syn::Ident {
 
 // Option<syn::Ident>
 
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "Option<syn::Ident>")]
-pub(crate) struct OptionIdentSer {
-    #[serde(getter = "option_ident_to_string")]
-    name: Option<String>,
-}
+// #[derive(serde::Serialize, serde::Deserialize)]
+// #[serde(remote = "Option<syn::Ident>")]
+// pub(crate) struct OptionIdentSer {
+//     #[serde(getter = "option_ident_to_string")]
+//     name: Option<String>,
+// }
 
-impl From<OptionIdentSer> for Option<syn::Ident> {
-    fn from(i: OptionIdentSer) -> Self {
-        i.name
-            .map(|x| syn::Ident::new(&x, proc_macro2::Span::call_site()))
-    }
-}
-fn option_ident_to_string(exp: &Option<syn::Ident>) -> Option<String> {
-    exp.as_ref().map(|p| p.to_string())
-}
+// impl From<OptionIdentSer> for Option<syn::Ident> {
+//     fn from(i: OptionIdentSer) -> Self {
+//         i.name
+//             .map(|x| syn::Ident::new(&x, proc_macro2::Span::call_site()))
+//     }
+// }
+// fn option_ident_to_string(exp: &Option<syn::Ident>) -> Option<String> {
+//     exp.as_ref().map(|p| p.to_string())
+// }
 
 // Option<IdentString>
 

@@ -1,12 +1,16 @@
-use crate::macros::common::keyword::{kw, SqlKeyword};
+use std::fmt::Display;
 
 use super::{token_ident::TokenIdent, SqlToken};
+use crate::macros::common::{
+    keyword::{kw, SqlKeyword},
+    FromContext, SelectContext, Sqlize, Sqlized, Validate,
+};
 
 #[derive(Debug)]
 pub struct TokenCast {
-    initial: Box<SqlToken>,
-    alias: TokenIdent,
-    sep: CastSeparator,
+    pub initial: Box<SqlToken>,
+    pub alias: TokenIdent,
+    pub sep: CastSeparator,
 }
 
 impl TokenCast {
@@ -19,12 +23,21 @@ impl TokenCast {
     }
 }
 
-impl_to_tokens_for_tokens!(TokenCast, initial, sep, alias);
+impl_trait_to_tokens_for_tokens!(TokenCast, initial, sep, alias);
 
 #[derive(Debug)]
 pub enum CastSeparator {
     None,
     AS(SqlKeyword),
+}
+
+impl Display for CastSeparator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AS(_) => write!(f, "AS"),
+            Self::None => write!(f, ""),
+        }
+    }
 }
 
 impl TryFrom<SqlKeyword> for CastSeparator {
@@ -56,25 +69,25 @@ impl syn::parse::Parse for CastSeparator {
         }
     }
 }
-// unused right now, parse via sqltoken
-//
-// impl syn::parse::Parse for TokenCast {
-//     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-//         let initial = input.parse::<Expr>()?;
-//         let sep = if input.peek(kw::AS) {
-//             input.parse::<kw::AS>()?;
-//             CastSeparator::AS
-//         } else {
-//             CastSeparator::None
-//         };
-//         let alias = input.parse::<TokenIdent>()?;
-//         Ok(TokenCast {
-//             initial: Box::new(initial.try_into()?),
-//             alias,
-//             sep,
-//         })
-//     }
-// }
+
+impl Sqlize for TokenCast {
+    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+        let mut group = Sqlized::default();
+        self.initial.sselect(&mut group, context)?;
+        group.append_sql(self.sep.to_string());
+        group.append_sql(self.alias.to_string());
+        acc.append_sql(group.sql().join(" "));
+        Ok(())
+    }
+
+    fn ffrom(&self, acc: &mut Sqlized, context: &FromContext) -> syn::Result<()> {
+        let mut group = Sqlized::default();
+        self.initial.ffrom(&mut group, context)?;
+        group.append_sql(self.alias.to_string());
+        acc.append_sql(group.sql().join(" "));
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 impl crate::macros::common::stringify::Stringify for CastSeparator {
@@ -83,6 +96,12 @@ impl crate::macros::common::stringify::Stringify for CastSeparator {
             Self::AS(_) => " AS ".to_string(),
             Self::None => " ".to_string(),
         }
+    }
+}
+
+impl Validate for TokenCast {
+    fn validate(&self, sqlos: &crate::sqlos::Sqlos) -> syn::Result<()> {
+        self.initial.validate(sqlos)
     }
 }
 

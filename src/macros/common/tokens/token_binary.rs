@@ -1,5 +1,7 @@
 use syn::{Expr, ExprBinary};
 
+use crate::macros::common::{SelectContext, Sqlize, Sqlized, Validate};
+
 use super::SqlToken;
 
 use super::token_operator::TokenOperator;
@@ -11,7 +13,7 @@ pub struct TokenBinary {
     rhs: Box<SqlToken>,
 }
 
-impl_to_tokens_for_tokens!(TokenBinary, lhs, op, rhs);
+impl_trait_to_tokens_for_tokens!(TokenBinary, lhs, op, rhs);
 
 impl TryFrom<Expr> for TokenBinary {
     type Error = syn::Error;
@@ -28,6 +30,19 @@ impl TryFrom<Expr> for TokenBinary {
             });
         }
         return_error!(expr, "invalid expression: not a binary expression")
+    }
+}
+
+impl Validate for TokenBinary {}
+
+impl Sqlize for TokenBinary {
+    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+        let mut group = Sqlized::default();
+        self.lhs.sselect(&mut group, context)?;
+        self.op.sselect(&mut group, context)?;
+        self.rhs.sselect(&mut group, context)?;
+        acc.append_group_with(group, " ");
+        Ok(())
     }
 }
 

@@ -1,50 +1,43 @@
-use super::{keyword::kw, tokens::SqlToken, tokens::TokenSeq};
+use crate::macros::common::{kw, ClauseFrom, ClauseSelect, ClauseWhere, Validate};
 
-#[derive(Debug)]
 pub enum Clause {
-    Select(SqlToken),
-    From(SqlToken),
-    Where(SqlToken),
+    Where(ClauseWhere),
+    Select(ClauseSelect),
+    From(ClauseFrom),
 }
 
 impl syn::parse::Parse for Clause {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.peek(kw::SELECT) {
-            parse_select(input)
-        } else if input.peek(kw::WHERE) {
-            parse_where(input)
+        let res = if input.peek(kw::SELECT) {
+            input.parse::<ClauseSelect>()?.into()
         } else if input.peek(kw::FROM) {
-            parse_from(input)
+            input.parse::<ClauseFrom>()?.into()
+        } else if input.peek(kw::WHERE) {
+            input.parse::<ClauseWhere>()?.into()
         } else {
-            parse_select(input)
+            input.parse::<ClauseSelect>()?.into()
+        };
+        Ok(res)
+    }
+}
+
+impl Validate for Clause {
+    fn validate(&self, sqlos: &crate::sqlos::Sqlos) -> syn::Result<()> {
+        match self {
+            Self::From(x) => x.validate(sqlos),
+            Self::Where(x) => x.validate(sqlos),
+            Self::Select(x) => x.validate(sqlos),
         }
     }
-}
-
-fn parse_select(input: syn::parse::ParseStream) -> syn::Result<Clause> {
-    if input.peek(kw::SELECT) {
-        input.parse::<kw::SELECT>()?;
-    }
-    Ok(Clause::Select(input.parse::<TokenSeq>()?.into()))
-}
-
-fn parse_from(input: syn::parse::ParseStream) -> syn::Result<Clause> {
-    input.parse::<kw::FROM>()?;
-    Ok(Clause::From(input.parse::<TokenSeq>()?.into()))
-}
-
-fn parse_where(input: syn::parse::ParseStream) -> syn::Result<Clause> {
-    input.parse::<kw::WHERE>()?;
-    Ok(Clause::Where(input.parse::<TokenSeq>()?.into()))
 }
 
 #[cfg(test)]
 impl crate::macros::common::stringify::Stringify for Clause {
     fn stry(&self) -> String {
         match self {
-            Self::From(x) => format!("FROM {}", x.stry()),
-            Self::Where(x) => format!("WHERE {}", x.stry()),
-            Self::Select(x) => format!("SELECT {}", x.stry()),
+            Self::From(x) => x.stry(),
+            Self::Where(x) => x.stry(),
+            Self::Select(x) => x.stry(),
         }
     }
 }

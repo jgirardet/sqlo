@@ -1,5 +1,7 @@
 #![allow(clippy::upper_case_acronyms)]
 
+use std::fmt::Display;
+
 pub mod kw {
 
     syn::custom_keyword!(AS);
@@ -25,6 +27,7 @@ macro_rules! impl_sql_keyword {
             }
         }
 
+
         impl syn::parse::Parse for SqlKeyword {
             fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
                 $(
@@ -36,12 +39,47 @@ macro_rules! impl_sql_keyword {
             }
         }
 
+        impl crate::macros::common::Validate for SqlKeyword {}
+
         pub fn peek_keyword(input: syn::parse::ParseStream) -> bool {
             $(input.peek(kw::$name))||+
 
         }
+        $(
+        impl From<kw::$name> for SqlKeyword {
+            fn from(k: kw::$name) ->  SqlKeyword {
+                    SqlKeyword::$name(k)
+                }
+        }
+        )+
+
+
 
     };
+}
+
+impl Display for SqlKeyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::DISTINCT(_) => write!(f, "DISTINCT"),
+            Self::AS(_) => write!(f, "AS"),
+            Self::SELECT(_) => write!(f, "SELECT"),
+            Self::FROM(_) => write!(f, "FROM"),
+            Self::WHERE(_) => write!(f, "WHERE"),
+            Self::JOIN(_) => write!(f, "JOIN"),
+        }
+    }
+}
+
+impl crate::macros::common::Sqlize for SqlKeyword {
+    fn sselect(
+        &self,
+        acc: &mut crate::macros::common::Sqlized,
+        _context: &crate::macros::common::SelectContext,
+    ) -> syn::Result<()> {
+        acc.append_sql(self.to_string());
+        Ok(())
+    }
 }
 
 impl_sql_keyword!(AS, DISTINCT, FROM, WHERE, SELECT, JOIN);

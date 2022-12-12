@@ -16,5 +16,8 @@
     ],
     "rust-analyzer.checkOnSave.enable": true,
     "rust-analyzer.checkOnSave.allTargets": true,
-    "rust-analyzer.checkOnSave.overrideCommand": null
+    "rust-analyzer.checkOnSave.overrideCommand": null,
+    "taskfileLauncher.taskfileNames": [
+        "Taskfile.yaml"
+    ]
 }

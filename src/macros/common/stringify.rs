@@ -1,18 +1,11 @@
 #![cfg(test)]
 /// Stringify token, tests purpose only
-use std::fmt::Display;
 
 pub trait Stringify {
     fn stry(&self) -> String;
 
     fn assert_eq(&self, res: &str) {
         assert_eq!(self.stry().as_str(), res);
-    }
-}
-
-impl<T: Display> Stringify for T {
-    fn stry(&self) -> String {
-        self.to_string()
     }
 }
 

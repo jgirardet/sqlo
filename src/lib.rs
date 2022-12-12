@@ -1,3 +1,5 @@
+#[macro_use]
+mod utils;
 mod error;
 mod field;
 mod macros;
@@ -10,7 +12,6 @@ mod serdable;
 mod sqlo;
 mod sqlos;
 mod types;
-mod utils;
 mod virtual_file;
 
 use crate::parse::SqloParse;
@@ -75,6 +76,29 @@ pub fn select_as(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let pts: SelectAs = syn::parse_macro_input!(input as SelectAs);
     match pts.expand() {
         Ok(ts) => ts.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+#[proc_macro]
+pub fn sqlo(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let sqlo_m: crate::macros::common::Phrase =
+        syn::parse_macro_input!(input as crate::macros::common::Phrase);
+    let sqlos = VirtualFile::new().load().unwrap();
+
+    match sqlo_m.expand(&sqlos) {
+        Ok(r) => r.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+#[proc_macro]
+pub fn sqlo_as(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let sqloas = syn::parse_macro_input!(input as crate::macros::common::SqloAs);
+    let sqlos = VirtualFile::new().load().unwrap();
+
+    match sqloas.expand(&sqlos) {
+        Ok(r) => r.into(),
         Err(e) => e.to_compile_error().into(),
     }
 }

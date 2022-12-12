@@ -1,13 +1,5 @@
-macro_rules! impl_to_tokens_for_tokens {
-    ($struct:ident, $($fields:ident),+) => {
-        impl quote::ToTokens for $struct {
-            fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-                $(self.$fields.to_tokens(tokens);)+
-            }
-        }
-    };
-}
-
+#[macro_use]
+mod macros;
 mod sql_tokens;
 mod token_binary;
 mod token_call;

@@ -1,7 +1,9 @@
+use syn::punctuated::Punctuated;
 use syn::Token;
 use syn::{BinOp, Expr, ExprPath, Ident};
 
 use crate::macros::common::keyword::{kw, peek_keyword, SqlKeyword};
+use crate::macros::common::{FromContext, SelectContext, Sqlize, Sqlized, Validate};
 
 use super::{
     TokenBinary, TokenCall, TokenCast, TokenField, TokenIdent, TokenLit, TokenOperator, TokenParen,
@@ -22,38 +24,7 @@ pub enum SqlToken {
     ExprSeq(TokenSeq),
 }
 
-impl syn::parse::Parse for SqlToken {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let start = input.parse::<Expr>()?.try_into()?;
-        let cast_sep = input.parse()?; // avant la suite,  pour pouvoir utiliser is_empty
-        if input.peek(Token![,]) || peek_keyword(input) || input.is_empty() {
-            Ok(start)
-        } else {
-            let alias = input.parse()?;
-            Ok(SqlToken::Cast(TokenCast::new(start, alias, cast_sep)))
-        }
-    }
-}
-
-macro_rules! impl_to_tokens_for_sqltoken {
-    ($($ident:ident),+) => {
-
-        impl quote::ToTokens for SqlToken {
-            fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-                match self {
-
-                    $(Self::$ident(v)=>v.to_tokens(tokens),)+
-                };
-            }
-        }
-
-    };
-
-}
-
-impl_to_tokens_for_sqltoken!(
-    Ident, Literal, Keyword, Operator, Cast, ExprBinary, ExprCall, ExprField, ExprSeq, ExprParen
-);
+// ------------------ Various From/TryFrom conversion ------------------------- //
 
 impl From<Ident> for SqlToken {
     fn from(ident: Ident) -> Self {
@@ -66,11 +37,11 @@ impl TryFrom<Expr> for SqlToken {
 
     fn try_from(expr: Expr) -> Result<Self, Self::Error> {
         Ok(match expr {
-            Expr::Path(ref p) => SqlToken::Ident(p.try_into()?),
+            Expr::Path(ref p) => p.try_into()?,
             Expr::Lit(l) => SqlToken::Literal(l.try_into()?),
             Expr::Field(_) => SqlToken::ExprField(expr.try_into()?),
             Expr::Call(_) => SqlToken::ExprCall(expr.try_into()?),
-            Expr::Paren(_) => SqlToken::ExprParen(expr.try_into()?),
+            Expr::Paren(_) | Expr::Tuple(_) => SqlToken::ExprParen(expr.try_into()?),
             Expr::Binary(_) => SqlToken::ExprBinary(expr.try_into()?),
             _ => return_error!(expr, "Not a valid expression"),
         })
@@ -80,23 +51,27 @@ impl TryFrom<Expr> for SqlToken {
 impl TryFrom<&ExprPath> for SqlToken {
     type Error = syn::Error;
     fn try_from(p: &ExprPath) -> Result<Self, Self::Error> {
-        Ok(SqlToken::Ident(p.try_into()?))
+        if let Some(ident) = p.path.get_ident() {
+            if ident == "DISTINCT" {
+                Ok(kw::DISTINCT(ident.span()).into())
+            } else {
+                Ok(SqlToken::Ident(p.try_into()?))
+            }
+        } else {
+            return_error!(p, "Invalid expresion: `::` not supported")
+        }
     }
 }
 
-macro_rules! impl_into_kw {
-    ($($kw:ident $variant:ident),+) => {
-        $(
-        impl From<kw::$kw> for SqlToken {
-            fn from(value: kw::$kw) -> Self {
-                SqlToken::Keyword(SqlKeyword::$kw(value))
-            }
-        }
-        )+
-    };
+impl TryFrom<Punctuated<Expr, Token![,]>> for SqlToken {
+    type Error = syn::Error;
+
+    fn try_from(punctuated: Punctuated<Expr, Token![,]>) -> Result<Self, Self::Error> {
+        Ok(SqlToken::ExprSeq(punctuated.try_into()?))
+    }
 }
 
-impl_into_kw!(FROM From, WHERE Where, AS As, DISTINCT Distinct, JOIN Join, SELECT Select);
+impl_from_kw_for_sqltoken!(FROM From, WHERE Where, AS As, DISTINCT Distinct, JOIN Join, SELECT Select);
 
 impl TryFrom<BinOp> for SqlToken {
     type Error = syn::Error;
@@ -105,19 +80,7 @@ impl TryFrom<BinOp> for SqlToken {
     }
 }
 
-macro_rules! impl_from_tokens_to_sqltoken {
-    ($(($token:ident, $sqltoken:ident)),+) => {
-        $(
-            impl From<$token> for SqlToken {
-                fn from(c: $token) -> Self {
-                    SqlToken::$sqltoken(c)
-                }
-            }
-        )+
-    };
-}
-
-impl_from_tokens_to_sqltoken!(
+impl_from_tokens_for_sqltoken!(
     (TokenIdent, Ident),
     (TokenLit, Literal),
     (TokenOperator, Operator),
@@ -128,6 +91,78 @@ impl_from_tokens_to_sqltoken!(
     (TokenParen, ExprParen),
     (TokenSeq, ExprSeq)
 );
+
+// ------------------ Various Trait implementation ------------------------- //
+
+impl syn::parse::Parse for SqlToken {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let start = input.parse::<Expr>()?.try_into()?;
+        if let SqlToken::Keyword(_) = start {
+            return Ok(start);
+        }
+        let cast_sep = input.parse()?; // avant la suite,  pour pouvoir utiliser is_empty
+        if input.peek(Token![,]) || peek_keyword(input) || input.is_empty() {
+            Ok(start)
+        } else {
+            let alias = input.parse()?;
+            Ok(SqlToken::Cast(TokenCast::new(start, alias, cast_sep)))
+        }
+    }
+}
+
+impl_trait_to_tokens_for_sqltoken!(
+    Ident, Literal, Keyword, Operator, Cast, ExprBinary, ExprCall, ExprField, ExprSeq, ExprParen
+);
+
+impl Validate for SqlToken {
+    fn validate(&self, sqlos: &crate::sqlos::Sqlos) -> syn::Result<()> {
+        match self {
+            Self::Ident(x) => x.validate(sqlos),
+            Self::Cast(x) => x.validate(sqlos),
+            Self::ExprBinary(x) => x.validate(sqlos),
+            Self::ExprCall(x) => x.validate(sqlos),
+            Self::ExprField(x) => x.validate(sqlos),
+            Self::ExprParen(x) => x.validate(sqlos),
+            Self::ExprSeq(x) => x.validate(sqlos),
+            Self::Literal(x) => x.validate(sqlos),
+            Self::Keyword(x) => x.validate(sqlos),
+            Self::Operator(x) => x.validate(sqlos),
+        }
+    }
+}
+
+impl Sqlize for SqlToken {
+    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+        match self {
+            Self::Ident(x) => x.sselect(acc, context),
+            Self::Cast(x) => x.sselect(acc, context),
+            Self::Literal(x) => x.sselect(acc, context),
+            Self::ExprField(x) => x.sselect(acc, context),
+            Self::ExprParen(x) => x.sselect(acc, context),
+            Self::ExprCall(x) => x.sselect(acc, context),
+            Self::Operator(x) => x.sselect(acc, context),
+            Self::ExprBinary(x) => x.sselect(acc, context),
+            Self::ExprSeq(x) => x.sselect(acc, context),
+            Self::Keyword(x) => x.sselect(acc, context),
+        }
+    }
+
+    fn ffrom(&self, acc: &mut Sqlized, context: &FromContext) -> syn::Result<()> {
+        match self {
+            Self::Ident(x) => x.ffrom(acc, context),
+            Self::Cast(x) => x.ffrom(acc, context),
+            // Self::ExprBinary(x) => x.select(acc, used_sqlos),
+            // Self::ExprCall(x) => x.select(acc, used_sqlos),
+            // Self::ExprField(x) => x.select(acc, used_sqlos),
+            // Self::ExprParen(x) => x.select(acc, used_sqlos),
+            // Self::ExprSeq(x) => x.select(acc, used_sqlos),
+            // Self::Literal(x) => x.select(acc, used_sqlos),
+            // Self::Keyword(x) => x.select(acc, used_sqlos),
+            // Self::Operator(x) => x.select(acc, used_sqlos),
+            _ => unimplemented!("not yet"),
+        }
+    }
+}
 
 #[cfg(test)]
 impl crate::macros::common::stringify::Stringify for SqlToken {
