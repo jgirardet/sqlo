@@ -44,7 +44,7 @@ pub fn impl_save(sqlo: &Sqlo) -> TokenStream {
             /// Create a new row with instance or update it if pk already exists.
             ///
             /// It's an UPSERT statement based  on Primary Key.
-            async fn save<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(&self, pool: E) -> sqlx::Result<sqlx::sqlite::SqliteQueryResult> {
+            pub async fn save<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(&self, pool: E) -> sqlx::Result<sqlx::sqlite::SqliteQueryResult> {
                 sqlx::query!(#query, #q_self_fields )
                 .execute(pool)
                 .await

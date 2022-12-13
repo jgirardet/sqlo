@@ -27,9 +27,20 @@ mod test_sqlized {
                 #[test]
                 fn [<sqlize_ $name>]() {
                     let sqlos = crate::virtual_file::VirtualFile::new().load().unwrap();
-                    let phrase:crate::macros::common::Phrase = syn::parse_str($input).unwrap();
-                    let err = phrase.sqlize(&sqlos).err().unwrap();
+                    let phrase:Result<crate::macros::common::Phrase, syn::Error> = syn::parse_str($input);
+                    match phrase {
+                        Ok(p)=> {
+                            if let Err(e) = crate::macros::common::Validate::validate(&p,&sqlos) {
+                                assert_eq!(e.to_string(), $res);
+                                return;
+                            }
+                    let err = p.sqlize(&sqlos).err().unwrap();
                     assert_eq!(err.to_string(), $res);
+                        }
+                        Err(e)=> {
+                           assert_eq!(e.to_string(), $res) ;
+                        }
+                    }
 
                 }
             }
@@ -57,12 +68,12 @@ mod test_sqlized {
         );
         sqlize_success!(
             literal,
-            r#"SELECT "string",1,true,false,1.2 FROM Aaa"#,
-            r#"SELECT 'string',1,TRUE,FALSE,1.2 FROM aaa"#
+            r#"SELECT "string" AS stri,1 AS num,true AS t,false AS fa,1.2 AS f FROM Aaa"#,
+            r#"SELECT 'string' AS stri,1 AS num,TRUE AS t,FALSE AS fa,1.2 AS f FROM aaa"#
         );
         sqlize_fail!(
             literal_not_supported,
-            r#"SELECT b"bytestr" FROM Aaa"#,
+            r#"SELECT b"bytestr" AS bla FROM Aaa"#,
             "Literal not supported"
         );
         sqlize_success!(
@@ -95,21 +106,25 @@ mod test_sqlized {
             "SELECT a.fake FROM Aaa a",
             "Field not found in [Aaa]"
         );
-        sqlize_success!(parenthes, "SELECT (id) FROM Aaa", "SELECT (id) FROM aaa");
         sqlize_success!(
+            parenthes,
+            "SELECT (id) AS b FROM Aaa",
+            "SELECT (id) AS b FROM aaa"
+        );
+        sqlize_fail!(
             parenthes_two_items,
-            "SELECT (id,id) FROM Aaa",
-            "SELECT (id,id) FROM aaa"
+            "SELECT (id,id) AS b FROM Aaa",
+            "Comma separated values not allowed inside parenthesis"
         );
         sqlize_success!(
             one_arg_call,
-            "SELECT COUNT(id) FROM Aaa",
-            "SELECT COUNT(id) FROM aaa"
+            "SELECT COUNT(id) AS c FROM Aaa",
+            "SELECT COUNT(id) AS c FROM aaa"
         );
         sqlize_success!(
             two_arg_call,
-            "SELECT CONCAT(id,fi32) FROM Aaa",
-            "SELECT CONCAT(id,fi32col) FROM aaa"
+            "SELECT CONCAT(id,fi32) AS c FROM Aaa",
+            "SELECT CONCAT(id,fi32col) AS c FROM aaa"
         );
         sqlize_success!(
             call_with_cast,
@@ -131,6 +146,26 @@ mod test_sqlized {
             with_distinct,
             "SELECT DISTINCT id FROM Aaa",
             "SELECT DISTINCT id FROM aaa"
+        );
+        sqlize_fail!(
+            cast_missing_lit,
+            "SELECT \"bka\" FROM Aaa",
+            "Must be followed by `AS` + `column name`."
+        );
+        sqlize_fail!(
+            cast_missing_function,
+            "SELECT COUNT(id) FROM aaa",
+            "Must be followed by `AS` + `column name`."
+        );
+        sqlize_fail!(
+            cast_missing_paren,
+            "SELECT (id) FROM Aaa",
+            "Must be followed by `AS` + `column name`."
+        );
+        sqlize_fail!(
+            cast_missing_binary,
+            "SELECT id+id FROM aaa",
+            "Must be followed by `AS` + `column name`."
         );
     }
 

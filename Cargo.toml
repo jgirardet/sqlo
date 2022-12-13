@@ -11,10 +11,6 @@ proc-macro = true
 [features]
 sqlite = ["sqlx/sqlite"]
 
-[[example]]
-name = "sqlite-maison"
-path = "examples/sqlite-maison/src/main.rs"
-
 [dependencies]
 darling = "0.14"
 glob = "0.3.0"

@@ -1,5 +1,5 @@
 use crate::{
-    macros::common::{kw, SqlKeyword, Sqlize, Sqlized, TokenSeq},
+    macros::common::{kw, SqlKeyword, SqlToken, Sqlize, Sqlized, TokenSeq, Validate},
     sqlos::Sqlos,
 };
 
@@ -11,8 +11,27 @@ pub struct ClauseSelect {
     pub distinct: Option<SqlKeyword>,
 }
 
-impl_from_validate_for_clause_variant!(ClauseSelect Select SELECT);
+impl_from_for_clause_variant!(ClauseSelect Select SELECT);
 impl_stry_for_clause!(ClauseSelect "SELECT");
+
+impl Validate for ClauseSelect {
+    fn validate(&self, sqlos: &Sqlos) -> syn::Result<()> {
+        // those variants should be inside TokenCast, not alone
+        for t in &self.tokens {
+            match t {
+                SqlToken::ExprCall(_)
+                | SqlToken::ExprBinary(_)
+                | SqlToken::ExprParen(_)
+                | SqlToken::Literal(_) => {
+                    return_error!(t, "Must be followed by `AS` + `column name`.")
+                }
+                _ => {}
+            };
+        }
+        self.tokens.validate(sqlos)
+    }
+}
+
 impl syn::parse::Parse for ClauseSelect {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         if input.peek(crate::macros::common::kw::SELECT) {

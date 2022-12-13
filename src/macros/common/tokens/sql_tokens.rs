@@ -97,13 +97,28 @@ impl_from_tokens_for_sqltoken!(
 impl syn::parse::Parse for SqlToken {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let start = input.parse::<Expr>()?.try_into()?;
+        //first check/parse if its start of a clause (SELECT, WHERE, ...)
         if let SqlToken::Keyword(_) = start {
             return Ok(start);
         }
+        // parse if AS else jsut create an empty seperator
         let cast_sep = input.parse()?; // avant la suite,  pour pouvoir utiliser is_empty
+
+        // If not a a cast case
         if input.peek(Token![,]) || peek_keyword(input) || input.is_empty() {
+            // Some expressions have to be cast
+            // match start {
+            //     SqlToken::ExprCall(_)
+            //     | SqlToken::ExprBinary(_)
+            //     | SqlToken::ExprParen(_)
+            //     | SqlToken::Literal(_) => {
+            //         return_error!(start, "Must be followed by `AS` + `column name`.")
+            //     }
+            //     _ => Ok(start),
+            // }
             Ok(start)
         } else {
+            // cast case
             let alias = input.parse()?;
             Ok(SqlToken::Cast(TokenCast::new(start, alias, cast_sep)))
         }

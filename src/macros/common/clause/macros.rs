@@ -1,11 +1,15 @@
-macro_rules! impl_from_validate_for_clause_variant {
+macro_rules! impl_from_for_clause_variant {
     ($struct:ident $variant:ident $kw:ident) => {
         impl From<$struct> for crate::macros::common::Clause {
             fn from(c: $struct) -> Self {
                 crate::macros::common::Clause::$variant(c)
             }
         }
+    };
+}
 
+macro_rules! impl_validate_for_clause_variant {
+    ($struct:ident) => {
         impl crate::macros::common::Validate for $struct {
             fn validate(&self, sqlos: &crate::sqlos::Sqlos) -> syn::Result<()> {
                 self.tokens.validate(sqlos)

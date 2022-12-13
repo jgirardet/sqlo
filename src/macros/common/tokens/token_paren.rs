@@ -33,6 +33,12 @@ impl Validate for TokenParen {}
 
 impl Sqlize for TokenParen {
     fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+        if let SqlToken::ExprSeq(_) = self.content.as_ref() {
+            return_error!(
+                &self.content,
+                "Comma separated values not allowed inside parenthesis"
+            )
+        }
         let mut group = Sqlized::default();
         group.append_sql("(".to_string());
         self.content.sselect(&mut group, context)?;

@@ -52,17 +52,17 @@ mod test_clause {
         stry_cmp!("SELECT a,b,d,c", Clause);
         stry_cmp!("SELECT a,b AS d,c", Clause);
         stry_cmp!("SELECT a,b.d,c", Clause);
-        stry_cmp!("SELECT a,COUNT(b),\"zefze\",d,c", Clause);
+        stry_cmp!("SELECT a,COUNT(b) AS b,\"zefze\" AS e,d,c", Clause);
         stry_cmp!(
-            "a,COUNT(b),\"zefze\",d,c",
+            "a,COUNT(b) AS e,\"zefze\" AS f,d,c",
             Clause,
-            "SELECT a,COUNT(b),\"zefze\",d,c"
+            "SELECT a,COUNT(b) AS e,\"zefze\" AS f,d,c"
         );
         stry_cmp!("SELECT a AS b", Clause);
         stry_cmp!("SELECT a(bla) AS b", Clause);
         stry_cmp!("SELECT a.d AS b", Clause);
         stry_cmp!("SELECT (a + 2) AS b", Clause);
-        stry_cmp!("SELECT a(b,c)", Clause);
+        stry_cmp!("SELECT a(b,c) AS c", Clause);
 
         stry_cmp!("WHERE count(bla)", Clause);
 

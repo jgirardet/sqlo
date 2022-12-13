@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use sqlo::{select, Sqlo, select_as};
+use sqlo::Sqlo;
 use syn::Token;
 
 // #[derive(Sqlo)]
@@ -83,11 +83,21 @@ async fn main() {
         taille: i64,
     }
     // let res = sqlx::query!["select 'hello' as x from maison"]
-    let res = select_as![Res, taille, a.adr AS bla  FROM ExpandMaison a, ExpandPiece b ]
-        .fetch_all(&pool)
-        .await
-        .unwrap();
-    dbg!(&res);
+    // // let res = select_as![Res, taille, a.adr AS bla  FROM ExpandMaison a, ExpandPiece b ]
+    // //     .fetch_all(&pool)
+    // //     .await
+    // //     .unwrap();
+    // dbg!(&res);
+    // let res = sqlo::sqlo![SELECT "string" AS bla,1,true,false,1.2 FROM ExpandMaison]
+    //     .fetch_one(&pool)
+    //     .await
+    //     .unwrap();
+    // dbg!(&res);
+
+    // sqlo::sqlo![SELECT a,CONCAT(b+c) AS bl, c.d FROM  aaa azd, bbb b  ];
+    // use syn::parse::Parse;
+    // let parsed: ExprGroup = syn::parse_str("a,b,c").unwrap();
+    // dbg!(&parsed)
 }
 
 #[test]

@@ -11,7 +11,8 @@ pub struct ClauseFrom {
     tokens: TokenSeq,
 }
 
-impl_from_validate_for_clause_variant!(ClauseFrom  From FROM);
+impl_from_for_clause_variant!(ClauseFrom  From FROM);
+impl_validate_for_clause_variant!(ClauseFrom);
 impl_parse_for_clause!(ClauseFrom FROM);
 impl_stry_for_clause!(ClauseFrom "FROM");
 

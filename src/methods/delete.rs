@@ -22,12 +22,12 @@ pub fn impl_delete(sqlo: &Sqlo) -> TokenStream {
 
         /// Delete database row.
         /// Instance is moved preventing any other use.
-        async fn remove<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(self, pool: E) -> sqlx::Result<sqlx::sqlite::SqliteQueryResult> {
+        pub async fn remove<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(self, pool: E) -> sqlx::Result<sqlx::sqlite::SqliteQueryResult> {
             sqlx::query!(#query, self.#pk_ident ).execute(pool).await
         }
 
         /// Delete database row using primary_key
-        async fn delete<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, pk: #pk_type ) -> sqlx::Result<sqlx::sqlite::SqliteQueryResult> {
+        pub async fn delete<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, pk: #pk_type ) -> sqlx::Result<sqlx::sqlite::SqliteQueryResult> {
             sqlx::query!(#query, pk ).execute(pool).await
         }
     ]

@@ -17,14 +17,24 @@ CREATE TABLE piece (
   FOREIGN KEY(maison_id) REFERENCES maison(id)
 );
 
-CREATE TABLE id_unique_int (
+CREATE TABLE adresse (
+  id TEXT NOT NULL PRIMARY KEY,
+  rue TEXT
+);
+
+CREATE TABLE IF NOT EXISTS id_unique_int (
   id INTEGER NOT NULL PRIMARY KEY
 );
 
-CREATE TABLE id_unique_uuid (
+CREATE TABLE IF NOT EXISTS id_unique_uuid (
   id UUID NOT NULL PRIMARY KEY
 );
 
+
+CREATE TABLE IF NOT EXISTS with_a_blob (
+  id INTEGER NOT NULL PRIMARY KEY,
+  data BLOB NOT NULL
+);
 
 
 INSERT INTO maison (id, adresse, taille) VALUES 
@@ -44,3 +54,9 @@ INSERT INTO piece VALUES
   (X'77777777777777777777777777777777',7,70, 3),
   (X'88888888888888888888888888888888',8,80, 2),
   (X'99999999999999999999999999999999',9,90, 1);
+
+
+INSERT INTO adresse (id, rue) VALUES 
+  ('1', 'adresse1'),
+  ('2', 'adresse2'),
+  ('3', 'adresse3');

@@ -89,7 +89,7 @@ mod test_phrase {
     #[test]
     fn select_from_where() {
         stry_cmp!(
-        "SELECT a,COUNT(b + c) AS bla,c.d FROM aaa,ccc c,bbb WHERE (a + 1) > 4 && c.d < COUNT(a)",
+        "SELECT a,COUNT(b + c) AS bla,c.d FROM aaa,ccc c,bbb WHERE (a + 1) > 4 && c.d < COUNT(a) AS b",
         Phrase
     );
     }
@@ -97,7 +97,7 @@ mod test_phrase {
     #[test]
     fn validate_cascade() {
         let sqlos = VirtualFile::new().load().unwrap();
-        let p: Phrase = syn::parse_str("SELECT bla(a) FROM bli").unwrap();
+        let p: Phrase = syn::parse_str("SELECT bla(a) AS b FROM bli").unwrap();
         assert!(p.validate(&sqlos).is_err());
         if let Err(e) = p.validate(&sqlos) {
             assert_eq!(e.to_string(), "SQL functions must be uppercase.");

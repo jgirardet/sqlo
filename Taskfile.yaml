@@ -26,7 +26,7 @@ tasks:
 
   migrate:
     cmds:
-      - sqlx migrate run --source assets/ -D {{.DATABASE_URL}}
+      - sqlx migrate run --source tests/migrations/ -D {{.DATABASE_URL}}
 
   run:
     env:
@@ -72,33 +72,21 @@ tasks:
     cmds:
       - touch {{.EDITOR_DB_FILE}}
 
-  sqlite-maison-run:
-    cmds:
-      - task: run-example
-        vars:
-          { DB_TYPE: "sqlite", PROJECT: "sqlite-maison", FEATURES: "sqlite" }
-      # env: {DATABASE_URL: "{{.DB_TYPE}}://{{.PROJECT}}"}
-
-  sqlite-maison:
-    - task: sqlite-maison-run
-
-  example:
-    - task: sqlite-maison
-
   test:
     vars:
       SQLITE_DB:
         sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
       DATABASE_URL: "sqlite://{{.SQLITE_DB}}"
     cmds:
-      # - task: migrate
-      # vars: {DATABASE_URL: '{{.DATABASE_URL}}'}
-      # - sqlx migrate run --source tests -D {{.DATABASE_URL}}
       - cmds: rm -rf .sqlo/
       - task: migrate
         vars: { DATABASE_URL: "{{.DATABASE_URL}}" }
       - task: run_test
         vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
+
+  tests:
+    cmds:
+      - task test -- --test integration
 
   trybuild:
     cmds:
@@ -141,7 +129,7 @@ tasks:
 
   test-all:
     - task: test
-    - task: example
+    - task: tests
 
   clippy:
     - cargo clippy --features=sqlite

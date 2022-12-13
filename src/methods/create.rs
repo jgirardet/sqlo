@@ -103,7 +103,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
             /// Every field is used as argument by default in their declaring order except PrimaryKey.
             /// Use attribute `creat_fn` to delegate value  to a function. ex : #[sqlo(create_fn="uuid::Uuid::new_v4")]
             /// Use `create_arg` with PrimaryKey to add it with other input arguments.
-            async fn create<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, #fn_args) -> sqlx::Result<#ident> {
+            pub async fn create<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, #fn_args) -> sqlx::Result<#ident> {
                 #option_struct
                 #create_fn_impl
 
