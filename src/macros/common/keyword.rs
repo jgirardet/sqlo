@@ -80,6 +80,11 @@ impl crate::macros::common::Sqlize for SqlKeyword {
         acc.append_sql(self.to_string());
         Ok(())
     }
+
+    fn ffrom(&self, acc: &mut super::Sqlized, _context: &super::FromContext) -> syn::Result<()> {
+        acc.append_sql(self.to_string());
+        Ok(())
+    }
 }
 
 impl_sql_keyword!(AS, DISTINCT, FROM, WHERE, SELECT, JOIN);

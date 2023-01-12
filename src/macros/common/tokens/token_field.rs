@@ -3,7 +3,7 @@ use syn::{Expr, Member};
 
 use crate::macros::common::Validate;
 
-use super::{token_ident::TokenIdent};
+use super::token_ident::TokenIdent;
 
 #[derive(Debug)]
 pub struct TokenField {

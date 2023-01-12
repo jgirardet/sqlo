@@ -1,7 +1,5 @@
 use crate::{
-    macros::common::{
-        kw, QueryContext, SqlKeyword, SqlToken, Sqlize, Sqlized, TokenSeq, Validate,
-    },
+    macros::common::{kw, QueryContext, SqlKeyword, SqlToken, Sqlize, Sqlized, TokenSeq, Validate},
     sqlos::Sqlos,
 };
 
@@ -9,12 +7,14 @@ use super::{clause_from::AliasSqlo, ClauseFrom};
 
 #[derive(Debug)]
 pub struct ClauseSelect {
+    pub keyword: SqlKeyword,
     pub tokens: TokenSeq,
     pub distinct: Option<SqlKeyword>,
 }
 
 impl_from_for_clause_variant!(ClauseSelect Select SELECT);
 impl_stry_for_clause!(ClauseSelect "SELECT");
+impl_trait_to_tokens_for_clause!(ClauseSelect, distinct, tokens);
 
 impl Validate for ClauseSelect {
     fn validate(&self, sqlos: &Sqlos) -> syn::Result<()> {
@@ -36,9 +36,11 @@ impl Validate for ClauseSelect {
 
 impl syn::parse::Parse for ClauseSelect {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.peek(crate::macros::common::kw::SELECT) {
-            input.parse::<crate::macros::common::kw::SELECT>()?;
-        }
+        let keyword = if input.peek(crate::macros::common::kw::SELECT) {
+            input.parse::<crate::macros::common::SqlKeyword>()?
+        } else {
+            kw::SELECT(input.span()).into()
+        };
 
         let distinct = if input.peek(kw::DISTINCT) {
             let dis: SqlKeyword = input.parse::<kw::DISTINCT>()?.into();
@@ -48,6 +50,7 @@ impl syn::parse::Parse for ClauseSelect {
         };
 
         Ok(ClauseSelect {
+            keyword,
             tokens: input.parse()?,
             distinct,
         })
@@ -56,7 +59,7 @@ impl syn::parse::Parse for ClauseSelect {
 
 impl Sqlize for ClauseSelect {
     fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
-        acc.append_sql(format!("SELECT"));
+        self.keyword.sselect(acc, context)?;
         if let Some(distinct) = &self.distinct {
             acc.append_sql(distinct.to_string());
         }

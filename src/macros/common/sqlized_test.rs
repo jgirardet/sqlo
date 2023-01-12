@@ -129,7 +129,7 @@ mod test_sqlized {
         sqlize_success!(
             call_distinct,
             "SELECT COUNT(DISTINCT[id]) AS c FROM Aaa",
-            "SELECT COUNT(DISTINCT id) AS c FROM aaa" 
+            "SELECT COUNT(DISTINCT id) AS c FROM aaa"
         );
         sqlize_success!(
             call_distinct_with_field,

@@ -1,13 +1,14 @@
 use darling::util::IdentString;
 
 use crate::{
-    macros::common::{SqlToken, Sqlize, Sqlized, TokenIdent, TokenSeq},
+    macros::common::{SqlKeyword, SqlToken, Sqlize, Sqlized, TokenIdent, TokenSeq},
     sqlo::Sqlo,
     sqlos::Sqlos,
 };
 
 #[derive(Debug)]
 pub struct ClauseFrom {
+    keyword: SqlKeyword,
     tokens: TokenSeq,
 }
 
@@ -15,6 +16,7 @@ impl_from_for_clause_variant!(ClauseFrom  From FROM);
 impl_validate_for_clause_variant!(ClauseFrom);
 impl_parse_for_clause!(ClauseFrom FROM);
 impl_stry_for_clause!(ClauseFrom "FROM");
+impl_trait_to_tokens_for_clause!(ClauseFrom, tokens);
 
 impl<'a> ClauseFrom {
     pub fn to_alias_sqlos(&'a self, sqlos: &'a Sqlos) -> syn::Result<Vec<AliasSqlo>> {
@@ -46,7 +48,7 @@ impl<'a> ClauseFrom {
 
 impl Sqlize for ClauseFrom {
     fn ffrom(&self, acc: &mut Sqlized, context: &FromContext) -> syn::Result<()> {
-        acc.append_sql("FROM".to_string());
+        self.keyword.ffrom(acc, context)?;
         self.tokens.ffrom(acc, context)?;
         Ok(())
     }
@@ -72,8 +74,6 @@ pub struct FromContext<'a> {
 impl<'a> FromContext<'a> {
     pub fn from_clausefrom(clause: &'a ClauseFrom, sqlos: &'a Sqlos) -> syn::Result<Self> {
         let alias_sqlos = clause.to_alias_sqlos(sqlos)?;
-        Ok(Self {
-            alias_sqlos,
-        })
+        Ok(Self { alias_sqlos })
     }
 }

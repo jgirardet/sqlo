@@ -22,11 +22,11 @@ macro_rules! impl_parse_for_clause {
         impl syn::parse::Parse for $struct {
             fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
                 // parse the clause
-                if input.peek(crate::macros::common::kw::$kw) {
-                    input.parse::<crate::macros::common::kw::$kw>()?;
-                }
+                let keyword = input.parse::<crate::macros::common::SqlKeyword>()?;
+                // }
 
                 Ok($struct {
+                    keyword,
                     tokens: input.parse()?,
                 })
             }
@@ -40,6 +40,17 @@ macro_rules! impl_stry_for_clause {
         impl crate::macros::common::stringify::Stringify for $struct {
             fn stry(&self) -> String {
                 format!("{} {}", $name, self.tokens.stry())
+            }
+        }
+    };
+}
+
+macro_rules! impl_trait_to_tokens_for_clause {
+    ($struct:ident, $($fields:ident),+) => {
+        impl quote::ToTokens for $struct {
+            fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+                self.keyword.to_tokens(tokens);
+                $(self.$fields.to_tokens(tokens);)+
             }
         }
     };

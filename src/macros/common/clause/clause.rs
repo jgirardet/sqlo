@@ -31,6 +31,16 @@ impl Validate for Clause {
     }
 }
 
+impl quote::ToTokens for Clause {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            Self::From(x) => x.to_tokens(tokens),
+            Self::Where(x) => x.to_tokens(tokens),
+            Self::Select(x) => x.to_tokens(tokens),
+        }
+    }
+}
+
 #[cfg(test)]
 impl crate::macros::common::stringify::Stringify for Clause {
     fn stry(&self) -> String {
