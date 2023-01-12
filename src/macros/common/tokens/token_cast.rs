@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{token_ident::TokenIdent, SqlToken};
+use super::SqlToken;
 use crate::macros::common::{
     keyword::{kw, SqlKeyword},
     FromContext, SelectContext, Sqlize, Sqlized, Validate,
@@ -9,15 +9,15 @@ use crate::macros::common::{
 #[derive(Debug)]
 pub struct TokenCast {
     pub initial: Box<SqlToken>,
-    pub alias: TokenIdent,
+    pub alias: Box<SqlToken>,
     pub sep: CastSeparator,
 }
 
 impl TokenCast {
-    pub fn new(initial: SqlToken, alias: TokenIdent, sep: CastSeparator) -> TokenCast {
+    pub fn new(initial: SqlToken, alias: SqlToken, sep: CastSeparator) -> TokenCast {
         TokenCast {
             initial: Box::new(initial),
-            alias,
+            alias: Box::new(alias),
             sep,
         }
     }
@@ -27,7 +27,7 @@ impl_trait_to_tokens_for_tokens!(TokenCast, initial, sep, alias);
 
 #[derive(Debug)]
 pub enum CastSeparator {
-    None,
+    None, //eqal a space
     AS(SqlKeyword),
 }
 
@@ -71,11 +71,17 @@ impl syn::parse::Parse for CastSeparator {
 }
 
 impl Sqlize for TokenCast {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
+        context.lower();
         let mut group = Sqlized::default();
         self.initial.sselect(&mut group, context)?;
         group.append_sql(self.sep.to_string());
-        group.append_sql(self.alias.to_string());
+
+        match self.alias.as_ref() {
+            SqlToken::Literal(l) => l.sselect(&mut group, context)?,
+            SqlToken::Ident(i) => group.append_sql(i.to_string()),
+            _ => return_error!(&self.alias, "should be identifier ou string"),
+        };
         acc.append_sql(group.sql().join(" "));
         Ok(())
     }
@@ -83,7 +89,10 @@ impl Sqlize for TokenCast {
     fn ffrom(&self, acc: &mut Sqlized, context: &FromContext) -> syn::Result<()> {
         let mut group = Sqlized::default();
         self.initial.ffrom(&mut group, context)?;
-        group.append_sql(self.alias.to_string());
+        match self.alias.as_ref() {
+            SqlToken::Ident(i) => group.append_sql(i.to_string()),
+            _ => return_error!(&self.alias, "Should be a identifier"),
+        }
         acc.append_sql(group.sql().join(" "));
         Ok(())
     }

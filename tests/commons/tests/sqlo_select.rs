@@ -1,7 +1,7 @@
 use crate::{Maison, PPool, PieceFk};
 use sqlo::sqlo_select;
 
-pub async fn sqlo_select(p: PPool) {
+Test! {sqlo_select, async fn func(p: PPool) {
     // --------------------- select easy -----------------------//
 
     // pk
@@ -111,4 +111,4 @@ pub async fn sqlo_select(p: PPool) {
     comp_many!(PieceFk, maison_id..(d, e, f), 7);
     let [d, e, f] = [1, 2, 4];
     comp_many!(PieceFk, maison_id..[d, e, f], 7);
-}
+}}

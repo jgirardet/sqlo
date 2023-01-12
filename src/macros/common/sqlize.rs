@@ -17,13 +17,12 @@ pub trait Validate {
 
 #[allow(unused_variables)]
 pub trait Sqlize {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         unimplemented!("Not implemented in context select")
     }
     fn ffrom(&self, acc: &mut Sqlized, context: &FromContext) -> syn::Result<()> {
         unimplemented!("Not implemented in context from")
     }
-    // fn from(&self, sqlized: &mut Sqlized) {}
     // fn wwhere(&self, sqlized: &mut Sqlized) {}
 }
 

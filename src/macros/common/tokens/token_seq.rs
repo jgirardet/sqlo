@@ -72,9 +72,12 @@ impl Validate for TokenSeq {
 }
 
 impl Sqlize for TokenSeq {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         let mut group = Sqlized::default();
+        context.lower();
+        let level = context.query_context.clone();
         for t in self.iter() {
+            context.query_context = level.clone(); // reinit query context for each element
             t.sselect(&mut group, context)?;
         }
         acc.append_group_with(group, ",");

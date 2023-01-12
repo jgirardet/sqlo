@@ -22,5 +22,13 @@
     "rust-analyzer.checkOnSave.overrideCommand": null,
     "taskfileLauncher.taskfileNames": [
         "Taskfile.yaml"
+    ],
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "sqlo",
+            "database": "/tmp/sqlo.sqlite"
+        }
     ]
 }

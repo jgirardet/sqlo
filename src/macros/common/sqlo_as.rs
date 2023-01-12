@@ -4,7 +4,7 @@ use syn::Token;
 
 use crate::sqlos::Sqlos;
 
-use super::{Phrase, Validate};
+use super::{Phrase, QueryMoment, Validate};
 
 pub struct SqloAs {
     pub target_struct: IdentString,
@@ -26,7 +26,9 @@ impl syn::parse::Parse for SqloAs {
 impl SqloAs {
     pub fn expand(self, sqlos: &Sqlos) -> syn::Result<TokenStream> {
         self.phrase.validate(sqlos)?;
-        let sqlized = self.phrase.sqlize(sqlos)?;
+        let sqlized = self
+            .phrase
+            .sqlize(sqlos, super::QueryContext::SqloAs(QueryMoment::InPhrase))?;
         let sql = sqlized.to_string();
         let params = sqlized.params();
         let target_struct = self.target_struct;

@@ -12,7 +12,7 @@ mod test_sqlized {
                 fn [<sqlize_ $name>]() {
                     let sqlos = crate::virtual_file::VirtualFile::new().load().unwrap();
                     let phrase:crate::macros::common::Phrase = syn::parse_str($input).unwrap();
-                    let sqlized = phrase.sqlize(&sqlos).unwrap();
+                    let sqlized = phrase.sqlize(&sqlos, crate::macros::common::QueryContext::Sqlo(crate::macros::common::QueryMoment::InClause)).unwrap();
                     assert_eq!(sqlized.to_string(), $res);
                     $(assert_eq!(sqlized.params().len(), $nb);)?
 
@@ -34,7 +34,7 @@ mod test_sqlized {
                                 assert_eq!(e.to_string(), $res);
                                 return;
                             }
-                    let err = p.sqlize(&sqlos).err().unwrap();
+                    let err = p.sqlize(&sqlos, crate::macros::common::QueryContext::Sqlo(crate::macros::common::QueryMoment::InClause)).err().unwrap();
                     assert_eq!(err.to_string(), $res);
                         }
                         Err(e)=> {
@@ -125,6 +125,16 @@ mod test_sqlized {
             two_arg_call,
             "SELECT CONCAT(id,fi32) AS c FROM Aaa",
             "SELECT CONCAT(id,fi32col) AS c FROM aaa"
+        );
+        sqlize_success!(
+            call_distinct,
+            "SELECT COUNT(DISTINCT[id]) AS c FROM Aaa",
+            "SELECT COUNT(DISTINCT id) AS c FROM aaa" 
+        );
+        sqlize_success!(
+            call_distinct_with_field,
+            "SELECT COUNT(DISTINCT[a.id]) AS c FROM Aaa a",
+            "SELECT COUNT(DISTINCT a.id) AS c FROM aaa a"
         );
         sqlize_success!(
             call_with_cast,

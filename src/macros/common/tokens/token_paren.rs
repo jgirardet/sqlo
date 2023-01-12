@@ -32,7 +32,7 @@ impl TryFrom<Expr> for TokenParen {
 impl Validate for TokenParen {}
 
 impl Sqlize for TokenParen {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         if let SqlToken::ExprSeq(_) = self.content.as_ref() {
             return_error!(
                 &self.content,

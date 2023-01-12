@@ -1,5 +1,7 @@
 use crate::{
-    macros::common::{kw, SqlKeyword, SqlToken, Sqlize, Sqlized, TokenSeq, Validate},
+    macros::common::{
+        kw, QueryContext, SqlKeyword, SqlToken, Sqlize, Sqlized, TokenSeq, Validate,
+    },
     sqlos::Sqlos,
 };
 
@@ -46,7 +48,6 @@ impl syn::parse::Parse for ClauseSelect {
         };
 
         Ok(ClauseSelect {
-            // context: Context::Select,
             tokens: input.parse()?,
             distinct,
         })
@@ -54,7 +55,7 @@ impl syn::parse::Parse for ClauseSelect {
 }
 
 impl Sqlize for ClauseSelect {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         acc.append_sql(format!("SELECT"));
         if let Some(distinct) = &self.distinct {
             acc.append_sql(distinct.to_string());
@@ -67,11 +68,23 @@ impl Sqlize for ClauseSelect {
 #[derive(Debug)]
 pub struct SelectContext<'a> {
     pub alias_sqlos: Vec<AliasSqlo<'a>>,
+    pub query_context: QueryContext,
 }
 
 impl<'a> SelectContext<'a> {
-    pub fn from_clausefrom(clause: &'a ClauseFrom, sqlos: &'a Sqlos) -> syn::Result<Self> {
+    pub fn from_clausefrom(
+        clause: &'a ClauseFrom,
+        sqlos: &'a Sqlos,
+        query_context: QueryContext,
+    ) -> syn::Result<Self> {
         let alias_sqlos = clause.to_alias_sqlos(sqlos)?;
-        Ok(Self { alias_sqlos })
+        Ok(Self {
+            alias_sqlos: alias_sqlos,
+            query_context,
+        })
+    }
+
+    pub fn lower(&mut self) {
+        self.query_context = self.query_context.lower()
     }
 }

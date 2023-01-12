@@ -6,8 +6,8 @@ use crate::macros::common::keyword::{kw, peek_keyword, SqlKeyword};
 use crate::macros::common::{FromContext, SelectContext, Sqlize, Sqlized, Validate};
 
 use super::{
-    TokenBinary, TokenCall, TokenCast, TokenField, TokenIdent, TokenLit, TokenOperator, TokenParen,
-    TokenSeq,
+    TokenBinary, TokenCall, TokenCast, TokenField, TokenIdent, TokenIndex, TokenLit, TokenOperator,
+    TokenParen, TokenSeq,
 };
 
 #[derive(Debug)]
@@ -22,6 +22,7 @@ pub enum SqlToken {
     ExprParen(TokenParen),
     ExprCall(TokenCall),
     ExprSeq(TokenSeq),
+    ExprIndex(TokenIndex),
 }
 
 // ------------------ Various From/TryFrom conversion ------------------------- //
@@ -43,6 +44,7 @@ impl TryFrom<Expr> for SqlToken {
             Expr::Call(_) => SqlToken::ExprCall(expr.try_into()?),
             Expr::Paren(_) | Expr::Tuple(_) => SqlToken::ExprParen(expr.try_into()?),
             Expr::Binary(_) => SqlToken::ExprBinary(expr.try_into()?),
+            Expr::Index(_) => SqlToken::ExprIndex(expr.try_into()?),
             _ => return_error!(expr, "Not a valid expression"),
         })
     }
@@ -60,6 +62,13 @@ impl TryFrom<&ExprPath> for SqlToken {
         } else {
             return_error!(p, "Invalid expresion: `::` not supported")
         }
+    }
+}
+
+impl From<&Ident> for SqlToken {
+    fn from(i: &Ident) -> Self {
+        let t: TokenIdent = i.into();
+        t.into()
     }
 }
 
@@ -98,24 +107,16 @@ impl syn::parse::Parse for SqlToken {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let start = input.parse::<Expr>()?.try_into()?;
         //first check/parse if its start of a clause (SELECT, WHERE, ...)
-        if let SqlToken::Keyword(_) = start {
-            return Ok(start);
-        }
-        // parse if AS else jsut create an empty seperator
+        match start {
+            // SqlToken::Keyword(SqlKeyword::DISTINCT(_)) => {}
+            SqlToken::Keyword(_) => return Ok(start),
+            _ => {}
+        };
+        // parse if AS else juste create an empty seperator
         let cast_sep = input.parse()?; // avant la suite,  pour pouvoir utiliser is_empty
 
         // If not a a cast case
         if input.peek(Token![,]) || peek_keyword(input) || input.is_empty() {
-            // Some expressions have to be cast
-            // match start {
-            //     SqlToken::ExprCall(_)
-            //     | SqlToken::ExprBinary(_)
-            //     | SqlToken::ExprParen(_)
-            //     | SqlToken::Literal(_) => {
-            //         return_error!(start, "Must be followed by `AS` + `column name`.")
-            //     }
-            //     _ => Ok(start),
-            // }
             Ok(start)
         } else {
             // cast case
@@ -126,7 +127,8 @@ impl syn::parse::Parse for SqlToken {
 }
 
 impl_trait_to_tokens_for_sqltoken!(
-    Ident, Literal, Keyword, Operator, Cast, ExprBinary, ExprCall, ExprField, ExprSeq, ExprParen
+    Ident, Literal, Keyword, Operator, Cast, ExprBinary, ExprCall, ExprField, ExprSeq, ExprParen,
+    ExprIndex
 );
 
 impl Validate for SqlToken {
@@ -142,12 +144,13 @@ impl Validate for SqlToken {
             Self::Literal(x) => x.validate(sqlos),
             Self::Keyword(x) => x.validate(sqlos),
             Self::Operator(x) => x.validate(sqlos),
+            Self::ExprIndex(x) => x.validate(sqlos),
         }
     }
 }
 
 impl Sqlize for SqlToken {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         match self {
             Self::Ident(x) => x.sselect(acc, context),
             Self::Cast(x) => x.sselect(acc, context),
@@ -159,6 +162,7 @@ impl Sqlize for SqlToken {
             Self::ExprBinary(x) => x.sselect(acc, context),
             Self::ExprSeq(x) => x.sselect(acc, context),
             Self::Keyword(x) => x.sselect(acc, context),
+            Self::ExprIndex(x) => x.sselect(acc, context),
         }
     }
 
@@ -166,15 +170,7 @@ impl Sqlize for SqlToken {
         match self {
             Self::Ident(x) => x.ffrom(acc, context),
             Self::Cast(x) => x.ffrom(acc, context),
-            // Self::ExprBinary(x) => x.select(acc, used_sqlos),
-            // Self::ExprCall(x) => x.select(acc, used_sqlos),
-            // Self::ExprField(x) => x.select(acc, used_sqlos),
-            // Self::ExprParen(x) => x.select(acc, used_sqlos),
-            // Self::ExprSeq(x) => x.select(acc, used_sqlos),
-            // Self::Literal(x) => x.select(acc, used_sqlos),
-            // Self::Keyword(x) => x.select(acc, used_sqlos),
-            // Self::Operator(x) => x.select(acc, used_sqlos),
-            _ => unimplemented!("not yet"),
+            _ => unimplemented!("Cannot be used in FROM clause. Use ident or cast"),
         }
     }
 }
@@ -193,6 +189,7 @@ impl crate::macros::common::stringify::Stringify for SqlToken {
             Self::Literal(x) => x.stry(),
             Self::Keyword(x) => x.stry(),
             Self::Operator(x) => x.stry(),
+            Self::ExprIndex(x) => x.stry(),
         }
     }
 }

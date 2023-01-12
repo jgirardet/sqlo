@@ -1,9 +1,9 @@
-use crate::macros::common::{SelectContext, Sqlize, Sqlized};
+use crate::macros::common::{QueryContext, QueryMoment, SelectContext, Sqlize, Sqlized};
 use syn::{Expr, Member};
 
 use crate::macros::common::Validate;
 
-use super::token_ident::TokenIdent;
+use super::{token_ident::TokenIdent};
 
 #[derive(Debug)]
 pub struct TokenField {
@@ -38,7 +38,7 @@ impl TryFrom<Expr> for TokenField {
 impl Validate for TokenField {}
 
 impl Sqlize for TokenField {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         let mut group = Sqlized::default();
         let mut base = String::new();
         for sqlo_alias in context.alias_sqlos.iter() {
@@ -55,8 +55,18 @@ impl Sqlize for TokenField {
         }
         if !base.is_empty() {
             group.append_sql(base);
+            group.append_sql(".".to_string());
             self.member.sselect(&mut group, context)?;
-            acc.append_sql(group.sql().join("."));
+            // we force a cast to make the result field name not be column name, but sqlo field name.
+            // It applies only in the InClause context.
+            match context.query_context {
+                QueryContext::Sqlo(QueryMoment::InClause)
+                | QueryContext::SqloAs(QueryMoment::InClause) => {
+                    group.append_sql(format!(" AS {}", self.member.to_string()));
+                }
+                _ => {}
+            }
+            acc.append_group(group);
             return Ok(());
         }
         return_error!(&self.base, "No Sqlo struct or alias found in FROM clause")

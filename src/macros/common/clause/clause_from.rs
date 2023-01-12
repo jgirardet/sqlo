@@ -24,10 +24,13 @@ impl<'a> ClauseFrom {
                 SqlToken::Cast(token_cast) => {
                     if let SqlToken::Ident(ref ti) = *token_cast.initial {
                         let sqlo = sqlos.get(ti.as_str())?;
-                        res.push(AliasSqlo {
-                            sqlo,
-                            alias: Some(&token_cast.alias),
-                        })
+                        match token_cast.alias.as_ref() {
+                            SqlToken::Ident(i) => res.push(AliasSqlo {
+                                sqlo,
+                                alias: Some(i),
+                            }),
+                            _ => return_error!(&token_cast.alias, "Should be identifier"),
+                        }
                     }
                 }
                 SqlToken::Ident(ti) => {
@@ -49,7 +52,7 @@ impl Sqlize for ClauseFrom {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AliasSqlo<'a> {
     pub sqlo: &'a Sqlo,
     pub alias: Option<&'a TokenIdent>,
@@ -69,6 +72,8 @@ pub struct FromContext<'a> {
 impl<'a> FromContext<'a> {
     pub fn from_clausefrom(clause: &'a ClauseFrom, sqlos: &'a Sqlos) -> syn::Result<Self> {
         let alias_sqlos = clause.to_alias_sqlos(sqlos)?;
-        Ok(Self { alias_sqlos })
+        Ok(Self {
+            alias_sqlos,
+        })
     }
 }

@@ -75,7 +75,7 @@ impl crate::macros::common::Sqlize for SqlKeyword {
     fn sselect(
         &self,
         acc: &mut crate::macros::common::Sqlized,
-        _context: &crate::macros::common::SelectContext,
+        _context: &mut crate::macros::common::SelectContext,
     ) -> syn::Result<()> {
         acc.append_sql(self.to_string());
         Ok(())

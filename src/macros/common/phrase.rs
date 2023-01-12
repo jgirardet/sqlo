@@ -4,7 +4,10 @@ use proc_macro2::TokenStream;
 
 use crate::sqlos::Sqlos;
 
-use super::{clause::Clause, sqlize::Sqlized, FromContext, SelectContext, Sqlize, Validate};
+use super::{
+    clause::Clause, sqlize::Sqlized, FromContext, QueryContext, QueryMoment, SelectContext, Sqlize,
+    Validate,
+};
 
 pub struct Phrase {
     clauses: Vec<Clause>,
@@ -30,13 +33,14 @@ impl syn::parse::Parse for Phrase {
 }
 
 impl Phrase {
-    pub fn sqlize(&self, sqlos: &Sqlos) -> syn::Result<Sqlized> {
+    pub fn sqlize(&self, sqlos: &Sqlos, query_context: QueryContext) -> syn::Result<Sqlized> {
         let mut acc = Sqlized::default();
         let mut iter = self.into_iter();
         if let Some(Clause::Select(ref sel)) = iter.next() {
             if let Some(Clause::From(from_clause)) = iter.next() {
-                let context_select = SelectContext::from_clausefrom(from_clause, sqlos)?;
-                sel.sselect(&mut acc, &context_select)?;
+                let mut context_select =
+                    SelectContext::from_clausefrom(from_clause, sqlos, query_context)?;
+                sel.sselect(&mut acc, &mut context_select)?;
                 let context_from = FromContext::from_clausefrom(from_clause, sqlos)?;
                 from_clause.ffrom(&mut acc, &context_from)?;
             } else {
@@ -48,7 +52,7 @@ impl Phrase {
 
     pub fn expand(self, sqlos: &Sqlos) -> syn::Result<TokenStream> {
         self.validate(sqlos)?;
-        let sqlized = self.sqlize(sqlos)?;
+        let sqlized = self.sqlize(sqlos, QueryContext::Sqlo(QueryMoment::InPhrase))?;
         let sql = sqlized.to_string();
         let params = sqlized.params();
         if std::env::var("SQLO_DEBUG_QUERY").is_ok() {

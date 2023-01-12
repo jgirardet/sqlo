@@ -5,28 +5,24 @@ macro_rules! uu4 {
     (9) => {uuid::uuid!("99999999999999999999999999999999")};
 }
 
-macro_rules! run_test_base {
-    ($categorie:ident, $test_fn:ident, $backend:ident) => {
+macro_rules! test_base {
+    ($name:ident, $test_fn:item, $backend:ident) => {
         paste::paste! {
 
+            #[allow(non_snake_case)]
             #[sqlx::test(migrations = "tests/migrations")]
-            async fn [<$categorie _ $test_fn>](pool: sqlx::[<$backend Pool>]) {
-                crate::$test_fn(crate::PPool { pool }).await;
+            async fn [<$name _ $backend>](pool: sqlx::[<$backend Pool>]) {
+                $test_fn
+                let pol = $crate::PPool{pool};
+                func(pol).await
             }
         }
     };
 }
 
 #[cfg(feature = "sqlite")]
-macro_rules! run_test {
-    ($categorie:ident: $test_fn:ident) => {
-        run_test_base!($categorie, $test_fn, Sqlite);
-    };
-}
-
-#[cfg(feature = "sqlite")]
-macro_rules! run_many {
-    ($categorie:ident: $($fns:ident),+) => {
-        $(run_test!($categorie: $fns);)+
+macro_rules! Test {
+    ($name: ident, $test_fn:item) => {
+        test_base! {$name, $test_fn, Sqlite}
     };
 }

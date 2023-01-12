@@ -21,7 +21,7 @@ impl TryFrom<ExprLit> for TokenLit {
 impl Validate for TokenLit {}
 
 impl Sqlize for TokenLit {
-    fn sselect(&self, acc: &mut Sqlized, _context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, _context: &mut SelectContext) -> syn::Result<()> {
         let val = match &self.lit {
             Lit::Str(s) => {
                 let res = format!("'{}'", s.value());

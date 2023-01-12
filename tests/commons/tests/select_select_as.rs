@@ -2,7 +2,7 @@ use sqlo::{select, select_as};
 
 use crate::{Maison, PPool};
 
-pub async fn select_macro(p: PPool) {
+Test! {select_macro, async fn func(p: PPool) {
     // ----------------select------------------
     // #simple
     let res = select![id FROM Maison].fetch_all(&p.pool).await.unwrap();
@@ -19,9 +19,9 @@ pub async fn select_macro(p: PPool) {
         .await
         .unwrap();
     assert_eq!(res[0].bla, 1u8);
-}
+}}
 
-pub async fn select_as_macro(p: PPool) {
+Test! {select_as_macro, async fn func(p: PPool) {
     // --------------select_as-----------------
     // #simple
     let res = select_as![Maison, id,adresse, taille, piscine FROM Maison]
@@ -179,4 +179,4 @@ pub async fn select_as_macro(p: PPool) {
         .await
         .unwrap();
     assert_eq!(res[0].res, Some(11));
-}
+}}

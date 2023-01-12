@@ -22,7 +22,7 @@ impl_trait_to_tokens_for_tokens!(TokenOperator, op);
 impl Validate for TokenOperator {}
 
 impl Sqlize for TokenOperator {
-    fn sselect(&self, acc: &mut Sqlized, _context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, _context: &mut SelectContext) -> syn::Result<()> {
         acc.append_sql(rust_op_to_sql_op(&self.op).to_string());
         Ok(())
     }

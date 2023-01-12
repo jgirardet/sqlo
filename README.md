@@ -303,8 +303,14 @@ let other_update = update_House!(pk=2, height=345)(&pool).await?;
 - use ident or some::path::ident
 - .sqlo dir: may or not be versionned
 - no one letter table (because if joins)
-  -sqlo*select: user field or related.field(for fk)
-  * instruction in: (tuple), (array), (range, inclusif ou exclusif)
+  -sqlo\*select: user field or related.field(for fk)
+  - instruction in: (tuple), (array), (range, inclusif ou exclusif)
 
 ## macro select and select_as
+
+insister sur le fait que c du RUST pas du SQL pour la syntax
 divers: ajouter option parse_only
+dans CAll, use Dictinct with index
+CAST: AS dans column, espace dans from. utilser literal pour sqlo! "field:type" ou "field:_" pour sqlo_as!
+various inputs: binary, lit...
+

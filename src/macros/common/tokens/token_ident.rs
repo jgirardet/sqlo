@@ -3,7 +3,9 @@ use std::fmt::Display;
 use darling::util::IdentString;
 use syn::{Expr, ExprPath, Ident};
 
-use crate::macros::common::{FromContext, SelectContext, Sqlize, Sqlized, Validate};
+use crate::macros::common::{
+    FromContext, QueryContext, QueryMoment, SelectContext, Sqlize, Sqlized, Validate,
+};
 
 use itertools::Itertools;
 
@@ -96,11 +98,18 @@ impl PartialEq<TokenIdent> for TokenIdent {
 impl Validate for TokenIdent {}
 
 impl Sqlize for TokenIdent {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         let mut testes = vec![];
         for alias_sqlo in context.alias_sqlos.iter() {
             if let Some(field) = alias_sqlo.sqlo.field(self.as_str()) {
-                acc.append_sql(field.column.to_string());
+                match context.query_context {
+                    QueryContext::SqloAs(QueryMoment::InClause) => {
+                        acc.append_sql(field.as_query.to_string());
+                    }
+                    _ => {
+                        acc.append_sql(field.column.to_string());
+                    }
+                };
                 return Ok(());
             } else {
                 testes.push(&alias_sqlo.sqlo.ident)

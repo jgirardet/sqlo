@@ -36,7 +36,7 @@ impl TryFrom<Expr> for TokenBinary {
 impl Validate for TokenBinary {}
 
 impl Sqlize for TokenBinary {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         let mut group = Sqlized::default();
         self.lhs.sselect(&mut group, context)?;
         self.op.sselect(&mut group, context)?;

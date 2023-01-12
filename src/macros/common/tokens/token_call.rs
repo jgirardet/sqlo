@@ -65,7 +65,7 @@ impl Validate for TokenCall {
 }
 
 impl Sqlize for TokenCall {
-    fn sselect(&self, acc: &mut Sqlized, context: &SelectContext) -> syn::Result<()> {
+    fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         let mut group = Sqlized::default();
         group.append_sql(self.func.to_string());
         group.append_sql("(".to_string());

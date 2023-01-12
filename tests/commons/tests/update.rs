@@ -1,6 +1,6 @@
 use crate::{Adresse, Maison, PPool, WithAttrs};
 
-pub async fn update(p: PPool) {
+Test! {update, async fn func(p: PPool) {
     let sn = Maison::get(&p.pool, 1).await.unwrap();
 
     // test update one field with same name / column
@@ -98,4 +98,4 @@ pub async fn update(p: PPool) {
         .await
         .unwrap();
     assert_eq!(a.rue, Some("aze".to_string()));
-}
+}}

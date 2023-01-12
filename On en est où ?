@@ -41,8 +41,9 @@ Bug:
 - to_json method
 
 à Faire pour tuer le temps:
--test sqlo*set de query
-* test Vec<u8>
+-test sqlo\*set de query
+
+- test Vec<u8>
 
 select![
 Maison
