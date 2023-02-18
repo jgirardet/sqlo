@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use syn::BinOp;
 
 use crate::sqlo::DatabaseType;
 
@@ -21,23 +20,23 @@ pub fn qmarks_with_col(cols: &[&str], db: &DatabaseType) -> String {
         .join(",")
 }
 
-pub fn rust_op_to_sql_op(op: &BinOp) -> &str {
-    match op {
-        BinOp::Eq(_) => "=",
-        BinOp::Ne(_) => "<>",
-        BinOp::Le(_) => "<=",
-        BinOp::Lt(_) => "<",
-        BinOp::Ge(_) => ">=",
-        BinOp::Gt(_) => ">",
-        BinOp::And(_) => "AND",
-        BinOp::Or(_) => "OR",
-        BinOp::Add(_) => "+",
-        BinOp::Sub(_) => "-",
-        BinOp::Mul(_) => "*",
-        BinOp::Div(_) => "/",
-        _ => unimplemented!("Operator not supported"),
-    }
-}
+// pub fn rust_op_to_sql_op(op: &BinOp) -> &str {
+//     match op {
+//         BinOp::Eq(_) => "=",
+//         BinOp::Ne(_) => "<>",
+//         BinOp::Le(_) => "<=",
+//         BinOp::Lt(_) => "<",
+//         BinOp::Ge(_) => ">=",
+//         BinOp::Gt(_) => ">",
+//         BinOp::And(_) => "AND",
+//         BinOp::Or(_) => "OR",
+//         BinOp::Add(_) => "+",
+//         BinOp::Sub(_) => "-",
+//         BinOp::Mul(_) => "*",
+//         BinOp::Div(_) => "/",
+//         _ => unimplemented!("Operator not supported"),
+//     }
+// }
 
 #[cfg(test)]
 mod test_query_builder {

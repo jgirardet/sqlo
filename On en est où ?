@@ -1,20 +1,15 @@
-sur macro select:
 
-- where
-- JOIN
-- order_by
-  -desc
-  -group_by
-- having
 
-- essai les sub query
-  select!(count() FROM Maison)
-- les fonction IN avec subquery
-- le vrai like
-  \_did you mean == for = quand message est "only paren, ident, not alloawes)
-- à faire : order limit distinct group by having
+A faire:
+RHS de Where doit  référer à var ou field pas uniquement à var
+Test Relation si aucun related de specifié
+LIKE Recherche en spécifiant le début, milieu ou fin d'un mot.
+SUM, COUNT... (methode ?)
+utiliser l'instance à la place
+order_by marche t il ?
 
-Program de query :
+
+
 
 Operators:
 FAits:
@@ -26,9 +21,8 @@ FAits:
 BETWEEN Valeur comprise dans un intervalle donnée (utile pour les nombres ou dates)
 IS NULL Valeur est nulle
 IS NOT NULL
-A faire:
-IN Liste de plusieurs valeurs possibles
-LIKE Recherche en spécifiant le début, milieu ou fin d'un mot.
+IN Liste deplusieurs valeurs possibles
+
 
 Bug:
 
@@ -88,18 +82,3 @@ PENSER au NOT IN
 pour like: left like x.startswith, endwith, in ou x.contains(bla) peut être mieux
 
 OU les 2 car finalement like peut êtr plus pécifique
-
-#####################################################################
-#####################################################################
-#####################################################################
-Réfléchissions au to_sql des clauses:
-
-SELECT: - aucun argument - transforme operateur/colonne/call/cast/literal/opertor/parent(errur)/seq - field=>table+column => donc besoin de table(de from ?) - cas de distinct
-==> STRING
-
-FROM - ident ou cast et le reste en error
-==> STRING
-
-WHERE - un binary, unary+parentes(qui contient du binary) - et ensuite dans le binary, même logique que select
-MAIS à droit c un argument si: - field: ne correspond pas à table.field ou alias.field - ident: ne correspond pas un un alias ou un column => WARNING Error (je sais pas si faisable), ou règle de prio (sql puis variable) - faisons un call pour IN, LIKE, between
-==> (String, aguments)

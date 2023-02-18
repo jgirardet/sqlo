@@ -1,11 +1,11 @@
 use crate::{Maison, PPool, PieceFk};
-use sqlo::sqlo_select;
+use sqlo::select;
 
-Test! {sqlo_select, async fn func(p: PPool) {
+Test! {select, async fn func(p: PPool) {
     // --------------------- select easy -----------------------//
 
     // pk
-    let res = sqlo_select!(Maison where id == 1)
+    let res = select!(Maison where id == 1)
         .fetch_one(&p.pool)
         .await
         .unwrap();
@@ -14,7 +14,7 @@ Test! {sqlo_select, async fn func(p: PPool) {
     assert_eq!(res.taille, 101);
 
     // one attribute
-    let res = sqlo_select!(Maison where taille > 101)
+    let res = select!(Maison where taille > 101)
         .fetch_all(&p.pool)
         .await
         .unwrap();
@@ -25,7 +25,7 @@ Test! {sqlo_select, async fn func(p: PPool) {
     macro_rules! comp_many {
         ($ident:expr, $res:literal) => {
             assert_eq!(
-                sqlo_select!($ident)
+                select!($ident)
                     .fetch_all(&p.pool)
                     .await
                     .unwrap()
@@ -35,7 +35,7 @@ Test! {sqlo_select, async fn func(p: PPool) {
         };
         ($ident:expr, $exp:expr, $res:literal) => {
             assert_eq!(
-                sqlo_select!($ident where $exp)
+                select!($ident where $exp)
                     .fetch_all(&p.pool)
                     .await
                     .unwrap()
@@ -86,7 +86,7 @@ Test! {sqlo_select, async fn func(p: PPool) {
 
     // ForeignKey
     comp_many!(Maison[1].lespieces, 4);
-    let res: Vec<PieceFk> = sqlo_select!(Maison[1].lespieces)
+    let res: Vec<PieceFk> = select!(Maison[1].lespieces)
         .fetch_all(&p.pool)
         .await
         .unwrap();
@@ -98,6 +98,8 @@ Test! {sqlo_select, async fn func(p: PPool) {
     comp_many!(Maison[c].lespieces, lg >= 1 && la < 90, 3);
     comp_many!(Maison[a.a].lespieces, 3); //a=2
     comp_many!(Maison[array[2]].lespieces, 3); //=2
+
+
 
     // In
     comp_many!(PieceFk, maison_id..[1, 3], 6);
@@ -111,4 +113,5 @@ Test! {sqlo_select, async fn func(p: PPool) {
     comp_many!(PieceFk, maison_id..(d, e, f), 7);
     let [d, e, f] = [1, 2, 4];
     comp_many!(PieceFk, maison_id..[d, e, f], 7);
+    assert!(false)
 }}
