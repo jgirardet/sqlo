@@ -3,7 +3,6 @@ edition = "2021"
 name = "sqlo"
 version = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "sqlo"
 path = "src/lib.rs"
@@ -12,26 +11,23 @@ proc-macro = true
 [features]
 sqlite = ["sqlx/sqlite"]
 
-[[example]]
-name = "sqlite-maison"
-# path = "examples/sqlite-maison/main.rs"
-required-features = ["sqlite"]
-
 [dependencies]
-cargo_toml = "0.11"
-darling = "0.14.1"
+darling = "0.14"
+glob = "0.3.0"
 heck = "0.4"
-itertools = "*"
-proc-macro2 = "*"
-quote = "*"
-syn = {version = "1", features = ["full"]}
+itertools = "0.10"
+lazy_static = "1.4.0"
+paste = "*"
+proc-macro2 = "1"
+quote = "1"
+regex = "1.6.0"
 serde = {version = "1", features = ["derive"]}
-serde_json = {version="1"}
+serde_json = {version = "1"}
+syn = {version = "1", features = ["full", "visit"]}
 
 [dev-dependencies]
 async-std = {version = "1", features = ["attributes"]}
 dotenvy = "0.15"
-paste = "*"
 sqlx = {version = "0.6", features = [
   "runtime-async-std-native-tls",
   "sqlite",

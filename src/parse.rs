@@ -7,6 +7,8 @@ pub struct SqloParse {
     pub ident: syn::Ident,
     data: darling::ast::Data<(), FieldParser>,
     tablename: Option<String>,
+    #[darling(default)]
+    pub parse_only: bool,
 }
 
 // parser methods

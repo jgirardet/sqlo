@@ -1,0 +1,5 @@
+error: This type is not supported as Foreign Key with Sqlo. use `Ident` or `some::path::Ident` without Generic
+  --> tests/ui/fail/relation_breaks_fk_field_type_is_not_valid.rs:17:14
+   |
+17 |     piscine: Option<bool>,
+   |              ^^^^^^^^^^^^

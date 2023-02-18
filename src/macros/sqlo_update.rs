@@ -1,3 +1,4 @@
+use darling::util::IdentString;
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 use quote::{format_ident, quote};
@@ -12,7 +13,7 @@ use crate::{
 pub struct SqloSetParse {
     sqlo: Sqlo,
     iov: InstanceOrValue,
-    parse_fields: Vec<syn::Ident>,
+    parse_fields: Vec<IdentString>,
     parse_values: Vec<syn::Expr>,
 }
 
@@ -28,7 +29,7 @@ impl syn::parse::Parse for SqloSetParse {
             InstanceOrValue::Instance(input.parse::<syn::Ident>()?)
         } else if input.peek(Token![where]) {
             input.parse::<Token!(where)>()?;
-            InstanceOrValue::Value(input.parse::<syn::Expr>()?)
+            InstanceOrValue::Value(Box::new(input.parse::<syn::Expr>()?))
         } else {
             return Err(input.error("Only for,where are allowed"));
         };
@@ -40,7 +41,7 @@ impl syn::parse::Parse for SqloSetParse {
         let sqlo: Sqlo = serde_json::from_str(&sqlo_struct_string)
             .map_err(|e| syn::Error::new(Span::call_site(), e.to_string()))?;
 
-        let mut parse_fields: Vec<syn::Ident> = vec![];
+        let mut parse_fields = vec![];
         let mut parse_values = vec![];
         for exp in args.into_iter() {
             if let syn::Expr::Assign(exp) = exp {
@@ -48,7 +49,7 @@ impl syn::parse::Parse for SqloSetParse {
                 if let syn::Expr::Type(syn::ExprType { expr, .. }) = *left {
                     if let syn::Expr::Path(syn::ExprPath { path, .. }) = *expr {
                         if let Some(ident) = path.get_ident() {
-                            parse_fields.push(ident.clone());
+                            parse_fields.push(ident.clone().into());
                             parse_values.push(*right);
                         }
                     }
@@ -121,7 +122,7 @@ impl SqloSetParse {
 fn build_sql_query(
     database_type: &DatabaseType,
     sqlo: &Sqlo,
-    parse_fields: &[syn::Ident],
+    parse_fields: &[IdentString],
 ) -> String {
     let Sqlo {
         tablename,
@@ -135,7 +136,7 @@ fn build_sql_query(
     let columns_names = fields
         .iter()
         .filter_map(|f| {
-            if parse_fields.contains(&&f.ident) {
+            if parse_fields.contains(&f.ident) {
                 Some(f.column.as_str())
             } else {
                 None
@@ -152,13 +153,13 @@ fn build_sql_query(
 #[derive(Debug)]
 enum InstanceOrValue {
     Instance(syn::Ident),
-    Value(syn::Expr),
+    Value(Box<syn::Expr>),
 }
 
-fn get_pk_value(iov: &InstanceOrValue, pk_field: &syn::Ident) -> TokenStream {
-    match *iov {
+fn get_pk_value(iov: &InstanceOrValue, pk_field: &IdentString) -> TokenStream {
+    match iov {
         InstanceOrValue::Instance(ref ident) => quote![#ident.#pk_field],
-        InstanceOrValue::Value(ref expr_value) => match expr_value {
+        InstanceOrValue::Value(expr_value) => match expr_value.as_ref() {
             syn::Expr::Lit(expr_lit) => expr_lit.to_token_stream(),
             syn::Expr::Path(expr_path) => expr_path.to_token_stream(),
             syn::Expr::Index(expr_index) => expr_index.to_token_stream(),
@@ -178,7 +179,7 @@ pub fn impl_update_macro(s: &Sqlo) -> TokenStream {
         return quote! {}; // no macro if only pk is set for struct
     }
 
-    let macro_ident = format_ident!("update_{}", ident);
+    let macro_ident = format_ident!("update_{}", ident.as_ident());
     let sqlo_struct = serde_json::to_string(&s).expect("Fail serializing Sqlo to json");
 
     quote! {

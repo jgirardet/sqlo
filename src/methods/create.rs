@@ -1,3 +1,4 @@
+use darling::util::IdentString;
 use proc_macro2::TokenStream;
 
 use crate::{
@@ -8,12 +9,12 @@ use crate::{
 use quote::quote;
 
 struct CrudCreateImpl<'a> {
-    pub non_create_fn_idents: Vec<&'a syn::Ident>,
-    pub non_create_fn_types: Vec<&'a syn::Type>,
-    pub create_fn_idents: Vec<&'a syn::Ident>,
+    pub non_create_fn_idents: Vec<&'a IdentString>,
+    pub non_create_fn_types: Vec<&'a syn::TypePath>,
+    pub create_fn_idents: Vec<&'a IdentString>,
     pub create_fns: Vec<&'a syn::ExprPath>,
     pub insert_query_columns: Vec<&'a str>,
-    pub insert_query_args: Vec<&'a syn::Ident>,
+    pub insert_query_args: Vec<&'a IdentString>,
 }
 
 impl<'a> From<&'a Sqlo> for CrudCreateImpl<'a> {
@@ -77,7 +78,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
     let insert_query_args = quote! { #(#insert_query_args),*};
     let non_create_fn_types: Vec<TokenStream> = non_create_fn_types
         .into_iter()
-        .map(|x| get_function_arg_type(x))
+        .map(get_function_arg_type)
         .collect();
     let fn_args = quote! {#(#non_create_fn_idents:#non_create_fn_types),*};
 
@@ -91,7 +92,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
 
     let query = build_sql_query(
         &s.database_type,
-        &tablename,
+        tablename,
         &insert_query_columns,
         &all_columns_as_query,
     );
@@ -102,7 +103,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
             /// Every field is used as argument by default in their declaring order except PrimaryKey.
             /// Use attribute `creat_fn` to delegate value  to a function. ex : #[sqlo(create_fn="uuid::Uuid::new_v4")]
             /// Use `create_arg` with PrimaryKey to add it with other input arguments.
-            async fn create<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, #fn_args) -> sqlx::Result<#ident> {
+            pub async fn create<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, #fn_args) -> sqlx::Result<#ident> {
                 #option_struct
                 #create_fn_impl
 
@@ -122,8 +123,8 @@ fn build_sql_query(
     set_columns_names: &[&str],
     returnin_columns: &str,
 ) -> String {
-    let mut qmarks = qmarks(set_columns_names.len(), &database_type);
-    if qmarks == "" {
+    let mut qmarks = qmarks(set_columns_names.len(), database_type);
+    if qmarks.is_empty() {
         qmarks = "NULL".to_string();
     }
 

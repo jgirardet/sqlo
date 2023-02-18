@@ -1,7 +1,8 @@
 use std::{fmt::Display, str::FromStr};
 
+use crate::{field::Field, parse::SqloParse, serdable::IdentStringSer, types::is_type_option};
+use darling::util::IdentString;
 use itertools::Itertools;
-use crate::{field::Field, parse::SqloParse, serdable::IdentSer, types::is_type_option};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 
@@ -14,25 +15,27 @@ const DATABASE_TYPE: DatabaseType = if cfg!(feature = "sqlite") {
     )
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sqlo {
-    #[serde(with = "IdentSer")]
-    pub ident: syn::Ident,
+    #[serde(with = "IdentStringSer")]
+    pub ident: IdentString,
     pub fields: Vec<Field>,
     pub tablename: String,
     pub database_type: DatabaseType,
     pub pk_field: Field,
+    pub parse_only: bool,
 }
 
 impl TryFrom<SqloParse> for Sqlo {
     type Error = syn::Error;
     fn try_from(sp: SqloParse) -> Result<Sqlo, syn::Error> {
         Ok(Self {
-            ident: sp.ident.clone(),
             fields: sp.fields()?,
             tablename: sp.tablename(),
-            database_type: DATABASE_TYPE,
             pk_field: sp.has_pk_field()?,
+            ident: sp.ident.into(),
+            database_type: DATABASE_TYPE,
+            parse_only: sp.parse_only,
         })
     }
 }
@@ -42,7 +45,7 @@ impl Sqlo {
         self.fields
             .iter()
             .map(|Field { ident, ty, .. }| {
-                if is_type_option(&ty) {
+                if is_type_option(ty) {
                     quote! {#ident: #ty,}
                 } else {
                     quote! { #ident: Option<#ty>, }
@@ -55,7 +58,7 @@ impl Sqlo {
     }
 
     pub fn as_option_struct(&self) -> (syn::Ident, TokenStream) {
-        let option_class = format_ident!("Option{}", &self.ident);
+        let option_class = format_ident!("Option{}", self.ident.as_str());
         let option_struct_name = option_class.clone();
         let class_args = self.fields_name_and_type_as_option();
         (
@@ -81,7 +84,7 @@ impl Sqlo {
                     return quote! {
                     if res.#ident.is_none() {return Err(sqlx::Error::RowNotFound)}};
                 }
-                return quote! {};
+                quote! {}
             })
             .collect::<TokenStream>();
 
@@ -92,7 +95,7 @@ impl Sqlo {
                 if is_type_option(ty) {
                     return quote! {#ident:res.#ident,};
                 }
-                return quote! {#ident:res.#ident.unwrap(),}; //unwrap ok because check in sqlx_null_check
+                quote! {#ident:res.#ident.unwrap(),} //unwrap ok because check in sqlx_null_check
             })
             .collect::<TokenStream>();
         let struct_ident = &self.ident;
@@ -100,7 +103,15 @@ impl Sqlo {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+// utils
+impl Sqlo {
+    /// Get a field if exists.
+    pub fn field<T: AsRef<str>>(&self, name: T) -> Option<&Field> {
+        self.fields.iter().find(|f| f.ident == name.as_ref())
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum DatabaseType {
     Sqlite,
 }

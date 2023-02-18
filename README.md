@@ -148,6 +148,48 @@ assert_eq!(instance.id, Uuid("someuuidv4"))
 Under the hood `Sqlo` uses sqlx's `query_as!` for `get`, `create` and `update`.
 This attribute gives you access to [sqlx type override](https://docs.rs/sqlx/latest/sqlx/macro.query_as.html#column-type-override-infer-from-struct-field) so the query uses `select field as "field:_", ...` instead of `select field, ...`?
 
+## Relations
+
+Relations can be specified and used later in queries.
+
+It's done by adding a foreign key with `fk` attribute to a field. Related name in queries will then be the snake_case related struct name. For example: MyRoom=>my_room. The related name can be changed with the `related` attribute.
+
+```rust
+#[derive[Sqlo, Debug, PartialEq]]
+struct House {
+    id: i64,
+    name: String,
+    width: i64,
+    height: i64
+}
+
+struct Room {
+    id: i64,
+    #[sqlo(fk = "House")]
+    house_id: i64
+}
+// will use myhouse.room in queries
+
+// or
+
+struct Room {
+    id: i64,
+    #[sqlo(fk = "House", related = "therooms")]
+    house_id: i64
+    bed: bool
+}
+// will use myhouse.therooms in queries.
+
+```
+
+There is a type check so the `fk` field must have the same type as target struct's primary key.
+
+Entities and Relations are kept in a `.sqlo` directory which is created at compile time. Depending the order of compilation,it might fails at first glance if a `Sqlo Entity` is targeted in a relation but not yet parsed . Just rebuild a second time and it will pass.
+
+`.sqlo` may or not be added to VCS. Although it isn't its primary purpose, versionning `.sqlo` appears to add some more security in case of code change. The content is simple json files, which are very easy to read.
+
+The `fk` literal can be identifier (`"MyRoom"`) or a path (`"mycrate::mydir::MyRoom"`).
+
 ## Methods
 
 ### Introduction
@@ -291,4 +333,106 @@ let house = House::get(&pool, 2);
 let house = update_House![house; name= "bla", width=34](&pool).await?;
 let other_update = update_House!(pk=2, height=345)(&pool).await?;
 
+```
+
+### Select
+
+Select queries are performed with the `select!` macro.
+
+Let's use theese struct for this chapter.
+
+```rust
+#[derive[Sqlo, Debug, PartialEq]]
+struct House {
+    id: i64,
+    name: String,
+    width: i64,
+    height: i64
+}
+
+
+struct Room {
+    id: i64,
+    #[sqlo(fk = "House", related = "therooms")]
+    house_id: i64
+    bed: bool
+}
+
+```
+
+All SQL keywords and features are not implemented now. You can find a feature list of what is working right now below.
+
+### Introduction
+
+Basically it uses `sqlx::query_as` under the hood and just translate the query:
+
+```rust
+select![House where id == 1].fetch_one(&pool).await
+
+//roughly is translated into
+
+query_as![House, "SELECT DISTINCT id, name, width, height FROM house where id=?", 1].fetch_one(&pool).await
+```
+
+Some generals rules :
+
+- It's rust syntax not sql: that's why we use `==` instead of `=`.
+- `DISTINCT` is always added.
+
+### The WHERE clause
+
+It's an aggregate of binary expressions, here are some use cases, by SQL usage:
+
+- field: `select![House where id == 1]`
+- binary `operator: `select![House where width >= 1]`
+- IS NULL: `select![House where width == None]`
+- IS NOT NULL: `select![House where width != None]`
+- BETWEEN: `select![House where  width > 1 && width <5]`
+- use of parenthesis: `select![House where (width==1 || width==2) && height==4]`
+- NOT: `select![House !(width>5)]`
+- IN (range expression) :
+  - `select![HOUSE where id..(1,3,4)` as tuple
+  - `select![HOUSE where id..[1,2,3]]` as array
+  - `select![HOUSE where id..(1..4)]` as exclusive range
+  - `select![HOUSE where id..(1..=4)` as inclusive range
+  - `let [a,b,c] = myarray; select![HOUSE where id..(a,b,c)]` for known size array. Plain array/vec not supported now.
+- column from join: see [JOIN in where clause](####JOIN-in-where-clause)
+
+### INNER JOIN:
+
+#### Retrieving related rows
+
+You can access related row/collections via a "virtual field", the specified with `fk` attribute.
+
+- A row is accessed by indexing its primary key (`House[1]`,`House[myvar]`,`House[some.field]` or `House[someindex[1]]`).
+- "virtual" related fielda is accessed by its related name: `House[1].therooms`.
+
+```rust
+let a = 1;
+let romms: Vec<Room> = select![House[a].therooms where bed == true]
+    .fetch_all(&pool).await.unwrap();
+```
+
+#### JOIN in where clause
+
+```rust
+select![House where therooms.bed == true]
+```
+
+Rust items can be used as parameters:
+
+```rust
+// Variables
+let width = 1;
+select![House where height == width] // Right hand part of the expression will refere to the variable width not the field of house
+select![House where width == width] // is possible
+
+// Indexing
+let array = [1 , 2, 3]
+select![House where width == array[0]]
+
+// struct field
+struct A {b:i32}
+let a = A{b:2}
+select![House where width == a.b]
 ```

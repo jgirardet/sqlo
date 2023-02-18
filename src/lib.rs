@@ -1,23 +1,35 @@
+#[macro_use]
+mod utils;
+mod error;
 mod field;
+mod macros;
 mod methods;
 mod parse;
 mod produce;
 mod query_builder;
+mod relations;
 mod serdable;
 mod sqlo;
-mod sqlo_update;
+mod sqlos;
 mod types;
-mod utils;
+mod virtual_file;
+
 use crate::parse::SqloParse;
 use crate::sqlo::Sqlo;
-use crate::sqlo_update::process_sqlo_set;
 use darling::FromDeriveInput;
+use macros::sqlo_select::{process_sqlo_select, SqloSelectParse};
+use macros::sqlo_update::{process_sqlo_set, SqloSetParse};
 use proc_macro2::TokenStream;
-use sqlo_update::SqloSetParse;
+use virtual_file::VirtualFile;
 
 fn process_all(deriveinput: ::syn::DeriveInput) -> syn::Result<TokenStream> {
     let sqlo: Sqlo = SqloParse::from_derive_input(&deriveinput)?.try_into()?;
-    // dbg!(&sqlo);
+    let vf = VirtualFile::new();
+    vf.update(&sqlo)?;
+    vf.validate(&sqlo)?;
+    if sqlo.parse_only {
+        return Ok(TokenStream::new());
+    }
     Ok(produce::produce(&sqlo))
 }
 
@@ -35,6 +47,15 @@ pub fn macro_derive_sqlo(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 pub fn sqlo_set(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let pts: SqloSetParse = syn::parse_macro_input!(input as SqloSetParse);
     match process_sqlo_set(pts) {
+        Ok(ts) => ts.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}
+
+#[proc_macro]
+pub fn select(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let pts: SqloSelectParse = syn::parse_macro_input!(input as SqloSelectParse);
+    match process_sqlo_select(pts) {
         Ok(ts) => ts.into(),
         Err(e) => e.to_compile_error().into(),
     }

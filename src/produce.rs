@@ -1,7 +1,7 @@
 use crate::{
+    macros::sqlo_update::impl_update_macro,
     methods::{create::impl_create, delete::impl_delete, get::impl_get, save::impl_save},
     sqlo::Sqlo,
-    sqlo_update::impl_update_macro,
 };
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -49,20 +49,20 @@ fn impl_additional_utils(s: &Sqlo) -> TokenStream {
     let pkcolumn = &pk_field.column;
     let pk_ty = &pk_field.ty;
     quote! {
-        fn tablename() -> String {
+        pub fn tablename() -> String {
             #tablename.to_string()
         }
 
-        fn itablename(&self) -> String {
+        pub fn itablename(&self) -> String {
            #ident::tablename()
         }
 
 
-        fn pk_column(&self) -> String {
+        pub fn pk_column(&self) -> String {
             #pkcolumn.to_string()
         }
 
-        fn pk(&self) -> #pk_ty {
+        pub fn pk(&self) -> #pk_ty {
             self.#pkident.clone()
         }
 

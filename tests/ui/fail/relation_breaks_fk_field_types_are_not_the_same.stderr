@@ -1,0 +1,5 @@
+error: Field type an foreign key field's type don't match. Expected uuid::Uuid found i64
+  --> tests/ui/fail/relation_breaks_fk_field_types_are_not_the_same.rs:16:13
+   |
+16 |     taille: i64,
+   |             ^^^

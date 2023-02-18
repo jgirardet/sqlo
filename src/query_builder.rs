@@ -6,7 +6,7 @@ pub fn commma_sep_with_parenthes_literal_list(list: &[&str]) -> String {
     if list.is_empty() {
         return "".to_string();
     }
-    let sep_comad = list.into_iter().join(",");
+    let sep_comad = list.iter().join(",");
     format!("({sep_comad})")
 }
 
@@ -15,10 +15,28 @@ pub fn qmarks(nb: usize, db: &DatabaseType) -> String {
 }
 
 pub fn qmarks_with_col(cols: &[&str], db: &DatabaseType) -> String {
-    cols.into_iter()
+    cols.iter()
         .map(|c| format!("{c}={}", db.get_qmark()))
         .join(",")
 }
+
+// pub fn rust_op_to_sql_op(op: &BinOp) -> &str {
+//     match op {
+//         BinOp::Eq(_) => "=",
+//         BinOp::Ne(_) => "<>",
+//         BinOp::Le(_) => "<=",
+//         BinOp::Lt(_) => "<",
+//         BinOp::Ge(_) => ">=",
+//         BinOp::Gt(_) => ">",
+//         BinOp::And(_) => "AND",
+//         BinOp::Or(_) => "OR",
+//         BinOp::Add(_) => "+",
+//         BinOp::Sub(_) => "-",
+//         BinOp::Mul(_) => "*",
+//         BinOp::Div(_) => "/",
+//         _ => unimplemented!("Operator not supported"),
+//     }
+// }
 
 #[cfg(test)]
 mod test_query_builder {

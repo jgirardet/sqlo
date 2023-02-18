@@ -1,9 +1,84 @@
 
-à faire peut être : 
+
+A faire:
+RHS de Where doit  référer à var ou field pas uniquement à var
+Test Relation si aucun related de specifié
+LIKE Recherche en spécifiant le début, milieu ou fin d'un mot.
+SUM, COUNT... (methode ?)
+utiliser l'instance à la place
+order_by marche t il ?
+
+
+
+
+Operators:
+FAits:
+= Égale
+<> Pas égale
+!= Pas égale > Supérieur à &
+< Inférieur à >= Supérieur ou égale à
+<= Inférieur ou égale à
+BETWEEN Valeur comprise dans un intervalle donnée (utile pour les nombres ou dates)
+IS NULL Valeur est nulle
+IS NOT NULL
+IN Liste deplusieurs valeurs possibles
+
+
+Bug:
+
+- Serializer de create fn et fk doit retourner null et non empty string
+
+à faire peut être :
+
 - a'& str non supporté : il faut supporter les lifetime de la struct pout cela.
-ensuite supporter a'str dans types
+  ensuite supporter a'str dans types
 - to_json method
 
 à Faire pour tuer le temps:
--test sqlo_set de query
-_ test Vec<u8>
+-test sqlo\*set de query
+
+- test Vec<u8>
+
+select![
+Maison
+where (...binary..)
+group_by()?
+having()?
+,order_by field1,filed2
+,limit
+
+]
+Maison
+id5here]
+stream_Maison![(condtion1 && condition2) || condition3]
+stream_Maison![(condtion1 and condition2) or condition3]
+
+select_Maison![pieces.taille = 22]
+let m = Maison::get()
+select![m.expand_pieces]
+SELECT \* from maison m INNER JOIN pieces p ON m.id == p.maison_id
+
+select![id,lg,taille from Maison Where lg==23 and pieces.nb == 3]
+SELECT maison.id,maison.lg,piece.taille FROM maison
+INNER JOIN piece ON maison.id == piece.maison_id
+WHERE maison.lg == 23
+AND piece.taille > 3
+
+select_Entity![(eq/assignexpr) (&&/||) (eq/assignexpr)]
+select![Maison, lg=34 && pieces.nb=4]
+dans assign:
+left: field or FKs.field
+signe: ==, !=, <, >, <=, >=
+right: value
+pour between : val1<=left<val2 //ok avec binary
+between : NONONONNON =>utilise les operateurs
+pour null : left == None ou let == !None
+
+STARTS_WITH et contains pour tout, c mieux donc on fait AND avant
+
+pour in: left in [val2,val3,val4] ou left in [some array]// [1,2,3].contains(left) ou left.in([1,2,3]) moins rustfy my ok avecc like
+PENSER au NOT IN
+
+pour like: left like x.startswith, endwith, in ou x.contains(bla) peut être mieux
+
+OU les 2 car finalement like peut êtr plus pécifique
