@@ -2,6 +2,7 @@
 
 A faire:
 RHS de Where doit  référer à var ou field pas uniquement à var
+select on entity with pk
 Test Relation si aucun related de specifié
 LIKE Recherche en spécifiant le début, milieu ou fin d'un mot.
 SUM, COUNT... (methode ?)

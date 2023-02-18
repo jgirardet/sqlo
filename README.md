@@ -417,6 +417,7 @@ let romms: Vec<Room> = select![House[a].therooms where bed == true]
 
 ```rust
 select![House where therooms.bed == true]
+select![House where width>3 && therooms.bed == true]
 ```
 
 Rust items can be used as parameters:
