@@ -1,6 +1,8 @@
 use syn::{punctuated::Punctuated, Expr, Token};
 
-use crate::macros::common::{FromContext, SelectContext, Sqlize, Sqlized, Validate};
+use crate::macros::common::{
+    types::SqlTokens, FromContext, SelectContext, Sqlize, Sqlized, Validate,
+};
 
 use super::SqlToken;
 
@@ -10,7 +12,7 @@ pub struct TokenSeq {
 }
 
 impl<'a> TokenSeq {
-    pub fn iter(&'a self) -> syn::punctuated::Iter<'a, SqlToken> {
+    pub fn iter(&'a self) -> SqlTokens {
         self.content.iter()
     }
 }

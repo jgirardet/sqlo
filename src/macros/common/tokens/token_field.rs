@@ -1,4 +1,6 @@
-use crate::macros::common::{QueryContext, QueryMoment, SelectContext, Sqlize, Sqlized};
+use crate::macros::common::{
+    AliasSqlo,  QueryContext, QueryMoment, SelectContext, Sqlize, Sqlized,
+};
 use syn::{Expr, Member};
 
 use crate::macros::common::Validate;
@@ -40,19 +42,25 @@ impl Validate for TokenField {}
 impl Sqlize for TokenField {
     fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         let mut group = Sqlized::default();
-        let mut base = String::new();
-        for sqlo_alias in context.alias_sqlos.iter() {
-            if let Some(alias) = sqlo_alias.alias {
-                if alias == &self.base {
-                    base = alias.to_string();
-                    break;
-                }
-            }
-            if sqlo_alias.sqlo.ident == self.base {
-                base = sqlo_alias.sqlo.tablename.to_string();
-                break;
-            }
-        }
+        // let mut base = String::new();
+        // for sqlo_alias in context.alias_sqlos.iter() {
+        //     if let Some(alias) = sqlo_alias.alias {
+        //         if alias == &self.base {
+        //             base = alias.to_string();
+        //             break;
+        //         }
+        //     }
+        //     if sqlo_alias.sqlo.ident == self.base {
+        //         base = sqlo_alias.sqlo.tablename.to_string();
+        //         break;
+        //     }
+        // }
+        let base = match context.alias_sqlos.find(&self.base) {
+            Ok(AliasSqlo::Alias(s, a)) => a.to_string(),
+            Ok(AliasSqlo::Ident(s)) => s.tablename.to_string(),
+            _ => "".to_string(),
+        };
+
         if !base.is_empty() {
             group.append_sql(base);
             group.append_sql(".".to_string());

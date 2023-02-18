@@ -5,8 +5,8 @@ use proc_macro2::TokenStream;
 use crate::sqlos::Sqlos;
 
 use super::{
-    clause::Clause, sqlize::Sqlized, FromContext, QueryContext, QueryMoment, SelectContext, Sqlize,
-    Validate,
+    clause::Clause, sqlize::Sqlized, AliasSqlos, FromContext, QueryContext, QueryMoment,
+    SelectContext, Sqlize, ToAliasSqlos, Validate,
 };
 
 pub struct Phrase {
@@ -36,12 +36,29 @@ impl Phrase {
     pub fn sqlize(&self, sqlos: &Sqlos, query_context: QueryContext) -> syn::Result<Sqlized> {
         let mut acc = Sqlized::default();
         let mut iter = self.into_iter();
+
+        let select = iter
+            .next()
+            .expect("Error query should start with select, update, ....");
+        let alias_sqlos = AliasSqlos::new();
+
+        while let Some(clause) = iter.next() {
+            match clause {
+                Clause::From(from) => {
+                    let aliases = from.to_alias_sqlos(sqlos)?;
+                    // let mut context_select =
+                    //     SelectContext::from_clausefrom(&alias_sqlos, query_context)?;
+                }
+            }
+        }
+
         if let Some(Clause::Select(ref sel)) = iter.next() {
             if let Some(Clause::From(from_clause)) = iter.next() {
+                let alias_sqlos = from_clause.to_alias_sqlos(sqlos)?;
                 let mut context_select =
-                    SelectContext::from_clausefrom(from_clause, sqlos, query_context)?;
+                    SelectContext::from_clausefrom(&alias_sqlos, query_context)?;
                 sel.sselect(&mut acc, &mut context_select)?;
-                let context_from = FromContext::from_clausefrom(from_clause, sqlos)?;
+                let context_from = FromContext::from_clausefrom(&alias_sqlos)?;
                 from_clause.ffrom(&mut acc, &context_from)?;
             } else {
                 return_error!(&sel.tokens, "a FROM clause should follow a SELECT clause")

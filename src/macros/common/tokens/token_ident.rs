@@ -14,6 +14,12 @@ pub struct TokenIdent {
     ident: IdentString,
 }
 
+impl AsRef<IdentString> for TokenIdent {
+    fn as_ref(&self) -> &IdentString {
+        &self.ident
+    }
+}
+
 impl From<Ident> for TokenIdent {
     fn from(ident: Ident) -> Self {
         TokenIdent {
@@ -101,7 +107,7 @@ impl Sqlize for TokenIdent {
     fn sselect(&self, acc: &mut Sqlized, context: &mut SelectContext) -> syn::Result<()> {
         let mut testes = vec![];
         for alias_sqlo in context.alias_sqlos.iter() {
-            if let Some(field) = alias_sqlo.sqlo.field(self.as_str()) {
+            if let Some(field) = alias_sqlo.sqlo().field(self.as_str()) {
                 match context.query_context {
                     QueryContext::SqloAs(QueryMoment::InClause) => {
                         acc.append_sql(field.as_query.to_string());
@@ -112,7 +118,7 @@ impl Sqlize for TokenIdent {
                 };
                 return Ok(());
             } else {
-                testes.push(&alias_sqlo.sqlo.ident)
+                testes.push(&alias_sqlo.sqlo().ident)
             }
         }
         return_error!(
@@ -122,15 +128,18 @@ impl Sqlize for TokenIdent {
     }
 
     fn ffrom(&self, acc: &mut Sqlized, context: &FromContext) -> syn::Result<()> {
-        if let Some(alias_sqlo) = context
+        match context
             .alias_sqlos
             .iter()
-            .find(|x| x.sqlo.ident == self.ident)
+            .find(|x| x.sqlo().ident == self.ident)
         {
-            acc.append_sql(alias_sqlo.sqlo.tablename.to_string());
-            return Ok(());
-        } else {
-            return_error!(&self, "No valid Sqlo struct in clause FROM") //maybe unreachable
+            Some(alias) => {
+                acc.append_sql(alias.sqlo().tablename.to_string());
+                return Ok(());
+            }
+            None => {
+                return_error!(&self, "No valid Sqlo struct in clause FROM") //maybe unreachable
+            }
         }
     }
 }

@@ -235,11 +235,23 @@ impl RelForeignKey {
     }
 
     pub fn to_inner_join(&self, sqlos: &Sqlos) -> String {
-        let from_sqlo = sqlos
-            .get(&self.from)
+        let from_sqlo = {
+            let ref this = sqlos;
+            let name = &self.from;
+            this.entities
+                .iter()
+                .find(|s| s.ident == name.as_ref())
+                .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
+        }
             .expect("Error: Entity not found from Relation"); //should never happen except on first pass
-        let to_sqlo = sqlos
-            .get(&self.to)
+        let to_sqlo = {
+            let ref this = sqlos;
+            let name = &self.to;
+            this.entities
+                .iter()
+                .find(|s| s.ident == name.as_ref())
+                .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
+        }
             .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let from_field = from_sqlo
             .field(&self.field)
@@ -255,8 +267,14 @@ impl RelForeignKey {
     }
 
     pub fn get_from_column<'a>(&self, sqlos: &'a Sqlos) -> &'a str {
-        let from_sqlo = sqlos
-            .get(&self.from)
+        let from_sqlo = {
+            let ref this = sqlos;
+            let name = &self.from;
+            this.entities
+                .iter()
+                .find(|s| s.ident == name.as_ref())
+                .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
+        }
             .expect("Error: Entity not found from Relation"); //should never happen except on first pass
                                                               // let to_sqlo = sqlos
                                                               //     .get(&self.to)

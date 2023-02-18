@@ -11,3 +11,4 @@ impl_validate_for_clause_variant!(ClauseWhere);
 impl_parse_for_clause!(ClauseWhere  WHERE);
 impl_stry_for_clause!(ClauseWhere "WHERE");
 impl_trait_to_tokens_for_clause!(ClauseWhere, tokens);
+impl_clause_trait_for_clause_variant!(ClauseWhere);

@@ -17,6 +17,16 @@ macro_rules! impl_validate_for_clause_variant {
         }
     };
 }
+macro_rules! impl_clause_trait_for_clause_variant {
+    ($struct:ident) => {
+        impl crate::macros::common::clause::ClauseTrait for $struct {
+            fn sqltokens(&self) -> crate::macros::common::SqlTokens {
+                self.tokens.iter()
+            }
+        }
+    };
+}
+
 macro_rules! impl_parse_for_clause {
     ($struct:ident  $kw:ident) => {
         impl syn::parse::Parse for $struct {

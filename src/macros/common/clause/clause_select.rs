@@ -1,9 +1,12 @@
 use crate::{
-    macros::common::{kw, QueryContext, SqlKeyword, SqlToken, Sqlize, Sqlized, TokenSeq, Validate},
+    macros::common::{
+        kw, AliasSqlo, AliasSqlos, QueryContext, SqlKeyword, SqlToken, Sqlize, Sqlized, TokenSeq,
+        Validate,
+    },
     sqlos::Sqlos,
 };
 
-use super::{clause_from::AliasSqlo, ClauseFrom};
+use super::ClauseFrom;
 
 #[derive(Debug)]
 pub struct ClauseSelect {
@@ -15,6 +18,7 @@ pub struct ClauseSelect {
 impl_from_for_clause_variant!(ClauseSelect Select SELECT);
 impl_stry_for_clause!(ClauseSelect "SELECT");
 impl_trait_to_tokens_for_clause!(ClauseSelect, distinct, tokens);
+impl_clause_trait_for_clause_variant!(ClauseSelect);
 
 impl Validate for ClauseSelect {
     fn validate(&self, sqlos: &Sqlos) -> syn::Result<()> {
@@ -69,20 +73,19 @@ impl Sqlize for ClauseSelect {
 }
 
 #[derive(Debug)]
-pub struct SelectContext<'a> {
-    pub alias_sqlos: Vec<AliasSqlo<'a>>,
+pub struct SelectContext<'a, 'b> {
+    pub alias_sqlos: &'a AliasSqlos<'a, 'b>,
     pub query_context: QueryContext,
 }
 
-impl<'a> SelectContext<'a> {
+impl<'a, 'b> SelectContext<'a, 'b> {
     pub fn from_clausefrom(
-        clause: &'a ClauseFrom,
-        sqlos: &'a Sqlos,
+        alias_sqlos: &'a AliasSqlos<'a,'b>,
         query_context: QueryContext,
     ) -> syn::Result<Self> {
-        let alias_sqlos = clause.to_alias_sqlos(sqlos)?;
+        // let alias_sqlos = clause.to_alias_sqlos(sqlos)?;
         Ok(Self {
-            alias_sqlos: alias_sqlos,
+            alias_sqlos,
             query_context,
         })
     }

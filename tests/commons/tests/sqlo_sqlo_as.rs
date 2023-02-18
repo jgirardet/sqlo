@@ -66,7 +66,7 @@ Test! {sqlo_all_select_sqltoken_type, async fn func(p:PPool) {
         (b.lglg) AS paren_field,
         COUNT(DISTINCT[id]) AS call_one_param,
         REPLACE(adresse, "adr", "ADR") AS call_multi_param
-        FROM Maison, WithAttrs AS b).fetch_one(&p.pool).await.unwrap();
+        FROM Maison, WithAttrs b).fetch_one(&p.pool).await.unwrap();
 
     assert_eq!(res.id, Some(1));
     assert_eq!(res.astring, "astring".to_string());
