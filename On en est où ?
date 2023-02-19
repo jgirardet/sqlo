@@ -1,6 +1,19 @@
 A faire:
 
-SUM, COUNT... (methode ?)
+SUM, COUNT... (methode ?) et discuter un résultat des simple (count, max, sum d'une colonne)
+  - Dans les WHERE, assez simple: juste de la syntax et des params.
+  - Dans le select :
+    - d'abord trouver une syntax valable : select![House max(piece), min(pieces.lg) as mm] 
+    - traitement +/- dans l'ordre
+        - on met les tables + les joints éventuelles: FROM blabl JOIN blabdaz ....
+        - on prepend le  SELECT max(bla), min(fk.bla) as mm
+        - on fait le reste avec les WHERE, etc....
+
+    - Comment on va le faire:
+      - on check le parsage pour permettre d'ajouter des champs libres
+      - on tester en premier avec des ident de colonne simple
+      - et quand ça marche on rajoute les Call
+
 utiliser l'instance à la place
 order_by marche t il ?
 
