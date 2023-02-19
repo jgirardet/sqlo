@@ -378,6 +378,7 @@ Some generals rules :
 
 - It's rust syntax not sql: that's why we use `==` instead of `=`.
 - `DISTINCT` is always added.
+- By default left hand side expects a field name (aka column name) and right hand side a value. See [Using Rust items as parameters](Using-Rust-items-as-parameters) for more.
 
 ### The WHERE clause
 
@@ -420,7 +421,7 @@ select![House where therooms.bed == true]
 select![House where width>3 && therooms.bed == true]
 ```
 
-Rust items can be used as parameters:
+### Using Rust items as parameters:
 
 ```rust
 // Variables
@@ -436,4 +437,14 @@ select![House where width == array[0]]
 struct A {b:i32}
 let a = A{b:2}
 select![House where width == a.b]
+```
+
+Sometimes column/field name can conflict with a local variable: use leading `::` to force using column/field:
+
+```rust
+let width = 34;
+select![House where id == width] // variable width is used
+// sql : select * from house where id=? (? will be 34 as parameter)
+select![House where id == ::width] // variable width is ignored, column name wil be used in sql
+// sql : select * from house where id=width
 ```

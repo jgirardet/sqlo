@@ -243,7 +243,7 @@ impl RelForeignKey {
                 .find(|s| s.ident == name.as_ref())
                 .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
         }
-            .expect("Error: Entity not found from Relation"); //should never happen except on first pass
+        .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let to_sqlo = {
             let ref this = sqlos;
             let name = &self.to;
@@ -252,7 +252,7 @@ impl RelForeignKey {
                 .find(|s| s.ident == name.as_ref())
                 .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
         }
-            .expect("Error: Entity not found from Relation"); //should never happen except on first pass
+        .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let from_field = from_sqlo
             .field(&self.field)
             .expect("Sqlo Field not Found, please rebuild");
@@ -275,10 +275,10 @@ impl RelForeignKey {
                 .find(|s| s.ident == name.as_ref())
                 .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
         }
-            .expect("Error: Entity not found from Relation"); //should never happen except on first pass
-                                                              // let to_sqlo = sqlos
-                                                              //     .get(&self.to)
-                                                              //     .expect("Error: Entity not found from Relation"); //should never happen except on first pass
+        .expect("Error: Entity not found from Relation"); //should never happen except on first pass
+                                                          // let to_sqlo = sqlos
+                                                          //     .get(&self.to)
+                                                          //     .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let from_field = from_sqlo
             .field(&self.field)
             .expect("Sqlo Field not Found, please rebuild");

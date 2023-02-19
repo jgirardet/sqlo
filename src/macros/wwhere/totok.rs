@@ -138,6 +138,14 @@ impl ToTok for syn::ExprPath {
     }
 
     fn as_value(&self, acc: &mut Toks) {
+        if self.path.leading_colon.is_some() {
+            if self.path.segments.len() == 1 {
+                acc.field(&self.path.segments.first().unwrap().ident);
+            } else {
+                acc.error(self, "use only the field name")
+            }
+            return;
+        }
         let e: Expr = self.clone().into();
         acc.value(&e);
     }

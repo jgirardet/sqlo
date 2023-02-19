@@ -91,6 +91,14 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
     // use String
     let adr = "adresse2".to_string();
     nb_result!(p,Maison, adresse == adr, 1);
+    // rhs uses field not vs
+    #[allow(unused_variables)]
+    let taille = 1;
+    nb_result!(p,Maison, id<= ::taille, 3);
+    nb_result!(p,Maison, id == ::taille, 0);
+    nb_result!(p,Maison, id == taille, 1);
+
+
 }}
 
 Test! {select_test_where_parethesis, async fn func(p: PPool) {

@@ -50,18 +50,9 @@ pub(crate) fn parse_binary_eq(left: &Expr, op: &BinOp, right: &Expr, acc: &mut T
 }
 
 pub(crate) fn parse_binary_comp(left: &Expr, op: &BinOp, right: &Expr, acc: &mut Toks) {
-    // This seems ot be Between vi ternary comparison
-    // if let Some(v) = parse_between(left, op, right, acc) {
-    //     if v {
-    //         // ternary parsed
-    //         return;
-    //     } else {
-    //         // a usual
     left.as_param(acc);
     parse_operator(op, acc);
     right.as_value(acc);
-    // }
-    // }
 }
 
 pub(crate) fn parse_binary_bool(left: &Expr, op: &BinOp, right: &Expr, acc: &mut Toks) {
