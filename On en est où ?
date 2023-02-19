@@ -1,7 +1,7 @@
 
 
 A faire:
-pour la collection de fk ,id_parameter escaped au lieu de inline ?
+
 LIKE Recherche en spécifiant le début, milieu ou fin d'un mot.
 SUM, COUNT... (methode ?)
 utiliser l'instance à la place
