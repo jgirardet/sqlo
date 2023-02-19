@@ -1,4 +1,4 @@
-use crate::{Maison, PPool, PieceFk};
+use crate::{Maison, PPool, PieceFk, PieceFk2};
 use sqlo::select;
 
 Test! {select_with_pk, async fn func(p: PPool) {
@@ -135,10 +135,14 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
     assert_eq!(res[3].la, 90);
 
     let c = 1;
+    // various pk args
     nb_result!(p,Maison[c].lespieces, 4);
     nb_result!(p,Maison[1].lespieces, lg > 2, 2);
     nb_result!(p,Maison[c].lespieces, lg >= 1 && la < 90, 3);
     nb_result!(p,Maison[a.a].lespieces, 3); //a=2
     nb_result!(p,Maison[array[2]].lespieces, 3); //=2
-    nb_result!(p, Maison, taille>100 && lespieces.lg >8, 2);
+    nb_result!(p, Maison, taille>100 && lespieces.lg >=8, 2);
+
+    // no related name specified
+    nb_result!(p,Maison[c].piece_fk2, 4);
 }}

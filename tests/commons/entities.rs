@@ -47,3 +47,15 @@ pub struct PieceFk {
     #[sqlo(fk = "Maison", related = "lespieces")]
     pub maison_id: i64,
 }
+
+#[derive(sqlo::Sqlo, PartialEq, Debug)]
+#[sqlo(tablename = "piece")]
+pub struct PieceFk2 {
+    #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
+    pub nb: uuid::Uuid, // keep full path
+    #[sqlo(type_override)]
+    pub lg: i32,
+    pub la: i64,
+    #[sqlo(fk = "Maison")]
+    pub maison_id: i64,
+}
