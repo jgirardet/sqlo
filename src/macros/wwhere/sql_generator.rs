@@ -11,6 +11,7 @@ use syn::{spanned::Spanned, Expr, ExprField, Member};
 use super::{
     tok::{Tok, Toks},
     tokenizer::WhereTokenizer,
+    Like,
 };
 
 pub(crate) fn where_generate_sql<'a>(
@@ -77,6 +78,7 @@ impl<'a> WhereSqlGenerator<'a> {
             Tok::ForeignKey(f) => self.foreign_key(f)?,
             Tok::Null(t) => self.null(t)?,
             // Tok::Between(t) => self.between(t)?,
+            Tok::Like(t) => self.like(t)?,
             Tok::Paren(t) => self.parenthesis(t)?,
             Tok::Sign(s) => self.sign(s)?,
             Tok::Value(v) => self.value(v)?,
@@ -170,6 +172,10 @@ impl<'a> WhereSqlGenerator<'a> {
             return Ok(format!("{lhs} IN ({})", res.join(",")));
         }
         Err(SqloError::new_lost("Sqlo API Error, In is invalid"))
+    }
+
+    fn like(&mut self, l: Like) -> Result<String, SqloError> {
+        Ok(l.to_string())
     }
 
     fn not(&mut self, toks: Toks) -> Result<String, SqloError> {

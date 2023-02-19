@@ -9,6 +9,7 @@ use crate::utils::display_expr;
 use super::{
     tokenizer::{parse_operator, WhereTokenizer},
     totok::ToTok,
+    Like,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -30,6 +31,8 @@ impl From<&WhereTokenizer> for Toks {
                 syn::Expr::Range(ref p) => p.as_param(&mut t),
                 syn::Expr::Paren(ref p) => p.as_param(&mut t),
                 syn::Expr::Unary(ref p) => p.as_param(&mut t),
+                syn::Expr::Macro(ref p) => p.as_param(&mut t),
+
                 _ => t.error(m, "Only Binary, Parenthesis and  Not expression supported"),
             },
         };
@@ -52,6 +55,10 @@ impl Toks {
     // pub fn call(&mut self, expr: &syn::Expr) {
     //     self.0.push(Tok::Call(expr.clone()))
     // }
+    pub fn like(&mut self, like: Like) {
+        self.0.push(Tok::Like(like))
+    }
+
     pub fn not(&mut self, toks: &Toks) {
         self.0.push(Tok::Not(toks.clone()))
     }
@@ -109,6 +116,7 @@ pub enum Tok {
     Field(IdentString),
     ForeignKey(syn::ExprField),
     In(Toks),
+    Like(Like),
     Null(Toks),
     Not(Toks),
     Paren(Toks),
@@ -139,6 +147,7 @@ impl Display for Tok {
                 let mut iter = i.clone().into_iter();
                 write!(f, "{} in ({})", &iter.next().unwrap(), &iter.join(","))
             }
+            Self::Like(t) => write!(f, "{}", t),
             Self::Null(t) => write!(f, "{}None", t),
             Self::Not(n) => write!(f, "!{}", &n.to_string()),
             // Self::Call(n) => write!(f, "{}", display_expr(n)),

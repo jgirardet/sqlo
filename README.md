@@ -398,6 +398,7 @@ It's an aggregate of binary expressions, here are some use cases, by SQL usage:
   - `select![HOUSE where id..(1..=4)` as inclusive range
   - `let [a,b,c] = myarray; select![HOUSE where id..(a,b,c)]` for known size array. Plain array/vec not supported now.
 - column from join: see [JOIN in where clause](####JOIN-in-where-clause)
+- LIKE: use a macro syntax since it's magic : `select![House where like![name, "%bla]]`
 
 ### INNER JOIN:
 

@@ -1,9 +1,10 @@
 use darling::ToTokens;
-use syn::{BinOp, Expr};
+use syn::{parse2, BinOp, Expr};
 
 use super::{
     tok::Toks,
     tokenizer::{parse_binary_bool, parse_binary_comp, parse_binary_eq},
+    Like,
 };
 
 pub(crate) trait ToTok
@@ -98,6 +99,28 @@ impl ToTok for syn::ExprField {
 
     fn as_value(&self, acc: &mut Toks) {
         acc.error(self, "Can't be used on right side of binary expression")
+    }
+}
+
+impl ToTok for syn::ExprMacro {
+    fn as_param(&self, acc: &mut Toks) {
+        let mac = &self.mac;
+        if let Some(p) = mac.path.get_ident() {
+            if p == "like" {
+                match parse2::<Like>(mac.tokens.clone()) {
+                    Ok(like) => acc.like(like),
+                    Err(_) => acc.error(&mac.tokens, "Invalid content"),
+                }
+            } else {
+                acc.error(&mac.path, "only suppported macros are: like")
+            }
+        } else {
+            acc.error(&mac.path, "macros call is single word")
+        }
+    }
+
+    fn as_value(&self, acc: &mut Toks) {
+        self.as_param(acc)
     }
 }
 
