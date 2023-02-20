@@ -1,13 +1,11 @@
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
-use std::fmt::Write;
 
-use quote::quote;
 use syn::{punctuated::Punctuated, Token};
 
-use crate::{relations::Relation, sqlo::Sqlo, sqlos::Sqlos, virtual_file::VirtualFile};
+use crate::virtual_file::VirtualFile;
 
-use super::{sql_query::SqlQuery, wwhere::tokenizer::WhereTokenizer};
+use super::{wwhere::tokenizer::WhereTokenizer, SqlResult};
 
 mod kw {
     syn::custom_keyword!(order_by);
@@ -17,11 +15,11 @@ mod kw {
 type PunctuatedExprComma = Punctuated<syn::Expr, Token![,]>;
 
 pub struct SqloSelectParse {
-    entity: IdentString,
-    related: Option<IdentString>,
-    instance: Option<syn::Expr>,
-    wwhere: Option<WhereTokenizer>,
-    order_by: Option<PunctuatedExprComma>,
+    pub entity: IdentString,
+    pub related: Option<IdentString>,
+    pub pk_value: Option<syn::Expr>,
+    pub wwhere: Option<WhereTokenizer>,
+    pub order_by: Option<PunctuatedExprComma>,
 }
 
 impl SqloSelectParse {
@@ -29,7 +27,7 @@ impl SqloSelectParse {
         Self {
             entity: ident.into(),
             related: None,
-            instance: None,
+            pk_value: None,
             wwhere: None,
             order_by: None,
         }
@@ -51,7 +49,7 @@ impl syn::parse::Parse for SqloSelectParse {
         if input.peek(syn::token::Bracket) {
             let content;
             syn::bracketed!(content in input);
-            res.instance = Some(content.parse::<syn::Expr>()?);
+            res.pk_value = Some(content.parse::<syn::Expr>()?);
             input.parse::<Token![.]>()?;
             res.related = Some(input.parse::<syn::Ident>()?.into());
         }
@@ -83,72 +81,13 @@ impl syn::parse::Parse for SqloSelectParse {
     }
 }
 
-impl SqloSelectParse {
-    fn expand(&self, sqlos: &Sqlos) -> syn::Result<TokenStream> {
-        let main = sqlos.get(&self.entity)?;
-
-        if let Some(ref related) = self.related {
-            self.expand_related(related, main, sqlos)
-        } else {
-            self.expand_simple(main, sqlos)
-        }
-    }
-
-    fn expand_simple(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> syn::Result<TokenStream> {
-        let wwhere_sql =
-            SqlQuery::try_from_option_where_tokenizer(self.wwhere.clone(), sqlos, main_sqlo)?;
-        Ok(SqloSelectParse::query(main_sqlo, wwhere_sql))
-    }
-
-    fn expand_related(
-        &self,
-        related: &IdentString,
-        main_sqlo: &Sqlo,
-        sqlos: &Sqlos,
-    ) -> syn::Result<TokenStream> {
-        let Relation::ForeignKey(relation) = sqlos.relations.find(&main_sqlo.ident, related)?;
-        let related_sqlo = sqlos.get(&relation.from)?;
-        let mut wwhere_sql =
-            SqlQuery::try_from_option_where_tokenizer(self.wwhere.clone(), sqlos, related_sqlo)?;
-        let prefix = if wwhere_sql.query.is_empty() {
-            "WHERE "
-        } else {
-            " AND "
-        };
-        write!(
-            wwhere_sql.query,
-            "{}{}=?",
-            prefix,
-            &relation.get_from_column(sqlos)
-        )
-        .expect("Error formatting where related where query");
-
-        wwhere_sql.params.push(self.instance.clone().unwrap()); // ok since related exists only if instance is parsed.
-        Ok(SqloSelectParse::query(related_sqlo, wwhere_sql))
-    }
-
-    fn query(from: &Sqlo, wwhere: SqlQuery) -> TokenStream {
-        let Sqlo {
-            ident, tablename, ..
-        } = from;
-        let columns = from.all_columns_as_query();
-        let (where_query, where_params) = (wwhere.query, wwhere.params);
-
-        let qquery = format!("SELECT DISTINCT {columns} FROM {tablename} {where_query}");
-        if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
-            dbg!(&qquery);
-        }
-
-        // build res tokenstream
-        quote! {
-            sqlx::query_as!(#ident,#qquery, #(#where_params),*)
-        }
-    }
-}
-
 pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {
     let sqlos = VirtualFile::new().load()?;
-    input.expand(&sqlos)
+    let sqlr = SqlResult::from_sqlo_parse(input, &sqlos)?;
+    match sqlr.expand() {
+        Ok(o) => Ok(o),
+        Err(e) => Err(e.into()),
+    }
 }
 
 #[cfg(test)]

@@ -268,9 +268,9 @@ impl RelForeignKey {
 
     pub fn get_from_column<'a>(&self, sqlos: &'a Sqlos) -> &'a str {
         let from_sqlo = {
-            let ref this = sqlos;
             let name = &self.from;
-            this.entities
+            sqlos
+                .entities
                 .iter()
                 .find(|s| s.ident == name.as_ref())
                 .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))

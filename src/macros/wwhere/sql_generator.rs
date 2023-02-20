@@ -15,7 +15,7 @@ use super::{
 };
 
 pub(crate) fn where_generate_sql<'a>(
-    main: &str,
+    main: &IdentString,
     sqlos: &'a Sqlos,
     wwhere: &WhereTokenizer,
 ) -> Result<SqlQuery, SqloError> {
@@ -42,7 +42,7 @@ struct WhereSqlGenerator<'a> {
 }
 
 impl<'a> WhereSqlGenerator<'a> {
-    fn new(main: &str, sqlos: &'a Sqlos) -> Self {
+    fn new(main: &IdentString, sqlos: &'a Sqlos) -> Self {
         let main = sqlos
             .get(main)
             .unwrap_or_else(|_| panic!("No derived struct named ;{main}"));
@@ -244,6 +244,7 @@ mod test_wwhere_sql_generator {
     use super::*;
 
     use crate::macros::wwhere::tokenizer::WhereTokenizer;
+    use darling::FromMeta;
 
     fn get_sqlos() -> Sqlos {
         let sqlos = VirtualFile::new().load().expect("cannot load Sqlos");
@@ -268,8 +269,12 @@ mod test_wwhere_sql_generator {
             fn $title() {
                 let sqlos = get_sqlos();
                 let contt: WhereTokenizer = syn::parse_str($content).expect("test setup error");
-                let sql_query =
-                    where_generate_sql($main, &sqlos, &contt).expect("generate_where_sql failed");
+                let ident_string = darling::util::IdentString::new(syn::Ident::new(
+                    $main,
+                    proc_macro2::Span::call_site(),
+                ));
+                let sql_query = where_generate_sql(&ident_string, &sqlos, &contt)
+                    .expect("generate_where_sql failed");
                 assert_eq!(sql_query.query, $res);
                 assert_eq!(sql_query.params.len(), $arguments);
             }
