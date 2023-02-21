@@ -5,7 +5,6 @@ use crate::{
 };
 
 use darling::util::IdentString;
-use itertools::Itertools;
 use syn::{spanned::Spanned, Expr, ExprField, Member};
 
 use super::{
@@ -14,18 +13,13 @@ use super::{
     Like,
 };
 
-pub fn where_generate_sql<'a>(
+pub fn process_where<'a>(
     main: &IdentString,
     sqlos: &'a Sqlos,
     wwhere: &WhereTokenizer,
 ) -> Result<SqlQuery, SqloError> {
     let mut gen = WhereSqlGenerator::new(main, sqlos);
     gen.dispatch(wwhere.into())?;
-    // let joins = if gen.joins.is_empty() {
-    //     "".to_string()
-    // } else {
-    //     format!("{} ", gen.joins.values().join(" "))
-    // };
     let query = format!("WHERE {}", gen.query());
     Ok(SqlQuery {
         query,
@@ -271,7 +265,7 @@ mod test_wwhere_sql_generator {
                     $main,
                     proc_macro2::Span::call_site(),
                 ));
-                let sql_query = where_generate_sql(&ident_string, &sqlos, &contt)
+                let sql_query = process_where(&ident_string, &sqlos, &contt)
                     .expect("generate_where_sql failed");
                 assert_eq!(sql_query.query, $res);
                 assert_eq!(sql_query.params.len(), $arguments);

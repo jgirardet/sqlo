@@ -7,7 +7,7 @@ use syn::Expr;
 
 use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{sqlo_select::SqloSelectParse, wwhere::where_generate_sql};
+use super::{sqlo_select::SqloSelectParse, wwhere::process_where};
 
 pub struct SqlResult<'a> {
     main_sqlo: &'a Sqlo,
@@ -65,7 +65,7 @@ impl<'a> SqlResult<'a> {
     }
     fn process_where(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(ref wt) = parsed.wwhere {
-            let wwhere_sql = where_generate_sql(&self.main_sqlo.ident, &self.sqlos, wt)?;
+            let wwhere_sql = process_where(&self.main_sqlo.ident, &self.sqlos, wt)?;
             self.wwhere = wwhere_sql.query;
             self.arguments.extend(wwhere_sql.params);
             self.joins.extend(wwhere_sql.joins);

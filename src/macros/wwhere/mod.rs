@@ -5,4 +5,4 @@ pub mod tokenizer;
 mod totok;
 
 pub use like::Like;
-pub(crate) use sql_generator::where_generate_sql;
+pub use sql_generator::process_where;
