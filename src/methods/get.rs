@@ -7,9 +7,9 @@ pub fn impl_get(s: &Sqlo) -> TokenStream {
         ident,
         tablename,
         database_type,
+        all_columns_as_query,
         ..
     } = s;
-    let all_columns_as_query = s.all_columns_as_query();
 
     let pk_ty = get_function_arg_type(&s.pk_field.ty);
 

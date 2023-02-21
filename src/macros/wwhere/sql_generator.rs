@@ -1,4 +1,4 @@
-use std::collections::{HashSet};
+use std::collections::HashSet;
 
 use crate::{
     error::SqloError, macros::sql_query::SqlQuery, relations::Relation, sqlo::Sqlo, sqlos::Sqlos,
@@ -243,7 +243,6 @@ mod test_wwhere_sql_generator {
     use super::*;
 
     use crate::macros::wwhere::tokenizer::WhereTokenizer;
-    use darling::FromMeta;
 
     fn get_sqlos() -> Sqlos {
         let sqlos = VirtualFile::new().load().expect("cannot load Sqlos");

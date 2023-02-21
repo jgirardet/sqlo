@@ -1,6 +1,4 @@
-use std::collections::{HashSet};
-
-use darling::util::IdentString;
+use std::collections::HashSet;
 
 #[derive(Debug)]
 pub struct SqlQuery {

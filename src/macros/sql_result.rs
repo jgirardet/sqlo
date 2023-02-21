@@ -1,4 +1,4 @@
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use std::fmt::Write;
 
 use itertools::Itertools;
@@ -95,8 +95,8 @@ impl<'a> SqlResult<'a> {
 
     // access via related
 
-    fn get_queried_columns(&self) -> String {
-        self.main_sqlo.all_columns_as_query()
+    fn get_queried_columns(&self) -> &str {
+        &self.main_sqlo.all_columns_as_query
     }
 
     fn query(&self) -> String {

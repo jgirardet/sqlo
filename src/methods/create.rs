@@ -62,10 +62,10 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
         ident,
         tablename,
         database_type,
+        all_columns_as_query,
         ..
     } = s;
 
-    let all_columns_as_query = s.all_columns_as_query();
     let CrudCreateImpl {
         non_create_fn_idents,
         non_create_fn_types,

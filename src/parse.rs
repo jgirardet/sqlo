@@ -49,4 +49,20 @@ impl SqloParse {
             .map(|f| f.try_into())
             .collect()
     }
+
+    pub fn all_columns_as_query(fields: &[Field], tablename: &str) -> String {
+        let mut res = vec![];
+        for f in fields.iter() {
+            // we write full query if name or type isn't the same between rust struct and database
+            if f.type_override || f.ident != f.column || f.ident == "id" {
+                let a =
+                    format!(r#"{}.{} as "{}:_""#, tablename, &f.column, &f.ident).replace('\\', "");
+                res.push(a);
+            } else {
+                let a = format!("{}.{}", tablename, f.column);
+                res.push(a)
+            }
+        }
+        res.join(", ")
+    }
 }

@@ -24,18 +24,23 @@ pub struct Sqlo {
     pub database_type: DatabaseType,
     pub pk_field: Field,
     pub parse_only: bool,
+    pub all_columns_as_query: String,
 }
 
 impl TryFrom<SqloParse> for Sqlo {
     type Error = syn::Error;
     fn try_from(sp: SqloParse) -> Result<Sqlo, syn::Error> {
+        let tablename = sp.tablename();
+        let fields = sp.fields()?;
+        let all_columns_as_query = SqloParse::all_columns_as_query(fields.as_slice(), &tablename);
         Ok(Self {
-            fields: sp.fields()?,
-            tablename: sp.tablename(),
+            fields,
+            tablename,
             pk_field: sp.has_pk_field()?,
             ident: sp.ident.into(),
             database_type: DATABASE_TYPE,
             parse_only: sp.parse_only,
+            all_columns_as_query,
         })
     }
 }
@@ -52,9 +57,6 @@ impl Sqlo {
                 }
             })
             .collect()
-    }
-    pub fn all_columns_as_query(&self) -> String {
-        self.fields.iter().map(|x| x.as_query.as_str()).join(",")
     }
 
     pub fn as_option_struct(&self) -> (syn::Ident, TokenStream) {

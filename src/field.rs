@@ -38,17 +38,6 @@ impl FieldParser {
         Ok(self.ident().unwrap().to_string())
     }
 
-    pub fn as_query(&self) -> syn::Result<String> {
-        let name = self.column_name()?;
-        let struct_name = self.ident()?;
-        // we write full query if name or type isn't the same between rust struct and database
-        if self.type_override || struct_name != name || struct_name == "id" {
-            Ok(format!(r#"{} as "{}:_""#, &name, &struct_name).replace('\\', ""))
-        } else {
-            Ok(name)
-        }
-    }
-
     pub fn fk(&self) -> syn::Result<Option<IdentString>> {
         if self.fk.is_none() {
             return Ok(self.fk.clone());
@@ -101,7 +90,7 @@ pub struct Field {
     #[serde(with = "TypePathSer")]
     pub ty: syn::TypePath,
     pub column: String,
-    pub as_query: String,
+    pub type_override: bool,
     pub primary_key: bool,
     #[serde(with = "OptionExprPathSer")]
     pub create_fn: Option<syn::ExprPath>,
@@ -120,7 +109,7 @@ impl TryFrom<FieldParser> for Field {
             ident: fp.ident()?.clone().into(),
             ty: fp.ty()?,
             column: fp.column_name()?,
-            as_query: fp.as_query()?,
+            type_override: fp.type_override,
             primary_key: fp.primary_key,
             fk: fp.fk()?,
             related: fp.related()?,

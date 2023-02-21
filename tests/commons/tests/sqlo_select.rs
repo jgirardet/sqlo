@@ -155,5 +155,5 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
 
     // join in wherre taken in account
     nb_result!(p, Maison, taille>100 && lespieces.lg >=8, 2);
-    // nb_result!(p, Maison, lespieces.lg>4 && adresse.rue == "adresse1", 3);
+    nb_result!(p, Maison, lespieces.lg>4 && adresse.rue == "adresse1", 1);
 }}

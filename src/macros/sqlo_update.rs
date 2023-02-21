@@ -128,10 +128,10 @@ fn build_sql_query(
         tablename,
         fields,
         pk_field,
+        all_columns_as_query,
         ..
     } = sqlo;
 
-    let returning_cols = sqlo.all_columns_as_query();
     let pkfield_column = &pk_field.column;
     let columns_names = fields
         .iter()
@@ -146,7 +146,7 @@ fn build_sql_query(
     let columns_qmarks = qmarks_with_col(columns_names.as_slice(), database_type);
 
     format!(
-        r#"UPDATE {tablename} SET {columns_qmarks} WHERE {pkfield_column}=? RETURNING {returning_cols};"#
+        r#"UPDATE {tablename} SET {columns_qmarks} WHERE {pkfield_column}=? RETURNING {all_columns_as_query};"#
     )
 }
 
