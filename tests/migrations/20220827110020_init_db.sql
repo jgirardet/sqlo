@@ -19,7 +19,9 @@ CREATE TABLE piece (
 
 CREATE TABLE adresse (
   id TEXT NOT NULL PRIMARY KEY,
-  rue TEXT
+  rue TEXT,
+  m_id INTEGER NOT NULL,
+  FOREIGN KEY(m_id) REFERENCES maison(id)
 );
 
 CREATE TABLE IF NOT EXISTS id_unique_int (
@@ -56,7 +58,7 @@ INSERT INTO piece VALUES
   (X'99999999999999999999999999999999',9,90, 1);
 
 
-INSERT INTO adresse (id, rue) VALUES 
-  ('1', 'adresse1'),
-  ('2', 'adresse2'),
-  ('3', 'adresse3');
+INSERT INTO adresse (id, rue, m_id) VALUES 
+  ('1', 'adresse1',1),
+  ('2', 'adresse2',2),
+  ('3', 'adresse3',3);

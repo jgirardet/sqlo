@@ -1,16 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::{HashSet};
 use std::fmt::Write;
 
-use darling::util::IdentString;
+use itertools::Itertools;
 use proc_macro2::TokenStream;
 use syn::Expr;
 
-use crate::{
-    error::SqloError,
-    relations::{RelForeignKey},
-    sqlo::Sqlo,
-    sqlos::Sqlos,
-};
+use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
 
 use super::{sqlo_select::SqloSelectParse, wwhere::where_generate_sql};
 
@@ -19,7 +14,7 @@ pub struct SqlResult<'a> {
     relation: Option<&'a RelForeignKey>,
     sqlos: &'a Sqlos,
     columns: String,
-    joins: BTreeMap<&'a IdentString, String>,
+    joins: HashSet<String>,
     wwhere: String,
     arguments: Vec<Expr>,
 }
@@ -45,7 +40,7 @@ impl<'a> SqlResult<'a> {
             columns: String::default(),
             wwhere: String::default(),
             arguments: Vec::default(),
-            joins: BTreeMap::default(),
+            joins: HashSet::default(),
         }
     }
 
@@ -73,6 +68,7 @@ impl<'a> SqlResult<'a> {
             let wwhere_sql = where_generate_sql(&self.main_sqlo.ident, &self.sqlos, wt)?;
             self.wwhere = wwhere_sql.query;
             self.arguments.extend(wwhere_sql.params);
+            self.joins.extend(wwhere_sql.joins);
         }
         Ok(())
     }
@@ -106,8 +102,9 @@ impl<'a> SqlResult<'a> {
     fn query(&self) -> String {
         let columns = self.get_queried_columns();
         let tablename = &self.main_sqlo.tablename;
+        let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
-        format!("SELECT DISTINCT {columns} FROM {tablename} {where_query}")
+        format!("SELECT DISTINCT {columns} FROM {tablename} {joins} {where_query}")
     }
 
     pub fn expand(&self) -> Result<TokenStream, SqloError> {

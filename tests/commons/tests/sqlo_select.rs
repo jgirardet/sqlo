@@ -149,8 +149,11 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
     nb_result!(p,Maison[c].lespieces, lg >= 1 && la < 90, 3);
     nb_result!(p,Maison[a.a].lespieces, 3); //a=2
     nb_result!(p,Maison[array[2]].lespieces, 3); //=2
-    nb_result!(p, Maison, taille>100 && lespieces.lg >=8, 2);
 
     // no related name specified
     nb_result!(p,Maison[c].piece_fk2, 4);
+
+    // join in wherre taken in account
+    nb_result!(p, Maison, taille>100 && lespieces.lg >=8, 2);
+    // nb_result!(p, Maison, lespieces.lg>4 && adresse.rue == "adresse1", 3);
 }}

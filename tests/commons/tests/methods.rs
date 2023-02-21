@@ -100,7 +100,7 @@ Test! {delete, async fn func(p: PPool) {
     assert!(WithAttrs::get(&p.pool, &u8).await.is_err());
 
     // delete by pk int
-    let m = Adresse::create(&p.pool, "deleteme", None).await.unwrap();
+    let m = Adresse::create(&p.pool, "deleteme", None, 1).await.unwrap();
     Adresse::delete(&p.pool, &m.id).await.unwrap();
     assert!(Adresse::get(&p.pool, &m.id).await.is_err());
 

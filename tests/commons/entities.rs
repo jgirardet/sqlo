@@ -34,6 +34,8 @@ pub struct Adresse {
     #[sqlo(create_arg)]
     pub id: String,
     pub rue: Option<String>,
+    #[sqlo(fk = "Maison")]
+    pub m_id: i64,
 }
 
 #[derive(sqlo::Sqlo, PartialEq, Debug)]
