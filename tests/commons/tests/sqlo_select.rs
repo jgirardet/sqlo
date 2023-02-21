@@ -157,3 +157,8 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
     nb_result!(p, Maison, taille>100 && lespieces.lg >=8, 2);
     nb_result!(p, Maison, lespieces.lg>4 && adresse.rue == "adresse1", 1);
 }}
+
+Test! {select_cutoms, async fn func(p: PPool) {
+  let res = sqlo::select![Maison count(id) as total].fetch_one(&p.pool).await.unwrap();
+//   assert_eq!(res.total, 3);
+}}

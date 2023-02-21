@@ -11,6 +11,7 @@ use super::{sqlo_select::SqloSelectParse, wwhere::process_where};
 
 pub struct SqlResult<'a> {
     main_sqlo: &'a Sqlo,
+    columns: String,
     relation: Option<&'a RelForeignKey>,
     sqlos: &'a Sqlos,
     joins: HashSet<String>,
@@ -25,6 +26,7 @@ impl<'a> SqlResult<'a> {
     ) -> Result<SqlResult, SqloError> {
         let main_sqlo = SqlResult::set_main_and_relation(&parsed, &sqlos)?;
         let mut sqlr = SqlResult::new(main_sqlo, sqlos);
+        sqlr.set_columns(&parsed)?;
         sqlr.set_relation(&parsed)?;
         sqlr.process_where(&parsed)?;
         sqlr.link_related_in_where(&parsed);
@@ -35,6 +37,7 @@ impl<'a> SqlResult<'a> {
         SqlResult {
             sqlos,
             main_sqlo,
+            columns: String::default(),
             relation: Option::default(),
             wwhere: String::default(),
             arguments: Vec::default(),
@@ -93,12 +96,13 @@ impl<'a> SqlResult<'a> {
 
     // access via related
 
-    fn get_queried_columns(&self) -> &str {
-        &self.main_sqlo.all_columns_as_query
+    fn set_columns(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+        self.columns = self.main_sqlo.all_columns_as_query.to_string();
+        Ok(())
     }
 
     fn query(&self) -> String {
-        let columns = self.get_queried_columns();
+        let columns = &self.columns;
         let tablename = &self.main_sqlo.tablename;
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;

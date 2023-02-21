@@ -5,7 +5,7 @@ use syn::{punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
-use super::{wwhere::tokenizer::WhereTokenizer, SqlResult};
+use super::{wwhere::tokenizer::WhereTokenizer, Column, SqlResult};
 
 mod kw {
     syn::custom_keyword!(order_by);
@@ -17,6 +17,7 @@ type PunctuatedExprComma = Punctuated<syn::Expr, Token![,]>;
 pub struct SqloSelectParse {
     pub entity: IdentString,
     pub related: Option<IdentString>,
+    pub customs: Vec<Column>,
     pub pk_value: Option<syn::Expr>,
     pub wwhere: Option<WhereTokenizer>,
     pub order_by: Option<PunctuatedExprComma>,
@@ -30,6 +31,7 @@ impl SqloSelectParse {
             pk_value: None,
             wwhere: None,
             order_by: None,
+            customs: Vec::default(),
         }
     }
 }
@@ -52,6 +54,12 @@ impl syn::parse::Parse for SqloSelectParse {
             res.pk_value = Some(content.parse::<syn::Expr>()?);
             input.parse::<Token![.]>()?;
             res.related = Some(input.parse::<syn::Ident>()?.into());
+        }
+
+        // parse curtom column
+        if !input.is_empty() && !input.peek(Token![where]) {
+            let punct: Punctuated<Column, Token![,]> = Punctuated::parse_separated_nonempty(input)?;
+            res.customs = punct.into_iter().collect();
         }
 
         // parse where
@@ -124,6 +132,10 @@ mod test_sqlo_select_macro {
     );
     success_parse_sqlo_select_syntax!(ident_related, "Maison[1].related");
 
+    success_parse_sqlo_select_syntax!(unique_call, "Maison count(id) as bla");
+    success_parse_sqlo_select_syntax!(unique_col_identifier, "Maison id");
+    success_parse_sqlo_select_syntax!(call_plus_col, "Maison id, count(id) as bla");
+
     macro_rules! fail_parse_sqlo_select_syntax {
         ($case:ident, $input:literal, $err:literal) => {
             paste::paste! {
@@ -137,7 +149,6 @@ mod test_sqlo_select_macro {
     }
 
     fail_parse_sqlo_select_syntax!(empty, "", "Deriving Sqlo struct expected");
-    fail_parse_sqlo_select_syntax!(not_where_after_entity, "Maison wrong", "`where` expected");
     fail_parse_sqlo_select_syntax!(
         not_irder_by_after_binaries,
         "Maison where 1 == 1 bla",
@@ -147,5 +158,10 @@ mod test_sqlo_select_macro {
         not_comma_field_after_order_by,
         "Maison where 1 == 1 order_by",
         "comma seperated fields expected"
+    );
+    fail_parse_sqlo_select_syntax!(
+        no_call_without_cast_allowed,
+        "Maison count(id)",
+        "unexpected end of input, column's expression should be followed by as"
     );
 }
