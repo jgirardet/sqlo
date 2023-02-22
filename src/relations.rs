@@ -254,7 +254,7 @@ impl RelForeignKey {
         }
         .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let from_field = from_sqlo
-            .field(&self.field)
+            .field(&self.field.as_ident())
             .expect("Sqlo Field not Found, please rebuild");
         format!(
             "INNER JOIN {} ON {}.{}={}.{}",
@@ -280,7 +280,7 @@ impl RelForeignKey {
                                                           //     .get(&self.to)
                                                           //     .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let from_field = from_sqlo
-            .field(&self.field)
+            .field(&self.field.as_ident())
             .expect("Sqlo Field not Found, please rebuild");
         from_field.column.as_str()
     }

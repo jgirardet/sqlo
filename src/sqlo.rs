@@ -1,6 +1,9 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{field::Field, parse::SqloParse, serdable::IdentStringSer, types::is_type_option};
+use crate::{
+    error::SqloError, field::Field, parse::SqloParse, serdable::IdentStringSer,
+    types::is_type_option,
+};
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
@@ -107,8 +110,19 @@ impl Sqlo {
 // utils
 impl Sqlo {
     /// Get a field if exists.
-    pub fn field<T: AsRef<str>>(&self, name: T) -> Option<&Field> {
-        self.fields.iter().find(|f| f.ident == name.as_ref())
+    pub fn field(&self, name: &syn::Ident) -> Option<&Field> {
+        self.fields.iter().find(|f| f.ident.as_ident() == name)
+    }
+
+    pub fn column(&self, ident: &syn::Ident) -> Result<String, SqloError> {
+        let column = &self
+            .field(&ident)
+            .ok_or(SqloError::new_spanned(
+                &ident,
+                &format!("No field `{ident}` in [{}]", &self.ident),
+            ))?
+            .column;
+        Ok(format!("{}.{}", &self.tablename, column))
     }
 }
 

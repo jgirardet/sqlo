@@ -96,7 +96,7 @@ impl<'a> WhereSqlGenerator<'a> {
     }
 
     fn field(&mut self, v: IdentString) -> Result<String, SqloError> {
-        if let Some(field) = self.main.field(&v) {
+        if let Some(field) = self.main.field(&v.as_ident()) {
             Ok(field.column.to_string())
         } else {
             Err(SqloError::new(
@@ -141,7 +141,7 @@ impl<'a> WhereSqlGenerator<'a> {
         let Relation::ForeignKey(rel) = self.sqlos.relations.find(&self.main.ident, &related)?;
 
         let slave_sqlo = self.sqlos.get(&rel.from)?;
-        let slave_field = slave_sqlo.field(&from_field).ok_or_else(|| {
+        let slave_field = slave_sqlo.field(&from_field.as_ident()).ok_or_else(|| {
             SqloError::new(
                 &format!("This field does not exist in {} struct", slave_sqlo.ident),
                 f.member.span(),
