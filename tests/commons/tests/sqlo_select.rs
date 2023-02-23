@@ -182,8 +182,11 @@ Test! {select_cutoms, async fn func(p: PPool) {
   let res = sqlo::select![Maison lespieces.lg where lespieces.lg > 2].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 7);
 //   with join conflict column
-  let res = sqlo::select![Maison id as idm, adresse.id where adresse.id>0].fetch_all(&p.pool).await.unwrap();
-  assert_eq!(res.len(), 1);
+  let res = sqlo::select![Maison id as idm, adresse.id where adresse.id>1].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res[0].idm, 2);
+  assert_eq!(res[1].idm, 3);
+  assert_eq!(res[0].id, "2");
+  assert_eq!(res[1].id, "3");
 //   with join in cast
 //   let res = sqlo::select![Maison maison.id as id].fetch_all(&p.pool).await.unwrap();
 //   assert_eq!(res.len(), 7);
