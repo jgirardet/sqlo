@@ -103,7 +103,7 @@ impl<'a> SqlResult<'a> {
             self.customs = true;
             let mut res = vec![];
             for col in &parsed.customs {
-                res.push(col.column_to_sql(&self.main_sqlo, &self.sqlos)?)
+                res.push(col.column_to_sql(&self.main_sqlo, &self.sqlos)?.query)
             }
             self.columns = res.join(", ");
         }

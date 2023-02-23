@@ -6,3 +6,13 @@ pub struct SqlQuery {
     pub params: Vec<syn::Expr>,
     pub joins: HashSet<String>,
 }
+
+impl From<String> for SqlQuery {
+    fn from(s: String) -> Self {
+        SqlQuery {
+            query: s,
+            params: vec![],
+            joins: HashSet::default(),
+        }
+    }
+}
