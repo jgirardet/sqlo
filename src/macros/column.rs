@@ -71,8 +71,9 @@ impl ColumnToSql for Column {
 
 impl ColumnToSql for ColumnCast {
     fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
-        let expr = self.expr.column_to_sql(main_sqlo, sqlos)?;
-        Ok(format!("{} as {}", &expr.query, &self.alias).into())
+        let mut expr = self.expr.column_to_sql(main_sqlo, sqlos)?;
+        expr.query = format!("{} as {}", &expr.query, &self.alias);
+        Ok(expr)
     }
 }
 
@@ -101,10 +102,13 @@ impl ColumnToSql for ExprField {
         match self.base.as_ref() {
             Expr::Path(ExprPath { path, .. }) => {
                 if let Some(ident) = path.get_ident() {
-                    let related_sqlo = sqlos
-                        .get_by_relation(&main_sqlo.ident, &IdentString::new(ident.clone()))?;
+                    let relation =
+                        sqlos.get_relation(&main_sqlo.ident, &IdentString::new(ident.clone()))?;
+                    let related_sqlo = sqlos.get(&relation.from)?;
                     if let Member::Named(field_name) = &self.member {
-                        return Ok(related_sqlo.column(&field_name)?.into());
+                        let join = relation.to_inner_join(&sqlos);
+                        let column = related_sqlo.column(&field_name)?;
+                        return Ok((column, join).into());
                     }
                     return_error!(
                         &self.member,

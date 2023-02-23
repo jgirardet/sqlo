@@ -178,16 +178,25 @@ Test! {select_cutoms, async fn func(p: PPool) {
   // with related and where
   let res = sqlo::select![Maison[1].lespieces lg where lg> 2].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
+  // with join alone
+  let res = sqlo::select![Maison lespieces.lg].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 9);
   // with join and where
   let res = sqlo::select![Maison lespieces.lg where lespieces.lg > 2].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 7);
-//   with join conflict column
+  //with cast
+  let res = sqlo::select![Maison adresse as lid].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res[2].lid, "adresse3");
+  // with join in cast
+  let res = sqlo::select![Maison lespieces.lg as lll].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 9);
+  // with join conflict column
   let res = sqlo::select![Maison id as idm, adresse.id where adresse.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[0].idm, 2);
   assert_eq!(res[1].idm, 3);
   assert_eq!(res[0].id, "2");
   assert_eq!(res[1].id, "3");
-//   with join in cast
-//   let res = sqlo::select![Maison maison.id as id].fetch_all(&p.pool).await.unwrap();
-//   assert_eq!(res.len(), 7);
+  // with join conflict column, the reverse with id
+  let res = sqlo::select![Maison id, adresse.id as ll where adresse.id>1].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 2);
 }}
