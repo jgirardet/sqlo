@@ -106,6 +106,7 @@ impl<'a> SqlResult<'a> {
                 let query_column = col.column_to_sql(&self.main_sqlo, &self.sqlos)?;
                 res.push(query_column.query);
                 self.joins.extend(query_column.joins);
+                self.arguments.extend(query_column.params);
             }
             self.columns = res.join(", ");
         }
@@ -117,7 +118,9 @@ impl<'a> SqlResult<'a> {
         let tablename = &self.main_sqlo.tablename;
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
-        format!("SELECT DISTINCT {columns} FROM {tablename} {joins} {where_query}").trim_end().into()
+        format!("SELECT DISTINCT {columns} FROM {tablename} {joins} {where_query}")
+            .trim_end()
+            .into()
     }
 
     pub fn expand(&self) -> Result<TokenStream, SqloError> {

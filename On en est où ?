@@ -1,6 +1,6 @@
 A faire:
 
-cast avec field
+- permetre le as en temps que stringpour les sqlx tricks
 finir les customs, quand ça marche à peu près :
   - refaire correctement print_expr (pas confiance, à quoi ça sert dans les Tok ?, simple debug ?)
   - la classe custom pour utilier query as

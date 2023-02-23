@@ -91,6 +91,7 @@ impl ColumnToSql for Expr {
             Expr::Path(exprpath) => exprpath.column_to_sql(main_sqlo, sqlos),
             Expr::Field(exprfield) => exprfield.column_to_sql(main_sqlo, sqlos),
             Expr::Call(exprcall) => exprcall.column_to_sql(main_sqlo, sqlos),
+            Expr::Lit(_) => Ok(self.clone().into()),
             _ => Err(SqloError::new_spanned(self, "Expression not supported")),
         }
     }
@@ -139,17 +140,19 @@ impl ColumnToSql for ExprCall {
         if let Expr::Path(ExprPath { path, .. }) = self.func.as_ref() {
             if let Some(ident) = path.get_ident() {
                 let mut args = vec![];
+                let mut params = vec![];
                 for arg in self.args.iter() {
                     args.push(arg.column_to_sql(main_sqlo, sqlos)?);
                 }
                 let query = format!("{}({})", ident, args.iter().map(|x| &x.query).join(" ,"));
                 let mut joins = HashSet::new();
                 for j in args {
-                    joins.extend(j.joins)
+                    joins.extend(j.joins);
+                    params.extend(j.params);
                 }
                 return Ok(SqlQuery {
                     query,
-                    params: Vec::default(),
+                    params,
                     joins,
                 });
             }

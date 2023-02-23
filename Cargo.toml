@@ -28,7 +28,7 @@ syn = {version = "1", features = ["full", "visit"]}
 [dev-dependencies]
 async-std = {version = "1", features = ["attributes"]}
 dotenvy = "0.15"
-sqlx = {version = "0.6", features = [
+sqlx = {version = "0.6.2", features = [
   "runtime-async-std-native-tls",
   "sqlite",
   "uuid",

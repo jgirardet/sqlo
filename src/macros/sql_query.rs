@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use syn::{Expr};
+
 #[derive(Debug)]
 pub struct SqlQuery {
     pub query: String,
@@ -27,6 +29,17 @@ impl From<(String, String)> for SqlQuery {
             query: s.0,
             params: vec![],
             joins: h,
+        }
+    }
+}
+
+// take an Expr so its a argument
+impl From<Expr> for SqlQuery {
+    fn from(expr: Expr) -> Self {
+        SqlQuery {
+            query: "?".to_string(),
+            params: vec![expr],
+            joins: HashSet::default(),
         }
     }
 }
