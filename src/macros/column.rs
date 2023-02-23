@@ -1,5 +1,8 @@
+use std::collections::HashSet;
+
 use darling::util::IdentString;
-use syn::{Expr, ExprField, ExprPath, Member};
+use itertools::Itertools;
+use syn::{Expr, ExprCall, ExprField, ExprPath, Member};
 
 use crate::{error::SqloError, sqlo::Sqlo, sqlos::Sqlos};
 
@@ -21,7 +24,7 @@ impl syn::parse::Parse for Column {
                     if let Some(ident) = path.get_ident() {
                         let alias = IdentString::new(ident.clone());
                         match expr.as_ref() {
-                            Expr::Path(_) | Expr::Field(_) => {
+                            Expr::Path(_) | Expr::Field(_) | Expr::Call(_) => {
                                 return Ok(Column::Cast(ColumnCast { expr: *expr, alias }));
                             }
                             _ => {
@@ -41,7 +44,12 @@ impl syn::parse::Parse for Column {
                 }
             }
             Expr::Field(exprfield) => return Ok(Column::Field(exprfield)),
-            _ => return Err(input.error("column's expression should be followed by as")),
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    &expr_base,
+                    "column's expression should be followed by as",
+                ))
+            }
         }
         Err(input.error(
             "custom column please use the following: field, related.field or some(expr) as ident",
@@ -82,6 +90,7 @@ impl ColumnToSql for Expr {
         match self {
             Expr::Path(exprpath) => exprpath.column_to_sql(main_sqlo, sqlos),
             Expr::Field(exprfield) => exprfield.column_to_sql(main_sqlo, sqlos),
+            Expr::Call(exprcall) => exprcall.column_to_sql(main_sqlo, sqlos),
             _ => Err(SqloError::new_spanned(self, "Expression not supported")),
         }
     }
@@ -122,5 +131,29 @@ impl ColumnToSql for ExprField {
                 "Should be related identifier of a `fk` field",
             )),
         }
+    }
+}
+
+impl ColumnToSql for ExprCall {
+    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+        if let Expr::Path(ExprPath { path, .. }) = self.func.as_ref() {
+            if let Some(ident) = path.get_ident() {
+                let mut args = vec![];
+                for arg in self.args.iter() {
+                    args.push(arg.column_to_sql(main_sqlo, sqlos)?);
+                }
+                let query = format!("{}({})", ident, args.iter().map(|x| &x.query).join(" ,"));
+                let mut joins = HashSet::new();
+                for j in args {
+                    joins.extend(j.joins)
+                }
+                return Ok(SqlQuery {
+                    query,
+                    params: Vec::default(),
+                    joins,
+                });
+            }
+        }
+        return_error!(self, "sql function call must be single word")
     }
 }

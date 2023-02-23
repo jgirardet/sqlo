@@ -162,6 +162,6 @@ mod test_sqlo_select_macro {
     fail_parse_sqlo_select_syntax!(
         no_call_without_cast_allowed,
         "Maison count(id)",
-        "unexpected end of input, column's expression should be followed by as"
+        "column's expression should be followed by as"
     );
 }

@@ -199,4 +199,7 @@ Test! {select_cutoms, async fn func(p: PPool) {
   // with join conflict column, the reverse with id
   let res = sqlo::select![Maison id, adresse.id as ll where adresse.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
+  // call simple
+  let res = sqlo::select![Maison count(id) as total].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 1);
 }}
