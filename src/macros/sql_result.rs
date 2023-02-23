@@ -7,7 +7,7 @@ use syn::Expr;
 
 use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{sqlo_select::SqloSelectParse, wwhere::process_where};
+use super::{column::ColumnToSql, sqlo_select::SqloSelectParse, wwhere::process_where};
 
 pub struct SqlResult<'a> {
     main_sqlo: &'a Sqlo,
@@ -17,6 +17,7 @@ pub struct SqlResult<'a> {
     joins: HashSet<String>,
     wwhere: String,
     arguments: Vec<Expr>,
+    customs: bool,
 }
 
 impl<'a> SqlResult<'a> {
@@ -42,6 +43,7 @@ impl<'a> SqlResult<'a> {
             wwhere: String::default(),
             arguments: Vec::default(),
             joins: HashSet::default(),
+            customs: false,
         }
     }
 
@@ -94,10 +96,17 @@ impl<'a> SqlResult<'a> {
         }
     }
 
-    // access via related
-
     fn set_columns(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
-        self.columns = self.main_sqlo.all_columns_as_query.to_string();
+        if parsed.customs.is_empty() {
+            self.columns = self.main_sqlo.all_columns_as_query.to_string();
+        } else {
+            self.customs = true;
+            let mut res = vec![];
+            for col in &parsed.customs {
+                res.push(col.column_to_sql(&self.main_sqlo, &self.sqlos)?)
+            }
+            self.columns = res.join(", ");
+        }
         Ok(())
     }
 
@@ -117,8 +126,14 @@ impl<'a> SqlResult<'a> {
         let ident = &self.main_sqlo.ident;
         let arguments = &self.arguments;
 
-        Ok(quote::quote! {
-            sqlx::query_as!(#ident,#query, #(#arguments),*)
-        })
+        if self.customs {
+            Ok(quote::quote! {
+                sqlx::query!(#query, #(#arguments),*)
+            })
+        } else {
+            Ok(quote::quote! {
+                sqlx::query_as!(#ident,#query, #(#arguments),*)
+            })
+        }
     }
 }

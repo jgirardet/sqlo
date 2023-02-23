@@ -159,6 +159,32 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
 }}
 
 Test! {select_cutoms, async fn func(p: PPool) {
-  let res = sqlo::select![Maison count(id) as total].fetch_one(&p.pool).await.unwrap();
-//   assert_eq!(res.total, 3);
+  // field
+  let res = sqlo::select![Maison id].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 3);
+  assert_eq!(res[0].id, 1);
+  assert_eq!(res[2].id, 3);
+  let res = sqlo::select![PieceFk lg].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 9);
+  // two fields
+  let res = sqlo::select![PieceFk lg, la].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 9);
+  // with where close
+  let res = sqlo::select![PieceFk lg where lg >=6].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 4);
+  // with related
+  let res = sqlo::select![Maison[1].lespieces lg].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 4);
+  // with related and where
+  let res = sqlo::select![Maison[1].lespieces lg where lg> 2].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 2);
+  // with join and where
+  let res = sqlo::select![Maison lespieces.lg where lespieces.lg > 2].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 7);
+//   with join conflict column
+  let res = sqlo::select![Maison id as idm, adresse.id where adresse.id>0].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res.len(), 1);
+//   with join in cast
+//   let res = sqlo::select![Maison maison.id as id].fetch_all(&p.pool).await.unwrap();
+//   assert_eq!(res.len(), 7);
 }}

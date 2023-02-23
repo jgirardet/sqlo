@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use proc_macro2::Span;
+use quote::ToTokens;
 
 #[derive(Debug)]
 pub struct SqloError {
@@ -14,6 +15,10 @@ impl SqloError {
             msg: msg.to_string(),
             span,
         }
+    }
+
+    pub fn new_spanned<T: ToTokens, U: Display>(tokens: T, message: U) -> Self {
+        syn::Error::new_spanned(tokens, message).into()
     }
 
     pub fn new_lost(msg: &str) -> Self {

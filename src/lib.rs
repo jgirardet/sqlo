@@ -1,6 +1,6 @@
+mod error;
 #[macro_use]
 mod utils;
-mod error;
 mod field;
 mod macros;
 mod methods;
