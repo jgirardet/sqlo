@@ -1,8 +1,8 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
 use darling::util::IdentString;
 use itertools::Itertools;
-use syn::{Expr, ExprCall, ExprField, ExprPath, Member};
+use syn::{Expr, ExprCall, ExprField, ExprPath, LitStr, Member};
 
 use crate::{error::SqloError, sqlo::Sqlo, sqlos::Sqlos};
 
@@ -22,10 +22,12 @@ impl syn::parse::Parse for Column {
             syn::Expr::Cast(syn::ExprCast { expr, ty, .. }) => match ty.as_ref() {
                 syn::Type::Path(syn::TypePath { path, .. }) => {
                     if let Some(ident) = path.get_ident() {
-                        let alias = IdentString::new(ident.clone());
                         match expr.as_ref() {
                             Expr::Path(_) | Expr::Field(_) | Expr::Call(_) => {
-                                return Ok(Column::Cast(ColumnCast { expr: *expr, alias }));
+                                return Ok(Column::Cast(ColumnCast {
+                                    expr: *expr,
+                                    alias: ident.into(),
+                                }));
                             }
                             _ => {
                                 return Err(syn::Error::new_spanned(
@@ -60,7 +62,34 @@ impl syn::parse::Parse for Column {
 #[derive(Debug)]
 pub struct ColumnCast {
     pub expr: syn::Expr,
-    pub alias: IdentString,
+    pub alias: AliasCast,
+}
+
+impl syn::parse::Parse for ColumnCast {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        todo!()
+    }
+}
+
+#[derive(Debug)]
+pub enum AliasCast {
+    Ident(IdentString),
+    Literal(LitStr),
+}
+
+impl From<&syn::Ident> for AliasCast {
+    fn from(ident: &syn::Ident) -> Self {
+        AliasCast::Ident(IdentString::new(ident.clone()))
+    }
+}
+
+impl Display for AliasCast {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AliasCast::Ident(i) => write!(f, "{}", i),
+            AliasCast::Literal(l) => write!(f, "{}", l.value()),
+        }
+    }
 }
 
 pub trait ColumnToSql {

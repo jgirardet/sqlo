@@ -5,5 +5,5 @@ pub mod sqlo_select;
 pub mod sqlo_update;
 mod wwhere;
 
-pub use column::{Column, ColumnCast};
+pub use column::{Column};
 pub use sql_result::SqlResult;
