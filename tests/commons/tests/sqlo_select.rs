@@ -203,7 +203,9 @@ Test! {select_cutoms, async fn func(p: PPool) {
   let res = sqlo::select![Maison count(id) as total].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, 3);
   // call with literal
-//   let res = sqlx::query![r#"SELECT DISTINCT replace(maison.adresse ,? ,?) as "adr!:String" FROM maison  WHERE id = ?"#, 1, 345, 1].fetch_one(&p.pool).await.unwrap();
   let res = sqlo::select![Maison replace(adresse, "1", "345") as "adr!:String" where id==1].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.adr, "adresse345");
+  // call with literal int
+  let res = sqlo::select![Maison min(id, 2, 45) as "lemin!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.lemin, 1);
 }}
