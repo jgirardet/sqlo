@@ -7,7 +7,7 @@ use syn::Expr;
 
 use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{column::ColumnToSql, sqlo_select::SqloSelectParse, wwhere::process_where};
+use super::{sqlo_select::SqloSelectParse, wwhere::process_where, ColumnToSql};
 
 pub struct SqlResult<'a> {
     main_sqlo: &'a Sqlo,

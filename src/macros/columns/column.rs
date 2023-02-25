@@ -1,0 +1,40 @@
+use syn::Token;
+
+use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
+
+use super::{AliasCast, ColExpr, ColumnCast, ColumnToSql};
+
+#[derive(Debug)]
+pub enum Column {
+    Mono(ColExpr),
+    Cast(ColumnCast),
+}
+
+impl syn::parse::Parse for Column {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let expr = input.parse::<ColExpr>()?;
+        if input.peek(Token![as]) {
+            input.parse::<Token![as]>()?;
+            let alias = input.parse::<AliasCast>()?;
+            Ok(Column::Cast(ColumnCast { expr, alias }))
+        } else {
+            if let ColExpr::Call(_) = &expr {
+                Err(syn::Error::new_spanned(
+                    expr,
+                    "call expression must be followed by as",
+                ))
+            } else {
+                Ok(Column::Mono(expr))
+            }
+        }
+    }
+}
+
+impl ColumnToSql for Column {
+    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+        match self {
+            Column::Mono(colexpr) => colexpr.column_to_sql(main_sqlo, sqlos),
+            Column::Cast(colcast) => colcast.column_to_sql(main_sqlo, sqlos),
+        }
+    }
+}

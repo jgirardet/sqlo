@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use syn::{Expr};
+use syn::Expr;
 
 #[derive(Debug)]
 pub struct SqlQuery {
