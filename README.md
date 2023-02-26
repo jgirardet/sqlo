@@ -408,6 +408,7 @@ you can use the following:
 - identifier (`id`, `width`, ...): a field.
 - a field access (`therooms.bed`): access a related field. It wil add a [INNER JOIN](###INNER-JOIN)
 - a sql function (`sum(id)`, `replace(adresse, "1", "345")`): must always be followed by `as` with an identifier.
+- a binary operation(`id + 3`): must always be followed by `as` with identifier.
 
 Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case, it must be escaped with a `::` :
 
@@ -422,6 +423,12 @@ select![House replace(name, ::myvar, ::myarray[1]) as new_name].fetch_all(&pool)
 
 ```rust
 select![House replace(name, ::myvar, ::myarray[1]) as "new_name!:String"].fetch_all(&pool).await.unwrap();
+```
+
+`*` can also be used:
+
+```rust
+select![House count(*)]
 ```
 
 ### The WHERE clause
