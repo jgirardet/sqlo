@@ -208,4 +208,18 @@ Test! {select_cutoms, async fn func(p: PPool) {
   // call with literal int
   let res = sqlo::select![Maison min(id, 2, 45) as "lemin!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.lemin, 1);
+  // call with rust variable
+  let a = 345;
+  let res = sqlo::select![Maison max(id, 2, ::a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.lemax, 345);
+  // call with rust index
+  let a = [5,6,8];
+  let res = sqlo::select![Maison max(id, 2, ::a[1]) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.lemax, 6);
+  // call with rust field
+  struct A{a:u16}
+  let a = A{a:99};
+  let res = sqlo::select![Maison max(id, 2, ::a.a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.lemax, 99);
+
 }}

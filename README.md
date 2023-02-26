@@ -296,9 +296,7 @@ myrow.remove(&pool).await?;
 myrow.some_field = 1; // compile_error
 ```
 
-## Macros
-
-### update_Table!
+## The `update_Table!` macro
 
 Rust handles variable number of argument with macro (like vec!, ...), but it can't put as method.
 So `Sqlo` generates an update macro which is named as follow : `update_MyStruct`.
@@ -335,9 +333,20 @@ let other_update = update_House!(pk=2, height=345)(&pool).await?;
 
 ```
 
-### Select
+## The `select!` marcro
 
 Select queries are performed with the `select!` macro.
+
+```rust
+// query returning a derived sqlo struct
+let res: Vec<MyStruct> select![MyStruct where myfield > 1].fetch_all(&pool).await.unwrap();
+// select * from mystruct_table where mystruct_table.myfield >1
+
+
+// query some specific values/column
+let res = select![MyStruct max(some_field) as bla where something == 23].fetch_one(&pool).await.unwrap();
+assert_eq!(res.bla, 99)
+```
 
 Let's use theese struct for this chapter.
 
@@ -364,21 +373,56 @@ All SQL keywords and features are not implemented now. You can find a feature li
 
 ### Introduction
 
-Basically it uses `sqlx::query_as` under the hood and just translate the query:
+Basically for plain struct query, it uses `sqlx::query_as!` under the hood and just translate the query or `sqlx::query!` for field/column querys:
 
 ```rust
 select![House where id == 1].fetch_one(&pool).await
-
 //roughly is translated into
+query_as![House, "SELECT DISTINCT id, name, width, height FROM house where id=?", 1].fetch_one(&pool).await;
 
-query_as![House, "SELECT DISTINCT id, name, width, height FROM house where id=?", 1].fetch_one(&pool).await
+select![House  max(width) as width_max where height > 1].fetch_one(&pool).await;
+//roughly is translated into
+query!["SELECT DISTINCT max(width) AS width_max FROM house where height > ?", 1].fetch_one(&pool).await
 ```
+
+Please keep in mind that is assumes a **main** sqlo struct (`House` here) from which field/column, relation/related fields are deduced.
 
 Some generals rules :
 
 - It's rust syntax not sql: that's why we use `==` instead of `=`.
 - `DISTINCT` is always added.
 - By default left hand side expects a field name (aka column name) and right hand side a value. See [Using Rust items as parameters](Using-Rust-items-as-parameters) for more.
+
+### Query column
+
+By default `select!` query all the fields of a struct. But you can query only some column if you want:
+
+```rust
+select![House  max(width) as my_max where height > 1].fetch_one(&pool).await;
+```
+
+It will use `sqlx::query!` not `sqlx::query_as!`.
+
+you can use the following:
+
+- identifier (`id`, `width`, ...): a field.
+- a field access (`therooms.bed`): access a related field. It wil add a [INNER JOIN](###INNER-JOIN)
+- a sql function (`sum(id)`, `replace(adresse, "1", "345")`): must always be followed by `as` with an identifier.
+
+Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case, it must be escaped with a `::` :
+
+```rust
+let myvar = "bla".to_string();
+let myarray = ["bli", "ble", "blo"];
+select![House replace(name, ::myvar, ::myarray[1]) as new_name].fetch_all(&pool).await.unwrap();
+//sqlx::query!["SELECT REPLACE(name, ?, ?) as new_name FROM house", myvar, myarray[1]]
+```
+
+[Sqlx's overrides](https://docs.rs/sqlx/latest/sqlx/macro.query.html#overrides-cheatsheet) can be used exactly in the same way:
+
+```rust
+select![House replace(name, ::myvar, ::myarray[1]) as "new_name!:String"].fetch_all(&pool).await.unwrap();
+```
 
 ### The WHERE clause
 
@@ -449,3 +493,5 @@ select![House where id == width] // variable width is used
 select![House where id == ::width] // variable width is ignored, column name wil be used in sql
 // sql : select * from house where id=width
 ```
+
+TODO: remove the API inconcistancy since in [###Query column](###Query-column) you use `::` for every rust params, not only variables.

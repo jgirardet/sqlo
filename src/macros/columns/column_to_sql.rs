@@ -17,17 +17,11 @@ impl ColumnToSql for Lit {
     }
 }
 
-// impl ColumnToSql for Expr {
-//     fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
-//         match self {
-//             Expr::Path(exprpath) => exprpath.column_to_sql(main_sqlo, sqlos),
-//             Expr::Field(exprfield) => exprfield.column_to_sql(main_sqlo, sqlos),
-//             Expr::Call(exprcall) => exprcall.column_to_sql(main_sqlo, sqlos),
-//             Expr::Lit(_) => Ok(self.clone().into()),
-//             _ => Err(SqloError::new_spanned(self, "Expression not supported")),
-//         }
-//     }
-// }
+impl ColumnToSql for Expr {
+    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+        Ok(self.clone().into())
+    }
+}
 
 // impl ColumnToSql for ExprPath {
 //     fn column_to_sql(&self, main_sqlo: &Sqlo, _sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {

@@ -1,7 +1,7 @@
 use darling::util::IdentString;
 use proc_macro2::{Punct, Spacing};
 
-use crate::{sqlo::Sqlo, sqlos::Sqlos, error::SqloError, macros::SqlQuery};
+use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
 
 use super::ColumnToSql;
 

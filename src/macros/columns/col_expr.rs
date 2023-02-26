@@ -1,7 +1,7 @@
 use darling::util::IdentString;
-use syn::{Lit, Token, parenthesized, punctuated::Punctuated};
+use syn::{parenthesized, punctuated::Punctuated, Expr, Lit, Token};
 
-use crate::{sqlo::Sqlo, sqlos::Sqlos, macros::SqlQuery, error::SqloError};
+use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
 
 use super::{ColExprCall, ColExprField, ColumnToSql};
 
@@ -11,6 +11,7 @@ pub enum ColExpr {
     Call(ColExprCall),
     Field(ColExprField),
     Literal(Lit),
+    Value(Expr),
 }
 
 impl quote::ToTokens for ColExpr {
@@ -20,6 +21,7 @@ impl quote::ToTokens for ColExpr {
             Self::Field(f) => f.to_tokens(tokens),
             Self::Call(c) => c.to_tokens(tokens),
             Self::Literal(l) => l.to_tokens(tokens),
+            Self::Value(e) => e.to_tokens(tokens),
         }
     }
 }
@@ -44,8 +46,13 @@ impl syn::parse::Parse for ColExpr {
             } else {
                 Ok(ColExpr::Ident(ident.into()))
             }
-        } else {
+        } else if input.peek(Lit) {
             Ok(ColExpr::Literal(input.parse::<Lit>()?))
+        } else if input.peek(Token![::]) {
+            input.parse::<Token![::]>()?;
+            Ok(ColExpr::Value(input.parse::<Expr>()?))
+        } else {
+            Err(input.error("Invalid input"))
         }
     }
 }
@@ -57,6 +64,7 @@ impl ColumnToSql for ColExpr {
             Self::Call(col_expr_call) => col_expr_call.column_to_sql(main_sqlo, sqlos),
             Self::Field(col_expr_field) => col_expr_field.column_to_sql(main_sqlo, sqlos),
             Self::Literal(l) => l.column_to_sql(main_sqlo, sqlos),
+            Self::Value(expr_value) => expr_value.column_to_sql(main_sqlo, sqlos),
         }
     }
 }

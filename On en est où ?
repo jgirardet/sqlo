@@ -1,9 +1,8 @@
 A faire:
 
-- permetre le as en temps que stringpour les sqlx tricks
 finir les customs, quand ça marche à peu près :
-  - refaire correctement print_expr (pas confiance, à quoi ça sert dans les Tok ?, simple debug ?)
-  - la classe custom pour utilier query as
+api inconsistnacy where/column
+custom: la classe custom pour utilier query as
 utilser fk dans like
 utiliser l'instance à la place
 order_by marche t il ?

@@ -5,7 +5,7 @@ use itertools::Itertools;
 use proc_macro2::{Delimiter, Group, TokenStream};
 use syn::{punctuated::Punctuated, spanned::Spanned, Token};
 
-use crate::{sqlo::Sqlo, sqlos::Sqlos, macros::SqlQuery, error::SqloError};
+use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
 
 use super::{ColExpr, ColumnToSql};
 

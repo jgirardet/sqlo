@@ -3,7 +3,7 @@ use std::fmt::Display;
 use darling::util::IdentString;
 use syn::LitStr;
 
-use crate::{sqlo::Sqlo, sqlos::Sqlos, macros::SqlQuery, error::SqloError};
+use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
 
 use super::{ColExpr, ColumnToSql};
 
