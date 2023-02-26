@@ -221,5 +221,34 @@ Test! {select_cutoms, async fn func(p: PPool) {
   let a = A{a:99};
   let res = sqlo::select![Maison max(id, 2, ::a.a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.lemax, 99);
-
+  // call with rusdt variable outside function
+  let a = 1;
+  let res = sqlo::select![Maison ::a as "bla!:u16"].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.bla, a);
+  // binary
+  let res = sqlo::select![Maison id + 3 as id_plus_3].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res[1].id_plus_3, Some(5));
+  // complex binary
+  let a = 22;
+  let res = sqlo::select![Maison ::a + id - max(3,4,5)  as "total:i16"].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res[1].total, Some(19)); //2 + 22  -5
+  // test all arythmetique ops
+  let res = sqlo::select![Maison 1 / 1 * 1 + 1 - 1 as "total!:i16" ].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.total, 1);
+  // test all equlity ops
+  let res = sqlo::select![Maison 1<2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.total, true);
+  let res = sqlo::select![Maison 1<=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.total, true);
+  let res = sqlo::select![Maison 2>1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.total, true);
+  let res = sqlo::select![Maison 2>=1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.total, true);
+  let res = sqlo::select![Maison 1==1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.total, true);
+  let res = sqlo::select![Maison 1!=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.total, true);
+  // op inside call
+  let res = sqlo::select![Maison max(count(id), 5) as "c!:u16"].fetch_one(&p.pool).await.unwrap();
+  assert_eq!(res.c, 5)
 }}

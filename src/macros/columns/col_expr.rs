@@ -1,9 +1,12 @@
 use darling::util::IdentString;
-use syn::{parenthesized, punctuated::Punctuated, Expr, Lit, Token};
+use syn::{
+    parenthesized, punctuated::Punctuated, BinOp, Expr, ExprCall, ExprField, ExprIndex, ExprPath,
+    Lit, Token,
+};
 
 use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{ColExprCall, ColExprField, ColumnToSql};
+use super::{expr_op::next_is_supported_op, ColExprCall, ColExprField, ColExprOp, ColumnToSql};
 
 #[derive(Debug)]
 pub enum ColExpr {
@@ -12,6 +15,7 @@ pub enum ColExpr {
     Field(ColExprField),
     Literal(Lit),
     Value(Expr),
+    Operation(ColExprOp),
 }
 
 impl quote::ToTokens for ColExpr {
@@ -22,37 +26,56 @@ impl quote::ToTokens for ColExpr {
             Self::Call(c) => c.to_tokens(tokens),
             Self::Literal(l) => l.to_tokens(tokens),
             Self::Value(e) => e.to_tokens(tokens),
+            Self::Operation(o) => o.to_tokens(tokens),
         }
     }
 }
 
 impl syn::parse::Parse for ColExpr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        if input.peek(syn::Ident) {
+        let col = if input.peek(syn::Ident) {
+            // let start to see if it starts with an Ident
             let ident: syn::Ident = input.parse()?;
             if input.peek(Token![.]) {
+                //parse field
                 input.parse::<Token![.]>()?;
                 let member = input.parse::<syn::Ident>()?;
-                Ok(ColExpr::Field((ident, member).into()))
+                ColExpr::Field((ident, member).into())
             } else if input.peek(syn::token::Paren) {
+                // parse call
                 let content;
                 parenthesized!(content in input);
                 let args: Punctuated<ColExpr, Token![,]> =
                     content.parse_terminated(ColExpr::parse)?;
-                Ok(ColExpr::Call(ColExprCall {
+                ColExpr::Call(ColExprCall {
                     base: ident.into(),
                     args,
-                }))
+                })
             } else {
-                Ok(ColExpr::Ident(ident.into()))
+                // nothing more so its a simple identifier
+                ColExpr::Ident(ident.into())
             }
+        // it wasn't  an Ident, so is it something else ?
         } else if input.peek(Lit) {
-            Ok(ColExpr::Literal(input.parse::<Lit>()?))
+            // parse literal arg
+            ColExpr::Literal(input.parse::<Lit>()?)
         } else if input.peek(Token![::]) {
+            // parse any other arg if supported
             input.parse::<Token![::]>()?;
-            Ok(ColExpr::Value(input.parse::<Expr>()?))
+            ColExpr::Value(parse_supported_expr(&input)?)
         } else {
-            Err(input.error("Invalid input"))
+            return Err(input.error("Invalid input"));
+        };
+        if next_is_supported_op(&input) {
+            let sign = input.parse::<BinOp>()?;
+            let rhs = input.parse::<ColExpr>()?;
+            Ok(ColExpr::Operation(ColExprOp {
+                lhs: Box::new(col),
+                sign,
+                rhs: Box::new(rhs),
+            }))
+        } else {
+            Ok(col)
         }
     }
 }
@@ -65,6 +88,28 @@ impl ColumnToSql for ColExpr {
             Self::Field(col_expr_field) => col_expr_field.column_to_sql(main_sqlo, sqlos),
             Self::Literal(l) => l.column_to_sql(main_sqlo, sqlos),
             Self::Value(expr_value) => expr_value.column_to_sql(main_sqlo, sqlos),
+            Self::Operation(expr_op) => expr_op.column_to_sql(main_sqlo, sqlos),
         }
     }
+}
+
+// we support only a fex expr variant and we want to avoid parsing syn cast expr
+fn parse_supported_expr(input: &syn::parse::ParseStream) -> Result<Expr, syn::Error> {
+    let mut fork = input.fork();
+    if let Ok(_) = fork.parse::<ExprIndex>() {
+        return Ok(input.parse::<ExprIndex>()?.into());
+    }
+    fork = input.fork();
+    if let Ok(_) = fork.parse::<ExprField>() {
+        return Ok(input.parse::<ExprField>()?.into());
+    }
+    fork = input.fork();
+    if let Ok(_) = fork.parse::<ExprCall>() {
+        return Ok(input.parse::<ExprCall>()?.into());
+    }
+    fork = input.fork();
+    if let Ok(_) = fork.parse::<ExprPath>() {
+        return Ok(input.parse::<ExprPath>()?.into());
+    }
+    Err(input.error("Expression not supported as argument"))
 }

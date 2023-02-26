@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Add};
 
 use syn::Expr;
 
@@ -40,6 +40,18 @@ impl From<Expr> for SqlQuery {
             query: "?".to_string(),
             params: vec![expr],
             joins: HashSet::default(),
+        }
+    }
+}
+
+impl Add<SqlQuery> for SqlQuery {
+    type Output = SqlQuery;
+
+    fn add(self, rhs: SqlQuery) -> Self::Output {
+        SqlQuery {
+            query: format!["{} {}", self.query, rhs.query],
+            params: [self.params, rhs.params].concat(),
+            joins: HashSet::from_iter(self.joins.into_iter().chain(rhs.joins)),
         }
     }
 }
