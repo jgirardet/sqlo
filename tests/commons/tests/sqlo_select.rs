@@ -158,7 +158,7 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
     nb_result!(p, Maison, lespieces.lg>4 && adresse.rue == "adresse1", 1);
 }}
 
-Test! {select_cutoms, async fn func(p: PPool) {
+Test! {select_cutoms_fields, async fn func(p: PPool) {
   // field
   let res = sqlo::select![Maison id].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 3);
@@ -172,6 +172,9 @@ Test! {select_cutoms, async fn func(p: PPool) {
   // with where close
   let res = sqlo::select![PieceFk lg where lg >=6].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 4);
+}}
+
+Test! {select_cutoms_fields_related_join, async fn func(p: PPool) {
   // with related
   let res = sqlo::select![Maison[1].lespieces lg].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 4);
@@ -184,12 +187,18 @@ Test! {select_cutoms, async fn func(p: PPool) {
   // with join and where
   let res = sqlo::select![Maison lespieces.lg where lespieces.lg > 2].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 7);
+}}
+
+Test! {select_cutoms_cast, async fn func(p: PPool) {
   //with cast
   let res = sqlo::select![Maison adresse as lid].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[2].lid, "adresse3");
   // with join in cast
   let res = sqlo::select![Maison lespieces.lg as lll].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
+}}
+
+Test! {select_cutoms_join_conflict, async fn func(p: PPool) {
   // with join conflict column
   let res = sqlo::select![Maison id as idm, adresse.id where adresse.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[0].idm, 2);
@@ -200,6 +209,9 @@ Test! {select_cutoms, async fn func(p: PPool) {
   let res = sqlo::select![Maison id, adresse.id as ll where adresse.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
   // call simple
+
+}}
+Test! {select_cutoms_call, async fn func(p: PPool) {
   let res = sqlo::select![Maison count(id) as total].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, 3);
   // call with literal
@@ -225,7 +237,10 @@ Test! {select_cutoms, async fn func(p: PPool) {
   let a = 1;
   let res = sqlo::select![Maison ::a as "bla!:u16"].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.bla, a);
-  // binary
+}}
+
+Test! {select_cutoms_binary_operation, async fn func(p: PPool) {
+    // binary
   let res = sqlo::select![Maison id + 3 as id_plus_3].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[1].id_plus_3, Some(5));
   // complex binary
