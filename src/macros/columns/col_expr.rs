@@ -16,6 +16,7 @@ pub enum ColExpr {
     Literal(Lit),
     Value(Expr),
     Operation(ColExprOp),
+    Asterisk,
 }
 
 impl quote::ToTokens for ColExpr {
@@ -27,6 +28,7 @@ impl quote::ToTokens for ColExpr {
             Self::Literal(l) => l.to_tokens(tokens),
             Self::Value(e) => e.to_tokens(tokens),
             Self::Operation(o) => o.to_tokens(tokens),
+            Self::Asterisk => "*".to_tokens(tokens),
         }
     }
 }
@@ -63,8 +65,11 @@ impl syn::parse::Parse for ColExpr {
             // parse any other arg if supported
             input.parse::<Token![::]>()?;
             ColExpr::Value(parse_supported_expr(&input)?)
+        } else if input.peek(Token![*]) {
+            input.parse::<Token![*]>()?;
+            ColExpr::Asterisk
         } else {
-            return Err(input.error("Invalid input"));
+            return Err(input.error("Sqlo: Invalid input"));
         };
         if next_is_supported_op(&input) {
             let sign = input.parse::<BinOp>()?;
@@ -89,6 +94,7 @@ impl ColumnToSql for ColExpr {
             Self::Literal(l) => l.column_to_sql(main_sqlo, sqlos),
             Self::Value(expr_value) => expr_value.column_to_sql(main_sqlo, sqlos),
             Self::Operation(expr_op) => expr_op.column_to_sql(main_sqlo, sqlos),
+            Self::Asterisk => Ok("*".to_string().into())
         }
     }
 }

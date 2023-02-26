@@ -268,6 +268,7 @@ Test! {select_cutoms_binary_operation, async fn func(p: PPool) {
   assert_eq!(res.c, 5)
 }}
 
-// Test! {select_cutoms_asterisk, async fn func(p: PPool) {
-//     let res = sqm
-// }}
+Test! {select_cutoms_asterisk, async fn func(p: PPool) {
+    let res = select![Maison count(*) as total].fetch_one(&p.pool).await.unwrap();
+    assert_eq!(res.total, 3);
+}}
