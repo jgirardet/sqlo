@@ -160,110 +160,114 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
 
 Test! {select_cutoms_fields, async fn func(p: PPool) {
   // field
-  let res = sqlo::select![Maison id].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison id].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 3);
   assert_eq!(res[0].id, 1);
   assert_eq!(res[2].id, 3);
-  let res = sqlo::select![PieceFk lg].fetch_all(&p.pool).await.unwrap();
+  let res = select![PieceFk lg].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
   // two fields
-  let res = sqlo::select![PieceFk lg, la].fetch_all(&p.pool).await.unwrap();
+  let res = select![PieceFk lg, la].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
   // with where close
-  let res = sqlo::select![PieceFk lg where lg >=6].fetch_all(&p.pool).await.unwrap();
+  let res = select![PieceFk lg where lg >=6].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 4);
 }}
 
 Test! {select_cutoms_fields_related_join, async fn func(p: PPool) {
   // with related
-  let res = sqlo::select![Maison[1].lespieces lg].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison[1].lespieces lg].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 4);
   // with related and where
-  let res = sqlo::select![Maison[1].lespieces lg where lg> 2].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison[1].lespieces lg where lg> 2].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
   // with join alone
-  let res = sqlo::select![Maison lespieces.lg].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison lespieces.lg].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
   // with join and where
-  let res = sqlo::select![Maison lespieces.lg where lespieces.lg > 2].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison lespieces.lg where lespieces.lg > 2].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 7);
 }}
 
 Test! {select_cutoms_cast, async fn func(p: PPool) {
   //with cast
-  let res = sqlo::select![Maison adresse as lid].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison adresse as lid].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[2].lid, "adresse3");
   // with join in cast
-  let res = sqlo::select![Maison lespieces.lg as lll].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison lespieces.lg as lll].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
 }}
 
 Test! {select_cutoms_join_conflict, async fn func(p: PPool) {
   // with join conflict column
-  let res = sqlo::select![Maison id as idm, adresse.id where adresse.id>1].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison id as idm, adresse.id where adresse.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[0].idm, 2);
   assert_eq!(res[1].idm, 3);
   assert_eq!(res[0].id, "2");
   assert_eq!(res[1].id, "3");
   // with join conflict column, the reverse with id
-  let res = sqlo::select![Maison id, adresse.id as ll where adresse.id>1].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison id, adresse.id as ll where adresse.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
   // call simple
 
 }}
 Test! {select_cutoms_call, async fn func(p: PPool) {
-  let res = sqlo::select![Maison count(id) as total].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison count(id) as total].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, 3);
   // call with literal
-  let res = sqlo::select![Maison replace(adresse, "1", "345") as "adr!:String" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison replace(adresse, "1", "345") as "adr!:String" where id==1].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.adr, "adresse345");
   // call with literal int
-  let res = sqlo::select![Maison min(id, 2, 45) as "lemin!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison min(id, 2, 45) as "lemin!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.lemin, 1);
   // call with rust variable
   let a = 345;
-  let res = sqlo::select![Maison max(id, 2, ::a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison max(id, 2, ::a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.lemax, 345);
   // call with rust index
   let a = [5,6,8];
-  let res = sqlo::select![Maison max(id, 2, ::a[1]) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison max(id, 2, ::a[1]) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.lemax, 6);
   // call with rust field
   struct A{a:u16}
   let a = A{a:99};
-  let res = sqlo::select![Maison max(id, 2, ::a.a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison max(id, 2, ::a.a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.lemax, 99);
   // call with rusdt variable outside function
   let a = 1;
-  let res = sqlo::select![Maison ::a as "bla!:u16"].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison ::a as "bla!:u16"].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.bla, a);
 }}
 
 Test! {select_cutoms_binary_operation, async fn func(p: PPool) {
     // binary
-  let res = sqlo::select![Maison id + 3 as id_plus_3].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison id + 3 as id_plus_3].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[1].id_plus_3, Some(5));
   // complex binary
   let a = 22;
-  let res = sqlo::select![Maison ::a + id - max(3,4,5)  as "total:i16"].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison ::a + id - max(3,4,5)  as "total:i16"].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[1].total, Some(19)); //2 + 22  -5
   // test all arythmetique ops
-  let res = sqlo::select![Maison 1 / 1 * 1 + 1 - 1 as "total!:i16" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison 1 / 1 * 1 + 1 - 1 as "total!:i16" ].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, 1);
   // test all equlity ops
-  let res = sqlo::select![Maison 1<2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison 1<2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, true);
-  let res = sqlo::select![Maison 1<=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison 1<=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, true);
-  let res = sqlo::select![Maison 2>1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison 2>1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, true);
-  let res = sqlo::select![Maison 2>=1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison 2>=1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, true);
-  let res = sqlo::select![Maison 1==1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison 1==1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, true);
-  let res = sqlo::select![Maison 1!=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison 1!=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, true);
   // op inside call
-  let res = sqlo::select![Maison max(count(id), 5) as "c!:u16"].fetch_one(&p.pool).await.unwrap();
+  let res = select![Maison max(count(id), 5) as "c!:u16"].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.c, 5)
 }}
+
+// Test! {select_cutoms_asterisk, async fn func(p: PPool) {
+//     let res = sqm
+// }}
