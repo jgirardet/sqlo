@@ -18,7 +18,7 @@ impl ColumnToSql for Lit {
 }
 
 impl ColumnToSql for Expr {
-    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, _main_sqlo: &Sqlo, _sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
         Ok(self.clone().into())
     }
 }
