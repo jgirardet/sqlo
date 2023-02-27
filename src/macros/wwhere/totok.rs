@@ -35,13 +35,13 @@ impl ToTok for syn::Expr {
     fn as_value(&self, acc: &mut Toks) {
         match self {
             Expr::Array(_)
-            | Expr::Field(_)
-            | Expr::Index(_)
             | Expr::Lit(_)
             // | Expr::Reference(_) //doesn't work either with sqlx
             | Expr::Tuple(_) => acc.value(self),
             // | Expr::MethodCall(_)
             // | Expr::Call(_)
+            Expr::Index(i)=> i.as_value(acc),
+            Expr::Field(f)=> f.as_value(acc),
             Expr::Path(p) => p.as_value(acc),
             // Expr::Unary(u) => u.to_tok_right(acc),
             _ => acc.error(self, "Not supported as rhs of comparison expression"),
@@ -72,25 +72,27 @@ impl ToTok for syn::ExprBinary {
         self.as_param(acc)
     }
 }
-// impl ToTok for syn::ExprCall {
-//     fn as_param(&self, acc: &mut Toks) {
-//         acc.call(&Expr::Call(self.clone()))
-//     }
 
-//     fn as_value(&self, acc: &mut Toks) {
-//         acc.error(&self, "Not supported as value")
-//     }
-// }
+impl ToTok for syn::ExprIndex {
+    fn as_param(&self, acc: &mut Toks) {
+        acc.error(&self, "Not supported as parameter")
+    }
 
-// impl ToTok for syn::ExprMethodCall {
-//     fn as_param(&self, acc: &mut Toks) {
-//         acc.call(&Expr::MethodCall(self.clone()))
-//     }
+    fn as_value(&self, acc: &mut Toks) {
+        if let Expr::Path(p) = self.expr.as_ref() {
+            if p.path.leading_colon.is_some() {
+                let mut index2 = self.clone();
+                if let Expr::Path(ref mut p) = index2.expr.as_mut() {
+                    p.path.leading_colon = None
+                }
+                acc.value(&index2.into());
 
-//     fn as_value(&self, acc: &mut Toks) {
-//         acc.error(&self, "Not supported as value")
-//     }
-// }
+                return;
+            }
+        }
+        acc.error(self, "Rust values must be prefixed by `::`")
+    }
+}
 
 impl ToTok for syn::ExprField {
     fn as_param(&self, acc: &mut Toks) {
@@ -98,7 +100,18 @@ impl ToTok for syn::ExprField {
     }
 
     fn as_value(&self, acc: &mut Toks) {
-        acc.error(self, "Can't be used on right side of binary expression")
+        if let Expr::Path(p) = self.base.as_ref() {
+            if p.path.leading_colon.is_some() {
+                let mut p2 = p.clone();
+                p2.path.leading_colon = None;
+                let mut field2 = self.clone();
+                field2.base = Box::new(p2.into());
+                acc.value(&field2.into());
+                return;
+            }
+        }
+
+        acc.error(self, "Rust values must be prefixed by `::`")
     }
 }
 
@@ -163,14 +176,21 @@ impl ToTok for syn::ExprPath {
     fn as_value(&self, acc: &mut Toks) {
         if self.path.leading_colon.is_some() {
             if self.path.segments.len() == 1 {
-                acc.field(&self.path.segments.first().unwrap().ident);
+                if let Some(_) = self.path.segments.first() {
+                    let mut path2 = self.clone();
+                    path2.path.leading_colon = None;
+                    acc.value(&path2.clone().into());
+                    return;
+                }
             } else {
                 acc.error(self, "use only the field name")
             }
             return;
+        } else if let Some(ident) = self.path.get_ident() {
+            acc.field(ident);
+            return;
         }
-        let e: Expr = self.clone().into();
-        acc.value(&e);
+        acc.error(self, "rust var must be prefixed by `::`")
     }
 }
 
@@ -262,8 +282,6 @@ impl ToTok for syn::ExprUnary {
     fn as_param(&self, acc: &mut Toks) {
         let mut toks = Toks::default();
         match *self.expr {
-            // Expr::Call(ref c) => c.as_param(&mut toks),
-            // Expr::MethodCall(ref m) => m.as_param(&mut toks),
             Expr::Paren(ref p) => p.as_param(&mut toks),
             _ => {
                 acc.error(

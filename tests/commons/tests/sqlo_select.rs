@@ -80,23 +80,26 @@ struct A {
 Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
     // ident/variable as arg
     let la = 34;
-    nb_result!(p,PieceFk, la > la, 6);
+    let res = select![PieceFk where la > ::la].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 6);
     // index as arg
     let array = [0, 1, 2, 3];
-    nb_result!(p,PieceFk, lg == array[1], 1);
-    nb_result!(p,PieceFk, lg > array[1], 8);
-    // field as arg
+    let res = select![PieceFk where lg == ::array[1]].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 1);
+    nb_result!(p,PieceFk, lg == ::array[1], 1);
+    nb_result!(p,PieceFk, lg > ::array[1], 8);
+    // // field as arg
     let a = A { a: 2 };
-    nb_result!(p,PieceFk, lg > a.a, 7);
-    // use String
+    nb_result!(p,PieceFk, lg > ::a.a, 7);
+    // // use String
     let adr = "adresse2".to_string();
-    nb_result!(p,Maison, adresse == adr, 1);
-    // rhs uses field not vs
+    nb_result!(p,Maison, adresse == ::adr, 1);
+    // // rhs uses field not vs
     #[allow(unused_variables)]
     let taille = 1;
-    nb_result!(p,Maison, id<= ::taille, 3);
-    nb_result!(p,Maison, id == ::taille, 0);
-    nb_result!(p,Maison, id == taille, 1);
+    nb_result!(p,Maison, id<= taille, 3);
+    nb_result!(p,Maison, id == ::taille, 1);
+    nb_result!(p,Maison, id == taille, 0);
 
 
 }}
@@ -118,9 +121,9 @@ Test! {select_test_in, async fn func(p: PPool) {
     nb_result!(p,PieceFk, maison_id..(2..=3), 5);
     nb_result!(p,PieceFk, maison_id..(1..4), 9);
     let (d, e, f) = (1, 2, 4);
-    nb_result!(p,PieceFk, maison_id..(d, e, f), 7);
+    nb_result!(p,PieceFk, maison_id..(::d, ::e, ::f), 7);
     let [d, e, f] = [1, 2, 4];
-    nb_result!(p,PieceFk, maison_id..[d, e, f], 7);
+    nb_result!(p,PieceFk, maison_id..[::d, ::e, ::f], 7);
 }}
 
 Test! {select_test_like, async fn func(p: PPool) {
