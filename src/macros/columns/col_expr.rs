@@ -94,7 +94,7 @@ impl ColumnToSql for ColExpr {
             Self::Literal(l) => l.column_to_sql(main_sqlo, sqlos),
             Self::Value(expr_value) => expr_value.column_to_sql(main_sqlo, sqlos),
             Self::Operation(expr_op) => expr_op.column_to_sql(main_sqlo, sqlos),
-            Self::Asterisk => Ok("*".to_string().into())
+            Self::Asterisk => Ok("*".to_string().into()),
         }
     }
 }

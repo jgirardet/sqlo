@@ -19,19 +19,19 @@ impl From<&WhereTokenizer> for Toks {
     fn from(b: &WhereTokenizer) -> Self {
         let mut t = Self::default();
         match b {
-            WhereTokenizer::Binary(b) => b.as_param(&mut t),
-            // we don't use Expr.as_param, to keep separated the behavior at first node.
+            WhereTokenizer::Binary(b) => b.to_tok(&mut t),
+            // we don't use Expr.to_tok, to keep separated the behavior at first node.
             WhereTokenizer::Mono(m) => match m.as_ref() {
                 // if only parenthesis, its first parsed as a group
                 syn::Expr::Group(syn::ExprGroup { expr, .. }) => match **expr {
-                    syn::Expr::Paren(ref p) => p.as_param(&mut t),
-                    syn::Expr::Range(ref p) => p.as_param(&mut t),
+                    syn::Expr::Paren(ref p) => p.to_tok(&mut t),
+                    syn::Expr::Range(ref p) => p.to_tok(&mut t),
                     _ => t.error(m, "Only Binary, Parenthesis and Not expression supported"),
                 },
-                syn::Expr::Range(ref p) => p.as_param(&mut t),
-                syn::Expr::Paren(ref p) => p.as_param(&mut t),
-                syn::Expr::Unary(ref p) => p.as_param(&mut t),
-                syn::Expr::Macro(ref p) => p.as_param(&mut t),
+                syn::Expr::Range(ref p) => p.to_tok(&mut t),
+                syn::Expr::Paren(ref p) => p.to_tok(&mut t),
+                syn::Expr::Unary(ref p) => p.to_tok(&mut t),
+                syn::Expr::Macro(ref p) => p.to_tok(&mut t),
 
                 _ => t.error(m, "Only Binary, Parenthesis and  Not expression supported"),
             },
@@ -65,7 +65,7 @@ impl Toks {
 
     pub fn null(&mut self, expr: &syn::Expr, op: &syn::BinOp) {
         let mut toks = Toks::default();
-        expr.as_param(&mut toks);
+        expr.to_tok(&mut toks);
         match op {
             syn::BinOp::Eq(_) | syn::BinOp::Ne(_) => parse_operator(op, &mut toks),
             _ => self.error(op, "Operator not supported with None/Null expression"),

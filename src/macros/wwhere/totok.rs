@@ -1,5 +1,5 @@
 use darling::ToTokens;
-use syn::{parse2, BinOp, Expr};
+use syn::{parse2, BinOp, Expr, ExprRange};
 
 use super::{
     tok::Toks,
@@ -11,39 +11,16 @@ pub(crate) trait ToTok
 where
     Self: ToTokens,
 {
-    fn as_param(&self, acc: &mut Toks) {
-        acc.error(&self, "Not supported as parameter")
-    }
-    fn as_value(&self, acc: &mut Toks) {
-        acc.error(&self, "Not supported as value")
-    }
+    fn to_tok(&self, acc: &mut Toks);
 }
 
 impl ToTok for syn::Expr {
-    fn as_param(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         match self {
-            Expr::Path(p) => p.as_param(acc),
-            Expr::Field(f) => f.as_param(acc),
-            // Expr::Call(c) => c.as_param(acc),
-            // Expr::Lit(l) => l.to_tok_left(acc),
-            _ => {
-                acc.error(self, "Not supported as parameter");
-            }
-        }
-    }
-
-    fn as_value(&self, acc: &mut Toks) {
-        match self {
-            Expr::Array(_)
-            | Expr::Lit(_)
-            // | Expr::Reference(_) //doesn't work either with sqlx
-            | Expr::Tuple(_) => acc.value(self),
-            // | Expr::MethodCall(_)
-            // | Expr::Call(_)
-            Expr::Index(i)=> i.as_value(acc),
-            Expr::Field(f)=> f.as_value(acc),
-            Expr::Path(p) => p.as_value(acc),
-            // Expr::Unary(u) => u.to_tok_right(acc),
+            Expr::Array(_) | Expr::Lit(_) | Expr::Tuple(_) => acc.value(self),
+            Expr::Index(i) => i.to_tok(acc),
+            Expr::Field(f) => f.to_tok(acc),
+            Expr::Path(p) => p.to_tok(acc),
             _ => acc.error(self, "Not supported as rhs of comparison expression"),
         }
     }
@@ -51,7 +28,7 @@ impl ToTok for syn::Expr {
 
 /// This is a special case, which acts more to dispatch
 impl ToTok for syn::ExprBinary {
-    fn as_param(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         let syn::ExprBinary {
             left, op, right, ..
         } = self;
@@ -67,18 +44,10 @@ impl ToTok for syn::ExprBinary {
             _ => acc.error(op, "Operator not permitted"),
         }
     }
-
-    fn as_value(&self, acc: &mut Toks) {
-        self.as_param(acc)
-    }
 }
 
 impl ToTok for syn::ExprIndex {
-    fn as_param(&self, acc: &mut Toks) {
-        acc.error(&self, "Not supported as parameter")
-    }
-
-    fn as_value(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         if let Expr::Path(p) = self.expr.as_ref() {
             if p.path.leading_colon.is_some() {
                 let mut index2 = self.clone();
@@ -86,7 +55,6 @@ impl ToTok for syn::ExprIndex {
                     p.path.leading_colon = None
                 }
                 acc.value(&index2.into());
-
                 return;
             }
         }
@@ -95,11 +63,7 @@ impl ToTok for syn::ExprIndex {
 }
 
 impl ToTok for syn::ExprField {
-    fn as_param(&self, acc: &mut Toks) {
-        acc.foreign_key(self)
-    }
-
-    fn as_value(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         if let Expr::Path(p) = self.base.as_ref() {
             if p.path.leading_colon.is_some() {
                 let mut p2 = p.clone();
@@ -107,6 +71,9 @@ impl ToTok for syn::ExprField {
                 let mut field2 = self.clone();
                 field2.base = Box::new(p2.into());
                 acc.value(&field2.into());
+                return;
+            } else if p.path.get_ident().is_some() {
+                acc.foreign_key(self);
                 return;
             }
         }
@@ -116,7 +83,7 @@ impl ToTok for syn::ExprField {
 }
 
 impl ToTok for syn::ExprMacro {
-    fn as_param(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         let mac = &self.mac;
         if let Some(p) = mac.path.get_ident() {
             if p == "like" {
@@ -131,24 +98,20 @@ impl ToTok for syn::ExprMacro {
             acc.error(&mac.path, "macros call is single word")
         }
     }
-
-    fn as_value(&self, acc: &mut Toks) {
-        self.as_param(acc)
-    }
 }
 
 impl ToTok for syn::ExprLit {
-    fn as_value(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         acc.value(&syn::Expr::Lit(self.clone()))
     }
 }
 
 impl ToTok for syn::ExprParen {
-    fn as_param(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         let mut paren = Toks::default();
         match *self.expr {
             Expr::Binary(ref b) => {
-                b.as_param(&mut paren);
+                b.to_tok(&mut paren);
             }
             _ => {
                 acc.error(
@@ -160,20 +123,10 @@ impl ToTok for syn::ExprParen {
         }
         acc.paren(&paren)
     }
-
-    fn as_value(&self, acc: &mut Toks) {
-        self.as_param(acc)
-    }
 }
 
 impl ToTok for syn::ExprPath {
-    fn as_param(&self, acc: &mut Toks) {
-        if let Some(ident) = self.path.get_ident() {
-            acc.field(ident);
-        }
-    }
-
-    fn as_value(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         if self.path.leading_colon.is_some() {
             if self.path.segments.len() == 1 {
                 if let Some(_) = self.path.segments.first() {
@@ -195,17 +148,17 @@ impl ToTok for syn::ExprPath {
 }
 
 impl ToTok for syn::ExprRange {
-    fn as_param(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         let mut toks = Toks::default();
         if let Some(ref from) = self.from {
             // get the column
-            from.as_param(&mut toks);
+            from.to_tok(&mut toks);
             if let Some(ref to) = self.to {
                 match to.as_ref() {
                     // a..[1,2,3]
                     syn::Expr::Array(a) => {
                         for v in &a.elems {
-                            v.as_value(&mut toks);
+                            v.to_tok(&mut toks);
                         }
                         acc.iin(&toks);
                         return;
@@ -213,7 +166,7 @@ impl ToTok for syn::ExprRange {
                     // a..(1,2,3)
                     syn::Expr::Tuple(a) => {
                         for v in &a.elems {
-                            v.as_value(&mut toks);
+                            v.to_tok(&mut toks);
                         }
                         acc.iin(&toks);
                         return;
@@ -221,54 +174,54 @@ impl ToTok for syn::ExprRange {
                     // a..(1..2)
                     syn::Expr::Paren(ref p) => {
                         if let syn::Expr::Range(r) = p.expr.as_ref() {
-                            r.as_value(&mut toks);
+                            // r.to_tok(&mut toks);
+                            range_as_value(r, &mut toks);
                             acc.iin(&toks);
                             return;
                         }
                     }
-                    _ => {}
+                    _ => acc.error(&self, "Expression not supported"),
                 }
             }
         }
 
         acc.error(self, "In Sql use range with column as start and exp as end")
     }
+}
 
-    fn as_value(&self, acc: &mut Toks) {
-        // let mut toks = Toks::default();
-        if let Some(b) = self.from.as_ref() {
-            if let syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Int(l),
-                ..
-            }) = b.as_ref()
-            {
-                let from = l.base10_parse::<usize>().unwrap();
+fn range_as_value(expr: &ExprRange, acc: &mut Toks) {
+    if let Some(b) = expr.from.as_ref() {
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Int(l),
+            ..
+        }) = b.as_ref()
+        {
+            let from = l.base10_parse::<usize>().unwrap();
 
-                if let Some(b) = self.to.as_ref() {
-                    if let syn::Expr::Lit(syn::ExprLit {
-                        lit: syn::Lit::Int(l),
-                        ..
-                    }) = b.as_ref()
-                    {
-                        let mut to = l.base10_parse::<usize>().unwrap();
-                        if let syn::RangeLimits::Closed(_) = self.limits {
-                            to += 1;
-                        }
-                        for v in from..to {
-                            let exp: syn::Expr = syn::ExprLit {
-                                lit: syn::Lit::new(proc_macro2::Literal::usize_unsuffixed(v)),
-                                attrs: vec![],
-                            }
-                            .into();
-                            exp.as_value(acc)
-                        }
-                        return;
+            if let Some(b) = expr.to.as_ref() {
+                if let syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Int(l),
+                    ..
+                }) = b.as_ref()
+                {
+                    let mut to = l.base10_parse::<usize>().unwrap();
+                    if let syn::RangeLimits::Closed(_) = expr.limits {
+                        to += 1;
                     }
+                    for v in from..to {
+                        let exp: syn::Expr = syn::ExprLit {
+                            lit: syn::Lit::new(proc_macro2::Literal::usize_unsuffixed(v)),
+                            attrs: vec![],
+                        }
+                        .into();
+                        exp.to_tok(acc)
+                    }
+                    return;
                 }
             }
         }
-        acc.error(self, "This range is not a valid input")
     }
+    acc.error(expr, "this range is not a valid input")
 }
 
 // Comment utiliser le Unaray<!> ?
@@ -279,10 +232,10 @@ impl ToTok for syn::ExprRange {
 //  - donc c comme un  Mono
 //  - donc doit accepter un Toks
 impl ToTok for syn::ExprUnary {
-    fn as_param(&self, acc: &mut Toks) {
+    fn to_tok(&self, acc: &mut Toks) {
         let mut toks = Toks::default();
         match *self.expr {
-            Expr::Paren(ref p) => p.as_param(&mut toks),
+            Expr::Paren(ref p) => p.to_tok(&mut toks),
             _ => {
                 acc.error(
                     &self.expr,
@@ -293,9 +246,5 @@ impl ToTok for syn::ExprUnary {
         }
 
         acc.not(&toks)
-    }
-
-    fn as_value(&self, acc: &mut Toks) {
-        self.as_param(acc)
     }
 }

@@ -44,15 +44,15 @@ pub(crate) fn parse_binary_eq(left: &Expr, op: &BinOp, right: &Expr, acc: &mut T
         }
     }
     // regular
-    left.as_param(acc);
+    left.to_tok(acc);
     parse_operator(op, acc);
-    right.as_value(acc);
+    right.to_tok(acc);
 }
 
 pub(crate) fn parse_binary_comp(left: &Expr, op: &BinOp, right: &Expr, acc: &mut Toks) {
-    left.as_param(acc);
+    left.to_tok(acc);
     parse_operator(op, acc);
-    right.as_value(acc);
+    right.to_tok(acc);
 }
 
 pub(crate) fn parse_binary_bool(left: &Expr, op: &BinOp, right: &Expr, acc: &mut Toks) {
@@ -63,10 +63,9 @@ pub(crate) fn parse_binary_bool(left: &Expr, op: &BinOp, right: &Expr, acc: &mut
 
 pub(crate) fn parse_binary_bool_member(expr: &Expr, acc: &mut Toks, err_msg: &str) {
     match expr {
-        Expr::Binary(b) => b.as_param(acc),
-        // Expr::Call(_) | Expr::MethodCall(_) => acc.call(expr),
-        Expr::Unary(u) => u.as_param(acc),
-        Expr::Paren(p) => p.as_param(acc),
+        Expr::Binary(b) => b.to_tok(acc),
+        Expr::Unary(u) => u.to_tok(acc),
+        Expr::Paren(p) => p.to_tok(acc),
         _ => acc.error(expr, &format!("Expression not supported {err_msg} and/or")),
     }
 }
