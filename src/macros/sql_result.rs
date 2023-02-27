@@ -135,7 +135,10 @@ impl<'a> SqlResult<'a> {
     pub fn expand(&self) -> Result<TokenStream, SqloError> {
         let query = self.query();
         if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
-            dbg!(&query);
+            println!("query: {}", &query);
+        } else if std::env::var("SQLO_DEBUG_QUERY_ALL").is_ok() {
+            let dd = format!("query: {} \n args: {:?}", &query, &self.arguments);
+            println!("{}", dd);
         }
         let ident = if let Some(ident) = &self.custom_struct {
             ident
