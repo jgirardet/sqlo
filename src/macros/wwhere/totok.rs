@@ -128,16 +128,13 @@ impl ToTok for syn::ExprParen {
 impl ToTok for syn::ExprPath {
     fn to_tok(&self, acc: &mut Toks) {
         if self.path.leading_colon.is_some() {
-            if self.path.segments.len() == 1 {
-                if let Some(_) = self.path.segments.first() {
-                    let mut path2 = self.clone();
-                    path2.path.leading_colon = None;
-                    acc.value(&path2.clone().into());
-                    return;
-                }
-            } else {
-                acc.error(self, "use only the field name")
+            if let Some(_) = self.path.segments.first() {
+                let mut path2 = self.clone();
+                path2.path.leading_colon = None;
+                acc.value(&path2.clone().into());
+                return;
             }
+            acc.error(self, "use only the field name");
             return;
         } else if let Some(ident) = self.path.get_ident() {
             acc.field(ident);

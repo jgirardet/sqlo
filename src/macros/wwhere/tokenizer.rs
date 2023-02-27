@@ -100,10 +100,10 @@ mod wwhere {
     parse_wwhere!(eq_field, "a == 1", "a==1");
     parse_wwhere!(eq_simple_fk_field, "a.b == 1", "a.b==1");
     parse_wwhere!(eq_simple_array, "a.b == [1,2,3]", "a.b==[1,2,3]");
-    parse_wwhere!(eq_simple_index, "a.b == bla[1]", "a.b==bla[1]");
+    parse_wwhere!(eq_simple_index, "a.b == ::bla[1]", "a.b==bla[1]");
     // parse_wwhere!(eq_simple_reference, "a == &bla", "Not supported as rhs of comparison expression");
     parse_wwhere!(eq_simple_path, "a == bla", "a==bla");
-    parse_wwhere!(eq_long_path, "a == bla::bli", "a==bla::bli");
+    parse_wwhere!(eq_long_path, "a == ::bla::bli", "a==bla::bli");
     parse_wwhere!(eq_simple_tuple, "a == (1,2,3)", "a==(1,2,3)");
     parse_wwhere!(neq_field, "a != 1", "a!=1");
     parse_wwhere!(neq_simple_fk_field, "a.b != 1", "a.b!=1");
@@ -171,7 +171,7 @@ mod wwhere {
     parse_wwhere!(like, "like![a,\"%bla%\"]", "a LIKE '%bla%'");
 
     // Divers
-    parse_wwhere!(bad_left, "a[1] == 1", "Not supported as parameter==1");
+    parse_wwhere!(param_left_right, "::a[1] == 1", "a[1]==1");
     parse_wwhere!(bad_sign, "a[1] << 1", "Operator not permitted");
     parse_wwhere!(
         eq_simple_methode,
