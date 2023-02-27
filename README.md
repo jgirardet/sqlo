@@ -395,20 +395,30 @@ Some generals rules :
 
 ### Query column
 
-By default `select!` query all the fields of a struct. But you can query only some column if you want:
+By default `select!` query all the fields of a main struct. But you can query only some column if you want:
 
 ```rust
 select![House  max(width) as my_max where height > 1].fetch_one(&pool).await;
 ```
 
-It will use `sqlx::query!` not `sqlx::query_as!`.
+- It will use `sqlx::query!` not `sqlx::query_as!`.
 
-you can use the following:
+- But `sqlx::query_as!` can also be used targeting another struct adding the struct name the beginning separeted by a coma:
 
-- identifier (`id`, `width`, ...): a field.
-- a field access (`therooms.bed`): access a related field. It wil add a [INNER JOIN](###INNER-JOIN)
-- a sql function (`sum(id)`, `replace(adresse, "1", "345")`): must always be followed by `as` with an identifier.
-- a binary operation(`id + 3`): must always be followed by `as` with identifier.
+
+```rust
+struct Total {
+    all: i32
+}
+let total = select![Total, House count(id)].fetch_one(&pool).await.unwrap();
+assert_eq!(total.all, 5);
+```
+
+- we support the following "column" format:
+  - identifier (`id`, `width`, ...): a field.
+  - a field access (`therooms.bed`): access a related field. It wil add a [INNER JOIN](###INNER-JOIN)
+  - a sql function (`sum(id)`, `replace(adresse, "1", "345")`): must always be followed by `as` with an identifier.
+  - a binary operation(`id + 3`): must always be followed by `as` with identifier.
 
 Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case, it must be escaped with a `::` :
 
@@ -419,13 +429,13 @@ select![House replace(name, ::myvar, ::myarray[1]) as new_name].fetch_all(&pool)
 //sqlx::query!["SELECT REPLACE(name, ?, ?) as new_name FROM house", myvar, myarray[1]]
 ```
 
-[Sqlx's overrides](https://docs.rs/sqlx/latest/sqlx/macro.query.html#overrides-cheatsheet) can be used exactly in the same way:
+- [Sqlx's overrides](https://docs.rs/sqlx/latest/sqlx/macro.query.html#overrides-cheatsheet) can be used exactly in the same way:
 
 ```rust
 select![House replace(name, ::myvar, ::myarray[1]) as "new_name!:String"].fetch_all(&pool).await.unwrap();
 ```
 
-`*` can also be used:
+- `*` can also be used:
 
 ```rust
 select![House count(*)]
@@ -475,30 +485,28 @@ select![House where width>3 && therooms.bed == true]
 
 ### Using Rust items as parameters:
 
+To pass local rust item, use leading `::`.
+
 ```rust
 // Variables
 let width = 1;
-select![House where height == width] // Right hand part of the expression will refere to the variable width not the field of house
-select![House where width == width] // is possible
+select![House where height == ::width] // Right hand part of the expression will refere to the variable width not the field of house
+select![House where width == ::width] //
 
 // Indexing
 let array = [1 , 2, 3]
-select![House where width == array[0]]
+select![House where width == ::array[0]]
 
 // struct field
 struct A {b:i32}
 let a = A{b:2}
-select![House where width == a.b]
+select![House where width == ::a.b]
 ```
-
-Sometimes column/field name can conflict with a local variable: use leading `::` to force using column/field:
 
 ```rust
 let width = 34;
-select![House where id == width] // variable width is used
+select![House where id == ::width] // variable width is used
 // sql : select * from house where id=? (? will be 34 as parameter)
-select![House where id == ::width] // variable width is ignored, column name wil be used in sql
+select![House where id == width] // variable width is ignored, column name wil be used in sql
 // sql : select * from house where id=width
 ```
-
-TODO: remove the API inconcistancy since in [###Query column](###Query-column) you use `::` for every rust params, not only variables.

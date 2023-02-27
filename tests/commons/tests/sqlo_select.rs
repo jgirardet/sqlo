@@ -275,3 +275,10 @@ Test! {select_cutoms_asterisk, async fn func(p: PPool) {
     let res = select![Maison count(*) as total].fetch_one(&p.pool).await.unwrap();
     assert_eq!(res.total, 3);
 }}
+
+Test! {select_cutoms__struct_custom_with_query_as, async fn func(p: PPool) {
+    let res = select![A, Maison count(*) as a].fetch_one(&p.pool).await.unwrap();
+    assert_eq!(res.a, 3);
+    let res = select![A, Maison count(*) as "a:i32"].fetch_one(&p.pool).await.unwrap();
+    assert_eq!(res.a, 3);
+}}

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fmt::Write;
 
+use darling::util::IdentString;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use syn::Expr;
@@ -18,6 +19,7 @@ pub struct SqlResult<'a> {
     wwhere: String,
     arguments: Vec<Expr>,
     customs: bool,
+    custom_struct: Option<IdentString>,
 }
 
 impl<'a> SqlResult<'a> {
@@ -31,6 +33,7 @@ impl<'a> SqlResult<'a> {
         sqlr.set_relation(&parsed)?;
         sqlr.process_where(&parsed)?;
         sqlr.link_related_in_where(&parsed);
+        sqlr.set_custom_struct(&parsed);
         Ok(sqlr)
     }
 
@@ -44,6 +47,7 @@ impl<'a> SqlResult<'a> {
             arguments: Vec::default(),
             joins: HashSet::default(),
             customs: false,
+            custom_struct: None,
         }
     }
 
@@ -66,6 +70,11 @@ impl<'a> SqlResult<'a> {
         }
         Ok(())
     }
+
+    fn set_custom_struct(&mut self, parsed: &SqloSelectParse) {
+        self.custom_struct = parsed.custom_struct.clone();
+    }
+
     fn process_where(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(ref wt) = parsed.wwhere {
             let wwhere_sql = process_where(&self.main_sqlo.ident, &self.sqlos, wt)?;
@@ -128,10 +137,14 @@ impl<'a> SqlResult<'a> {
         if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
             dbg!(&query);
         }
-        let ident = &self.main_sqlo.ident;
+        let ident = if let Some(ident) = &self.custom_struct {
+            ident
+        } else {
+            &self.main_sqlo.ident
+        };
         let arguments = &self.arguments;
 
-        if self.customs {
+        if self.customs && self.custom_struct.is_none() {
             Ok(quote::quote! {
                 sqlx::query!(#query, #(#arguments),*)
             })

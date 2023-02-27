@@ -18,6 +18,7 @@ pub struct SqloSelectParse {
     pub entity: IdentString,
     pub related: Option<IdentString>,
     pub customs: Vec<Column>,
+    pub custom_struct: Option<IdentString>,
     pub pk_value: Option<syn::Expr>,
     pub wwhere: Option<WhereTokenizer>,
     pub order_by: Option<PunctuatedExprComma>,
@@ -32,6 +33,7 @@ impl SqloSelectParse {
             wwhere: None,
             order_by: None,
             customs: Vec::default(),
+            custom_struct: None,
         }
     }
 }
@@ -39,13 +41,23 @@ impl SqloSelectParse {
 // select![Maison where some_binary_ops order_by some,comma_separated,fields limit u32]
 impl syn::parse::Parse for SqloSelectParse {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        // Parse first part: simple ident, ident[pk].related
+        // First: parse cust struct
+        let custom_struct = if input.peek2(Token![,]) {
+            let custom_struct = input.parse::<syn::Ident>()?.into();
+            input.parse::<Token![,]>()?;
+            Some(custom_struct)
+        } else {
+            None
+        };
+
+        // then Parse first part: simple ident, ident[pk].related
 
         // Parse sqlo struct
         let entity: syn::Ident = input
             .parse()
             .map_err(|_| syn::Error::new(input.span(), "Deriving Sqlo struct expected"))?;
         let mut res = SqloSelectParse::new(entity);
+        res.custom_struct = custom_struct; // reapply custom_struct
 
         //related select
         if input.peek(syn::token::Bracket) {
