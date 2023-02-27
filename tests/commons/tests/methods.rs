@@ -1,21 +1,11 @@
 use crate::{Adresse, Maison, Maison2, PPool, WithAttrs};
 
-Test! {various, async fn func(p: PPool) {
+Test! {pseudo_hidden_methods, async fn func(p: PPool) {
     //test tablname
-    assert_eq!(
-        Maison::tablename(),
-        "maison",
-        "tablename is derived from struct name"
-    );
-    assert_eq!(
-        WithAttrs::tablename(),
-        "piece",
-        "attribute tablename force override tablename"
-    );
-
     //test utils as instance
-    let m = Maison::get(p.as_ref(), 1).await.unwrap();
-    assert_eq!(m.itablename(), "maison");
+    let m = Maison::get(&p.pool, 1).await.unwrap();
+    assert_eq!(m.pk(), &1);
+    assert_eq!(m.sqlo_struct_name(), "Maison");
 }}
 
 Test! {get_and_attribute, async fn func(p: PPool) {

@@ -5,6 +5,7 @@ use crate::{
 };
 use proc_macro2::TokenStream;
 use quote::quote;
+use syn::LitStr;
 
 pub fn produce(sqlo: &Sqlo) -> TokenStream {
     let ident = sqlo.ident.clone();
@@ -39,31 +40,18 @@ fn impl_crud_queries(sqlo: &Sqlo) -> TokenStream {
 
 fn impl_additional_utils(s: &Sqlo) -> TokenStream {
     let Sqlo {
-        ident,
-        tablename,
-        pk_field,
-        ..
+        ident, pk_field, ..
     } = s;
-    // let ident = ident.to_string();
     let pkident = &pk_field.ident;
-    let pkcolumn = &pk_field.column;
     let pk_ty = &pk_field.ty;
+    let ident_name = LitStr::new(&ident.as_str(), ident.span());
     quote! {
-        pub fn tablename() -> String {
-            #tablename.to_string()
+        pub fn pk(&self) -> &#pk_ty {
+            &self.#pkident
         }
 
-        pub fn itablename(&self) -> String {
-           #ident::tablename()
-        }
-
-
-        pub fn pk_column(&self) -> String {
-            #pkcolumn.to_string()
-        }
-
-        pub fn pk(&self) -> #pk_ty {
-            self.#pkident.clone()
+        pub fn sqlo_struct_name(&self) -> &str {
+            #ident_name
         }
 
 
