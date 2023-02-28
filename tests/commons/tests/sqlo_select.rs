@@ -323,4 +323,10 @@ Test! {select_order_by, async fn func(p:PPool) {
    // fk custom
    let res = select!(Maison count(lespieces.lg) as total order_by -total).fetch_one(&p.pool).await.unwrap();
    assert_eq!(res.total, 9);
+   // with where + fk
+   let res = select!(Maison where lespieces.lg > 7  order_by -taille).fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res.len(), 2);
+   assert_eq!(res[0].id, 2);
+   assert_eq!(res[1].id, 1);
+
 }}

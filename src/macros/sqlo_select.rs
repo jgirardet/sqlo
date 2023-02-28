@@ -1,7 +1,7 @@
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
 
-use syn::{punctuated::Punctuated, Token};
+use syn::{parse::ParseStream, punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
@@ -67,7 +67,7 @@ impl syn::parse::Parse for SqloSelectParse {
         }
 
         // parse curtom column
-        if !input.is_empty() && !input.peek(Token![where]) & !input.peek(kw::order_by) {
+        if !input.is_empty() && next_is_not_a_keyword(&input) {
             let punct: Punctuated<Column, Token![,]> = Punctuated::parse_separated_nonempty(input)?;
             res.customs = punct.into_iter().collect();
         }
@@ -92,6 +92,10 @@ impl syn::parse::Parse for SqloSelectParse {
 
         Ok(res)
     }
+}
+
+fn next_is_not_a_keyword(input: &ParseStream) -> bool {
+    !input.peek(Token![where]) && !input.peek(kw::order_by)
 }
 
 pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {

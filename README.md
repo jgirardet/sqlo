@@ -405,7 +405,6 @@ select![House  max(width) as my_max where height > 1].fetch_one(&pool).await;
 
 - But `sqlx::query_as!` can also be used targeting another struct adding the struct name the beginning separeted by a coma:
 
-
 ```rust
 struct Total {
     all: i32
@@ -509,4 +508,13 @@ select![House where id == ::width] // variable width is used
 // sql : select * from house where id=? (? will be 34 as parameter)
 select![House where id == width] // variable width is ignored, column name wil be used in sql
 // sql : select * from house where id=width
+```
+
+### The Order by clause
+
+Order result with the `order_by` keyword. Descending order is specified with a `-` before the field name.
+
+```rust
+select![House order_by -width, height]
+select![House id, width as "bla:i32" order_by bla]
 ```
