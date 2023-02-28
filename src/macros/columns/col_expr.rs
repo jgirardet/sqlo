@@ -6,7 +6,7 @@ use syn::{
 
 use crate::{
     error::SqloError,
-    macros::{Context, SqlQuery},
+    macros::{SqlQuery, SqlResult},
 };
 
 use super::{expr_op::next_is_supported_op, ColExprCall, ColExprField, ColExprOp, ColumnToSql};
@@ -89,7 +89,7 @@ impl syn::parse::Parse for ColExpr {
 }
 
 impl ColumnToSql for ColExpr {
-    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         match self {
             Self::Ident(ident) => Ok(ctx.main_sqlo.column(ident.as_ident())?.into()),
             Self::Call(col_expr_call) => col_expr_call.column_to_sql(ctx),

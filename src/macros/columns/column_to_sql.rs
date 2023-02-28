@@ -2,15 +2,15 @@ use syn::{Expr, ExprLit, Lit};
 
 use crate::{
     error::SqloError,
-    macros::{Context, SqlQuery},
+    macros::{SqlQuery, SqlResult},
 };
 
 pub trait ColumnToSql {
-    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError>;
+    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError>;
 }
 
 impl ColumnToSql for Lit {
-    fn column_to_sql(&self, _ctx: &Context) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, _ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         let expr: Expr = ExprLit {
             attrs: vec![],
             lit: self.clone(),
@@ -21,7 +21,7 @@ impl ColumnToSql for Lit {
 }
 
 impl ColumnToSql for Expr {
-    fn column_to_sql(&self, _ctx: &Context) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, _ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         Ok(self.clone().into())
     }
 }
@@ -37,7 +37,7 @@ impl ColumnToSql for Expr {
 // }
 
 // impl ColumnToSql for ExprField {
-//     fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
+//     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
 //         match self.base.as_ref() {
 //             Expr::Path(ExprPath { path, .. }) => {
 //                 if let Some(ident) = path.get_ident() {
@@ -65,7 +65,7 @@ impl ColumnToSql for Expr {
 // }
 
 // impl ColumnToSql for ExprCall {
-//     fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
+//     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
 //         if let Expr::Path(ExprPath { path, .. }) = self.func.as_ref() {
 //             if let Some(ident) = path.get_ident() {
 //                 let mut args = vec![];

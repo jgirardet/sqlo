@@ -8,13 +8,13 @@ use syn::Expr;
 
 use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{sqlo_select::SqloSelectParse, wwhere::process_where, ColumnToSql, Context, SqlQuery};
+use super::{sqlo_select::SqloSelectParse, wwhere::process_where, ColumnToSql, SqlQuery};
 
 pub struct SqlResult<'a> {
-    main_sqlo: &'a Sqlo,
+    pub main_sqlo: &'a Sqlo,
+    pub sqlos: &'a Sqlos,
     columns: String,
     relation: Option<&'a RelForeignKey>,
-    sqlos: &'a Sqlos,
     joins: HashSet<String>,
     wwhere: String,
     arguments: Vec<Expr>,
@@ -67,12 +67,6 @@ impl<'a> SqlResult<'a> {
 }
 
 impl<'a> SqlResult<'a> {
-    fn context(&self) -> Context<'a> {
-        Context {
-            main_sqlo: &self.main_sqlo,
-            sqlos: &self.sqlos,
-        }
-    }
     fn set_relation(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(ref related) = parsed.related {
             self.relation = Some(self.sqlos.get_relation(&parsed.entity, related)?);
@@ -86,7 +80,7 @@ impl<'a> SqlResult<'a> {
 
     fn process_order_by(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(order_bys) = &parsed.order_by {
-            let qr = order_bys.column_to_sql(&self.context())?;
+            let qr = order_bys.column_to_sql(self)?;
             self.order_by = qr.query;
             self.arguments.extend(qr.params);
             self.joins.extend(qr.joins);
@@ -131,9 +125,7 @@ impl<'a> SqlResult<'a> {
             self.customs = true;
             let columns = parsed.customs.iter().fold(
                 Ok(SqlQuery::default()),
-                |acc: Result<SqlQuery, SqloError>, nex| {
-                    Ok(acc? + nex.column_to_sql(&self.context())?)
-                },
+                |acc: Result<SqlQuery, SqloError>, nex| Ok(acc? + nex.column_to_sql(self)?),
             )?;
             self.columns = columns.query;
             self.arguments.extend(columns.params);

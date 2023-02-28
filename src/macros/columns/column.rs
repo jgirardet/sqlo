@@ -2,7 +2,7 @@ use syn::Token;
 
 use crate::{
     error::SqloError,
-    macros::{Context, SqlQuery},
+    macros::{SqlQuery, SqlResult},
 };
 
 use super::{AliasCast, ColExpr, ColumnCast, ColumnToSql};
@@ -34,7 +34,7 @@ impl syn::parse::Parse for Column {
 }
 
 impl ColumnToSql for Column {
-    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         match self {
             Column::Mono(colexpr) => colexpr.column_to_sql(ctx),
             Column::Cast(colcast) => colcast.column_to_sql(ctx),
