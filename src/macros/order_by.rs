@@ -1,6 +1,6 @@
 use crate::error::SqloError;
 
-use super::{kw, ColExpr, ColumnToSql, SqlQuery};
+use super::{kw, ColExpr, ColumnToSql, Context, SqlQuery};
 use syn::{punctuated::Punctuated, Token};
 
 pub struct OrderBy {
@@ -42,13 +42,9 @@ impl quote::ToTokens for OrderBy {
 }
 
 impl ColumnToSql for OrderBy {
-    fn column_to_sql(
-        &self,
-        main_sqlo: &crate::sqlo::Sqlo,
-        sqlos: &crate::sqlos::Sqlos,
-    ) -> Result<super::SqlQuery, crate::error::SqloError> {
+    fn column_to_sql(&self, ctx: &Context) -> Result<super::SqlQuery, crate::error::SqloError> {
         let sens = if self.sens { "" } else { " DESC" };
-        let mut res = self.column.column_to_sql(main_sqlo, sqlos)?;
+        let mut res = self.column.column_to_sql(ctx)?;
         res.append_str(sens);
         Ok(res)
     }
@@ -66,14 +62,11 @@ impl syn::parse::Parse for OrderBys {
 impl ColumnToSql for OrderBys {
     fn column_to_sql(
         &self,
-        main_sqlo: &crate::sqlo::Sqlo,
-        sqlos: &crate::sqlos::Sqlos,
+        ctx: &Context
     ) -> Result<super::SqlQuery, crate::error::SqloError> {
         let mut res = self.0.iter().fold(
             Ok(SqlQuery::default()),
-            |acc: Result<SqlQuery, SqloError>, nex| {
-                Ok(acc.unwrap() + nex.column_to_sql(main_sqlo, sqlos)?)
-            },
+            |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?),
         )?;
         res.prepend_str(" ORDER BY ");
         Ok(res)

@@ -3,7 +3,10 @@ use std::fmt::Display;
 use darling::util::IdentString;
 use syn::LitStr;
 
-use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{
+    error::SqloError,
+    macros::{Context, SqlQuery},
+};
 
 use super::{ColExpr, ColumnToSql};
 
@@ -14,8 +17,8 @@ pub struct ColumnCast {
 }
 
 impl ColumnToSql for ColumnCast {
-    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
-        let mut expr = self.expr.column_to_sql(main_sqlo, sqlos)?;
+    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
+        let mut expr = self.expr.column_to_sql(ctx)?;
         expr.query = format!("{} as {}", &expr.query, &self.alias);
         Ok(expr)
     }

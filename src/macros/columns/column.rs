@@ -1,6 +1,9 @@
 use syn::Token;
 
-use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{
+    error::SqloError,
+    macros::{Context, SqlQuery},
+};
 
 use super::{AliasCast, ColExpr, ColumnCast, ColumnToSql};
 
@@ -31,10 +34,10 @@ impl syn::parse::Parse for Column {
 }
 
 impl ColumnToSql for Column {
-    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
         match self {
-            Column::Mono(colexpr) => colexpr.column_to_sql(main_sqlo, sqlos),
-            Column::Cast(colcast) => colcast.column_to_sql(main_sqlo, sqlos),
+            Column::Mono(colexpr) => colexpr.column_to_sql(ctx),
+            Column::Cast(colcast) => colcast.column_to_sql(ctx),
         }
     }
 }

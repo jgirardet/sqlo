@@ -4,7 +4,10 @@ use syn::{
     Lit, Token,
 };
 
-use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{
+    error::SqloError,
+    macros::{Context, SqlQuery},
+};
 
 use super::{expr_op::next_is_supported_op, ColExprCall, ColExprField, ColExprOp, ColumnToSql};
 
@@ -86,14 +89,14 @@ impl syn::parse::Parse for ColExpr {
 }
 
 impl ColumnToSql for ColExpr {
-    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
         match self {
-            Self::Ident(ident) => Ok(main_sqlo.column(ident.as_ident())?.into()),
-            Self::Call(col_expr_call) => col_expr_call.column_to_sql(main_sqlo, sqlos),
-            Self::Field(col_expr_field) => col_expr_field.column_to_sql(main_sqlo, sqlos),
-            Self::Literal(l) => l.column_to_sql(main_sqlo, sqlos),
-            Self::Value(expr_value) => expr_value.column_to_sql(main_sqlo, sqlos),
-            Self::Operation(expr_op) => expr_op.column_to_sql(main_sqlo, sqlos),
+            Self::Ident(ident) => Ok(ctx.main_sqlo.column(ident.as_ident())?.into()),
+            Self::Call(col_expr_call) => col_expr_call.column_to_sql(ctx),
+            Self::Field(col_expr_field) => col_expr_field.column_to_sql(ctx),
+            Self::Literal(l) => l.column_to_sql(ctx),
+            Self::Value(expr_value) => expr_value.column_to_sql(ctx),
+            Self::Operation(expr_op) => expr_op.column_to_sql(ctx),
             Self::Asterisk => Ok("*".to_string().into()),
         }
     }

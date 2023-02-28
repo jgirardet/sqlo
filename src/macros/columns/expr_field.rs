@@ -1,7 +1,10 @@
 use darling::util::IdentString;
 use proc_macro2::{Punct, Spacing};
 
-use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{
+    error::SqloError,
+    macros::{Context, SqlQuery},
+};
 
 use super::ColumnToSql;
 
@@ -30,10 +33,10 @@ impl quote::ToTokens for ColExprField {
 }
 
 impl ColumnToSql for ColExprField {
-    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
-        let relation = sqlos.get_relation(&main_sqlo.ident, &self.base)?;
-        let related_sqlo = sqlos.get(&relation.from)?;
-        let join = relation.to_inner_join(&sqlos);
+    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
+        let relation = ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base)?;
+        let related_sqlo = ctx.sqlos.get(&relation.from)?;
+        let join = relation.to_inner_join(&ctx.sqlos);
         let column = related_sqlo.column(&self.member.as_ident())?;
         return Ok((column, join).into());
     }

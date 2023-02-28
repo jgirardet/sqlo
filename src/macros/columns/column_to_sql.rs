@@ -1,13 +1,16 @@
 use syn::{Expr, ExprLit, Lit};
 
-use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{
+    error::SqloError,
+    macros::{Context, SqlQuery},
+};
 
 pub trait ColumnToSql {
-    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError>;
+    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError>;
 }
 
 impl ColumnToSql for Lit {
-    fn column_to_sql(&self, _main_sqlo: &Sqlo, _sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, _ctx: &Context) -> Result<SqlQuery, SqloError> {
         let expr: Expr = ExprLit {
             attrs: vec![],
             lit: self.clone(),
@@ -18,7 +21,7 @@ impl ColumnToSql for Lit {
 }
 
 impl ColumnToSql for Expr {
-    fn column_to_sql(&self, _main_sqlo: &Sqlo, _sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, _ctx: &Context) -> Result<SqlQuery, SqloError> {
         Ok(self.clone().into())
     }
 }
@@ -34,7 +37,7 @@ impl ColumnToSql for Expr {
 // }
 
 // impl ColumnToSql for ExprField {
-//     fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+//     fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
 //         match self.base.as_ref() {
 //             Expr::Path(ExprPath { path, .. }) => {
 //                 if let Some(ident) = path.get_ident() {
@@ -62,13 +65,13 @@ impl ColumnToSql for Expr {
 // }
 
 // impl ColumnToSql for ExprCall {
-//     fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+//     fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
 //         if let Expr::Path(ExprPath { path, .. }) = self.func.as_ref() {
 //             if let Some(ident) = path.get_ident() {
 //                 let mut args = vec![];
 //                 let mut params = vec![];
 //                 for arg in self.args.iter() {
-//                     args.push(arg.column_to_sql(main_sqlo, sqlos)?);
+//                     args.push(arg.column_to_sql(ctx)?);
 //                 }
 //                 let query = format!("{}({})", ident, args.iter().map(|x| &x.query).join(" ,"));
 //                 let mut joins = HashSet::new();

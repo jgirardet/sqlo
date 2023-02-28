@@ -1,5 +1,7 @@
 use syn::{BinOp, Token};
 
+use crate::macros::Context;
+
 use super::{ColExpr, ColumnToSql};
 
 #[derive(Debug)]
@@ -20,12 +22,11 @@ impl quote::ToTokens for ColExprOp {
 impl ColumnToSql for ColExprOp {
     fn column_to_sql(
         &self,
-        main_sqlo: &crate::sqlo::Sqlo,
-        sqlos: &crate::sqlos::Sqlos,
+        ctx: &Context,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
-        let lhs = self.lhs.column_to_sql(main_sqlo, sqlos)?;
-        let sign = self.sign.column_to_sql(main_sqlo, sqlos)?;
-        let rhs = self.rhs.column_to_sql(main_sqlo, sqlos)?;
+        let lhs = self.lhs.column_to_sql(ctx)?;
+        let sign = self.sign.column_to_sql(ctx)?;
+        let rhs = self.rhs.column_to_sql(ctx)?;
         Ok(lhs.add_no_comma(sign).add_no_comma(rhs))
     }
 }
@@ -33,8 +34,7 @@ impl ColumnToSql for ColExprOp {
 impl ColumnToSql for BinOp {
     fn column_to_sql(
         &self,
-        _main_sqlo: &crate::sqlo::Sqlo,
-        _sqlos: &crate::sqlos::Sqlos,
+        _: &Context,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
         Ok(op_to_sql(&self).to_string().into())
     }

@@ -5,7 +5,10 @@ use itertools::Itertools;
 use proc_macro2::{Delimiter, Group, TokenStream};
 use syn::{punctuated::Punctuated, spanned::Spanned, Token};
 
-use crate::{error::SqloError, macros::SqlQuery, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{
+    error::SqloError,
+    macros::{Context, SqlQuery},
+};
 
 use super::{ColExpr, ColumnToSql};
 
@@ -27,11 +30,11 @@ impl quote::ToTokens for ColExprCall {
 }
 
 impl ColumnToSql for ColExprCall {
-    fn column_to_sql(&self, main_sqlo: &Sqlo, sqlos: &Sqlos) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &Context) -> Result<SqlQuery, SqloError> {
         let mut args = vec![];
         let mut params = vec![];
         for arg in self.args.iter() {
-            args.push(arg.column_to_sql(main_sqlo, sqlos)?);
+            args.push(arg.column_to_sql(ctx)?);
         }
         let query = format!(
             "{}({})",
