@@ -26,7 +26,7 @@ impl ColumnToSql for ColExprOp {
         let lhs = self.lhs.column_to_sql(main_sqlo, sqlos)?;
         let sign = self.sign.column_to_sql(main_sqlo, sqlos)?;
         let rhs = self.rhs.column_to_sql(main_sqlo, sqlos)?;
-        Ok(lhs + sign + rhs)
+        Ok(lhs.add_no_comma(sign).add_no_comma(rhs))
     }
 }
 

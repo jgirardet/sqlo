@@ -5,14 +5,12 @@ use syn::{punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
-use super::{wwhere::tokenizer::WhereTokenizer, Column, SqlResult};
+use super::{wwhere::tokenizer::WhereTokenizer, Column, OrderBys, SqlResult};
 
-mod kw {
+pub mod kw {
     syn::custom_keyword!(order_by);
     syn::custom_keyword!(limit);
 }
-
-type PunctuatedExprComma = Punctuated<syn::Expr, Token![,]>;
 
 pub struct SqloSelectParse {
     pub entity: IdentString,
@@ -21,7 +19,7 @@ pub struct SqloSelectParse {
     pub custom_struct: Option<IdentString>,
     pub pk_value: Option<syn::Expr>,
     pub wwhere: Option<WhereTokenizer>,
-    pub order_by: Option<PunctuatedExprComma>,
+    pub order_by: Option<OrderBys>,
 }
 
 impl SqloSelectParse {
@@ -69,13 +67,13 @@ impl syn::parse::Parse for SqloSelectParse {
         }
 
         // parse curtom column
-        if !input.is_empty() && !input.peek(Token![where]) {
+        if !input.is_empty() && !input.peek(Token![where]) & !input.peek(kw::order_by) {
             let punct: Punctuated<Column, Token![,]> = Punctuated::parse_separated_nonempty(input)?;
             res.customs = punct.into_iter().collect();
         }
 
         // parse where
-        if !input.is_empty() {
+        if !input.is_empty() && input.peek(Token![where]) {
             input
                 .parse::<Token![where]>()
                 .map_err(|_| syn::Error::new(input.span(), "`where` expected"))?;
@@ -85,13 +83,8 @@ impl syn::parse::Parse for SqloSelectParse {
         }
 
         // parse order by
-        if !input.is_empty() {
-            input.parse::<kw::order_by>()?;
-            let order_by: PunctuatedExprComma =
-                syn::punctuated::Punctuated::parse_separated_nonempty(input).map_err(|_| {
-                    syn::Error::new(input.span(), "comma seperated fields expected")
-                })?;
-            res.order_by = Some(order_by)
+        if !input.is_empty() && input.peek(kw::order_by) {
+            res.order_by = Some(input.parse::<OrderBys>()?)
         }
 
         // parse limit
@@ -164,12 +157,12 @@ mod test_sqlo_select_macro {
     fail_parse_sqlo_select_syntax!(
         not_irder_by_after_binaries,
         "Maison where 1 == 1 bla",
-        "expected `order_by`"
+        "unexpected token"
     );
     fail_parse_sqlo_select_syntax!(
         not_comma_field_after_order_by,
         "Maison where 1 == 1 order_by",
-        "comma seperated fields expected"
+        "unexpected end of input, Sqlo: Invalid input"
     );
     fail_parse_sqlo_select_syntax!(
         no_call_without_cast_allowed,

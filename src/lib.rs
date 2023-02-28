@@ -17,8 +17,8 @@ mod virtual_file;
 use crate::parse::SqloParse;
 use crate::sqlo::Sqlo;
 use darling::FromDeriveInput;
-use macros::sqlo_select::{process_sqlo_select, SqloSelectParse};
 use macros::sqlo_update::{process_sqlo_set, SqloSetParse};
+use macros::{process_sqlo_select, SqloSelectParse};
 use proc_macro2::TokenStream;
 use virtual_file::VirtualFile;
 

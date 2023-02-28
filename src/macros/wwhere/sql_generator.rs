@@ -20,7 +20,7 @@ pub fn process_where<'a>(
 ) -> Result<SqlQuery, SqloError> {
     let mut gen = WhereSqlGenerator::new(main, sqlos);
     gen.dispatch(wwhere.into())?;
-    let query = format!("WHERE {}", gen.query());
+    let query = format!(" WHERE {}", gen.query());
     Ok(SqlQuery {
         query,
         params: gen.arguments,
@@ -289,31 +289,31 @@ mod test_wwhere_sql_generator {
         field_change_column,
         "Aaa",
         "fi32 == 1",
-        "WHERE fi32col = ?",
+        " WHERE fi32col = ?",
         1
     );
-    test_where_sql_generator!(field_equal, "Aaa", "fstring == 1", "WHERE fstring = ?", 1);
+    test_where_sql_generator!(field_equal, "Aaa", "fstring == 1", " WHERE fstring = ?", 1);
     test_where_sql_generator!(
         field_different,
         "Aaa",
         "fstring != 1",
-        "WHERE fstring <> ?",
+        " WHERE fstring <> ?",
         1
     );
-    test_where_sql_generator!(field_inferior, "Aaa", "fstring < 1", "WHERE fstring < ?", 1);
+    test_where_sql_generator!(field_inferior, "Aaa", "fstring < 1", " WHERE fstring < ?", 1);
     test_where_sql_generator!(
         field_inferior_eq,
         "Aaa",
         "fstring <= 1",
-        "WHERE fstring <= ?",
+        " WHERE fstring <= ?",
         1
     );
-    test_where_sql_generator!(field_superior, "Aaa", "fstring > 1", "WHERE fstring > ?", 1);
+    test_where_sql_generator!(field_superior, "Aaa", "fstring > 1", " WHERE fstring > ?", 1);
     test_where_sql_generator!(
         field_superior_eq,
         "Aaa",
         "fstring >= 1",
-        "WHERE fstring >= ?",
+        " WHERE fstring >= ?",
         1
     );
 
@@ -322,26 +322,26 @@ mod test_wwhere_sql_generator {
         field_null,
         "Aaa",
         "fstring == None",
-        "WHERE fstring IS NULL",
+        " WHERE fstring IS NULL",
         0
     );
     test_where_sql_generator!(
         field_not_null,
         "Aaa",
         "fstring != None",
-        "WHERE fstring IS NOT NULL",
+        " WHERE fstring IS NOT NULL",
         0
     );
 
     //Parenthes
-    test_where_sql_generator!(parenthes, "Aaa", "(fstring == 1)", "WHERE (fstring = ?)", 1);
+    test_where_sql_generator!(parenthes, "Aaa", "(fstring == 1)", " WHERE (fstring = ?)", 1);
 
     //Not
     test_where_sql_generator!(
         not_field,
         "Aaa",
         "!(fstring==1)",
-        "WHERE NOT fstring = ?",
+        " WHERE NOT fstring = ?",
         1
     );
 
@@ -350,14 +350,14 @@ mod test_wwhere_sql_generator {
         field_and_field_change_col,
         "Aaa",
         "fstring == 2 && fi32 == 3",
-        "WHERE fstring = ? AND fi32col = ?",
+        " WHERE fstring = ? AND fi32col = ?",
         2
     );
     test_where_sql_generator!(
         field_or_field_change_col,
         "Aaa",
         "fstring == 2 || fi32 == 3",
-        "WHERE fstring = ? OR fi32col = ?",
+        " WHERE fstring = ? OR fi32col = ?",
         2
     );
 
@@ -366,49 +366,49 @@ mod test_wwhere_sql_generator {
     //     fk_same_table_same_column,
     //     "Aaa",
     //     "bbb.fi32>3",
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk WHERE bbb.fi32 > ?",
+    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk  WHERE bbb.fi32 > ?",
     //     1
     // );
     // test_where_sql_generator!(
     //     fk_same_table_other_column,
     //     "Aaa",
     //     "bbb.fstring>3",
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk WHERE bbb.fstringcol > ?",
+    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk  WHERE bbb.fstringcol > ?",
     //     1
     // );
     // test_where_sql_generator!(
     //     fk_other_table_same_field_and_complex_type,
     //     "Bbb",
     //     "ccc.height>3",
-    //     "INNER JOIN ccctable ON bbb.uu=ccctable.bbb_fk WHERE ccctable.height > ?",
+    //     "INNER JOIN ccctable ON bbb.uu=ccctable.bbb_fk  WHERE ccctable.height > ?",
     //     1
     // );
     // test_where_sql_generator!(
     //     fk_related,
     //     "Aaa",
     //     "the_ddds.size==1",
-    //     "INNER JOIN ddd ON aaa.id=ddd.aaa_if WHERE ddd.size = ?",
+    //     "INNER JOIN ddd ON aaa.id=ddd.aaa_if  WHERE ddd.size = ?",
     //     1
     // );
     // test_where_sql_generator!(
     //     fk_many_fk_field_query_only_one_join,
     //     "Aaa",
     //     r#"bbb.fstring == "bla" && bbb.fi32>3"#,
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk WHERE bbb.fstringcol = ? AND bbb.fi32 > ?",
+    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk  WHERE bbb.fstringcol = ? AND bbb.fi32 > ?",
     //     2
     // );
     // test_where_sql_generator!(
     //     fk_two_different_joins,
     //     "Aaa",
     //     "bbb.fi32==1 && the_ddds.size>3",
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk INNER JOIN ddd ON aaa.id=ddd.aaa_if WHERE bbb.fi32 = ? AND ddd.size > ?",
+    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk INNER JOIN ddd ON aaa.id=ddd.aaa_if  WHERE bbb.fi32 = ? AND ddd.size > ?",
     //     2    );
 
     // test_where_sql_generator!(
     //     fk_many_fk_for_same_join_and_related_and_two_different_joins,
     //     "Aaa",
     //     r#"bbb.fstring == "bla" && bbb.fi32==1 && the_ddds.size>3"#,
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk INNER JOIN ddd ON aaa.id=ddd.aaa_if WHERE bbb.fstringcol = ? AND bbb.fi32 = ? AND ddd.size > ?",
+    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk INNER JOIN ddd ON aaa.id=ddd.aaa_if  WHERE bbb.fstringcol = ? AND bbb.fi32 = ? AND ddd.size > ?",
     //     3);
 
     // IN
@@ -416,21 +416,21 @@ mod test_wwhere_sql_generator {
         in_field_array,
         "Aaa",
         "fi32..[1,2,3]",
-        "WHERE fi32col IN (?,?,?)",
+        " WHERE fi32col IN (?,?,?)",
         3
     );
     // test_where_sql_generator!(
     //     in_fk_array,
     //     "Aaa",
     //     "the_ddds.size..[1,2,3]",
-    //     "INNER JOIN ddd ON aaa.id=ddd.aaa_if WHERE ddd.size IN (?,?,?)",
+    //     "INNER JOIN ddd ON aaa.id=ddd.aaa_if  WHERE ddd.size IN (?,?,?)",
     //     3
     // );
     test_where_sql_generator!(
         in_field_tupple,
         "Aaa",
         "fi32..(1,2,3)",
-        "WHERE fi32col IN (?,?,?)",
+        " WHERE fi32col IN (?,?,?)",
         3
     );
 }

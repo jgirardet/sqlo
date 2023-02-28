@@ -1,4 +1,4 @@
-use crate::{Maison, PPool, PieceFk, PieceFk2};
+use crate::{Lit, Maison, PPool, PieceFk, PieceFk2};
 use sqlo::select;
 
 Test! {select_with_pk, async fn func(p: PPool) {
@@ -290,4 +290,36 @@ Test! {select_cutoms__struct_custom_with_query_as, async fn func(p: PPool) {
     assert_eq!(res.a, 3);
     let res = select![A, Maison count(*) as "a:i32"].fetch_one(&p.pool).await.unwrap();
     assert_eq!(res.a, 3);
+}}
+
+Test! {select_order_by, async fn func(p:PPool) {
+    //simpl asc
+   let res  = select![Lit order_by surface].fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res[0].id,2 );
+   assert_eq!(res[3].id,3 );
+   //smpl desc
+   let res  = select![Lit order_by -surface].fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res[0].id,3 );
+   assert_eq!(res[3].id,2 );
+   // two order by
+   let res = select![Lit order_by surface, -id].fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res[0].id, 2);
+   assert_eq!(res[1].id, 4);
+   assert_eq!(res[2].id, 1);
+   assert_eq!(res[3].id, 3);
+   // two asc
+   let res = select![Lit order_by surface, id].fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res[1].id, 1);
+   assert_eq!(res[2].id, 4);
+   // two desc
+   let res = select![Lit order_by -surface, -id].fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res[0].id, 3);
+   assert_eq!(res[1].id, 4);
+   assert_eq!(res[2].id, 1);
+   assert_eq!(res[3].id, 2);
+   // fk simple
+   let res = select![Maison[1].lespieces order_by -lg].fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res[0].lg, 9);
+   // fk custom
+//    let res = select!(Maison count(lespieces.lg) as total order_by -total).fetch_one(&p.pool).await.unwrap();
 }}

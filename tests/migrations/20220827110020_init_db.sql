@@ -62,3 +62,15 @@ INSERT INTO adresse (id, rue, m_id) VALUES
   ('1', 'adresse1',1),
   ('2', 'adresse2',2),
   ('3', 'adresse3',3);
+  
+
+  CREATE TABLE IF NOT EXISTS lit ( 
+    id INTEGER NOT NULL PRIMARY KEY,
+    surface INTEGER NOT NULL
+    ); 
+
+INSERT INTO lit (id, surface) VALUES
+  (1, 234),
+  (2, 100),
+  (3, 450),
+  (4, 234);

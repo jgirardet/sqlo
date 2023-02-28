@@ -1,10 +1,13 @@
 mod columns;
+mod order_by;
 mod sql_query;
 mod sql_result;
-pub mod sqlo_select;
+mod sqlo_select;
 pub mod sqlo_update;
 mod wwhere;
 
 pub use columns::*;
+pub use order_by::{OrderBy, OrderBys};
 pub use sql_query::SqlQuery;
 pub use sql_result::SqlResult;
+pub use sqlo_select::{kw, process_sqlo_select, SqloSelectParse};

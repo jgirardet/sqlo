@@ -8,7 +8,7 @@ use syn::Expr;
 
 use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{sqlo_select::SqloSelectParse, wwhere::process_where, ColumnToSql};
+use super::{sqlo_select::SqloSelectParse, wwhere::process_where, ColumnToSql, SqlQuery};
 
 pub struct SqlResult<'a> {
     main_sqlo: &'a Sqlo,
@@ -20,6 +20,7 @@ pub struct SqlResult<'a> {
     arguments: Vec<Expr>,
     customs: bool,
     custom_struct: Option<IdentString>,
+    order_by: String,
 }
 
 impl<'a> SqlResult<'a> {
@@ -33,6 +34,7 @@ impl<'a> SqlResult<'a> {
         sqlr.set_relation(&parsed)?;
         sqlr.process_where(&parsed)?;
         sqlr.link_related_in_where(&parsed);
+        sqlr.process_order_by(&parsed)?;
         sqlr.set_custom_struct(&parsed);
         Ok(sqlr)
     }
@@ -48,6 +50,7 @@ impl<'a> SqlResult<'a> {
             joins: HashSet::default(),
             customs: false,
             custom_struct: None,
+            order_by: String::default(),
         }
     }
 
@@ -75,6 +78,16 @@ impl<'a> SqlResult<'a> {
         self.custom_struct = parsed.custom_struct.clone();
     }
 
+    fn process_order_by(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+        if let Some(order_bys) = &parsed.order_by {
+            let qr = order_bys.column_to_sql(&self.main_sqlo, &self.sqlos)?;
+            self.order_by = qr.query;
+            self.arguments.extend(qr.params);
+            self.joins.extend(qr.joins);
+        }
+        Ok(())
+    }
+
     fn process_where(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(ref wt) = parsed.wwhere {
             let wwhere_sql = process_where(&self.main_sqlo.ident, &self.sqlos, wt)?;
@@ -89,7 +102,7 @@ impl<'a> SqlResult<'a> {
         // add fk for relation à the end of where
         if let Some(relation) = &self.relation {
             let prefix = if self.wwhere.is_empty() {
-                "WHERE "
+                " WHERE "
             } else {
                 " AND "
             };
@@ -110,14 +123,15 @@ impl<'a> SqlResult<'a> {
             self.columns = self.main_sqlo.all_columns_as_query.to_string();
         } else {
             self.customs = true;
-            let mut res = vec![];
-            for col in &parsed.customs {
-                let query_column = col.column_to_sql(&self.main_sqlo, &self.sqlos)?;
-                res.push(query_column.query);
-                self.joins.extend(query_column.joins);
-                self.arguments.extend(query_column.params);
-            }
-            self.columns = res.join(", ");
+            let columns = parsed.customs.iter().fold(
+                Ok(SqlQuery::default()),
+                |acc: Result<SqlQuery, SqloError>, nex| {
+                    Ok(acc? + nex.column_to_sql(&self.main_sqlo, &self.sqlos)?)
+                },
+            )?;
+            self.columns = columns.query;
+            self.arguments.extend(columns.params);
+            self.joins.extend(columns.joins)
         }
         Ok(())
     }
@@ -127,7 +141,8 @@ impl<'a> SqlResult<'a> {
         let tablename = &self.main_sqlo.tablename;
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
-        format!("SELECT DISTINCT {columns} FROM {tablename} {joins} {where_query}")
+        let order_by_query = &self.order_by;
+        format!("SELECT DISTINCT {columns} FROM {tablename}{joins}{where_query}{order_by_query}")
             .trim_end()
             .into()
     }

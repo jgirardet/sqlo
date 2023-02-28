@@ -2,7 +2,7 @@ use std::{collections::HashSet, ops::Add};
 
 use syn::Expr;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SqlQuery {
     pub query: String,
     pub params: Vec<syn::Expr>,
@@ -48,10 +48,33 @@ impl Add<SqlQuery> for SqlQuery {
     type Output = SqlQuery;
 
     fn add(self, rhs: SqlQuery) -> Self::Output {
+        let base_query = if self.query.is_empty() {
+            "".to_string()
+        } else {
+            format!("{}, ", self.query)
+        };
+        SqlQuery {
+            query: format!["{}{}", base_query, rhs.query],
+            params: [self.params, rhs.params].concat(),
+            joins: HashSet::from_iter(self.joins.into_iter().chain(rhs.joins)),
+        }
+    }
+}
+
+impl SqlQuery {
+    pub fn add_no_comma(self, rhs: SqlQuery) -> Self {
         SqlQuery {
             query: format!["{} {}", self.query, rhs.query],
             params: [self.params, rhs.params].concat(),
             joins: HashSet::from_iter(self.joins.into_iter().chain(rhs.joins)),
         }
+    }
+
+    pub fn prepend_str(&mut self, text: &str) {
+        self.query = format!("{}{}", text, self.query);
+    }
+
+    pub fn append_str(&mut self, text: &str) {
+        self.query = format!("{}{}", self.query, text);
     }
 }

@@ -264,7 +264,7 @@ impl RelForeignKey {
             .field(&self.field.as_ident())
             .expect("Sqlo Field not Found, please rebuild");
         format!(
-            "INNER JOIN {} ON {}.{}={}.{}",
+            " INNER JOIN {} ON {}.{}={}.{}",
             &from_sqlo.tablename,
             &to_sqlo.tablename,
             &to_sqlo.pk_field.column,

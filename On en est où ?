@@ -1,6 +1,8 @@
 A faire:
 
-order_by marche t il ?
+- order_by avec alias
+- sql_result += SqlQuery
+- dans sqloparse : le && peek sur touts les mots clés
 
 
 

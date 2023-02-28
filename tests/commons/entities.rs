@@ -61,3 +61,9 @@ pub struct PieceFk2 {
     #[sqlo(fk = "Maison")]
     pub maison_id: i64,
 }
+
+#[derive(sqlo::Sqlo, PartialEq, Debug)]
+pub struct Lit {
+    pub id: i64,
+    pub surface: i64,
+}
