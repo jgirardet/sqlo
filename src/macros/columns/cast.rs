@@ -18,9 +18,8 @@ pub struct ColumnCast {
 
 impl ColumnToSql for ColumnCast {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
-        let mut expr = self.expr.column_to_sql(ctx)?;
-        expr.query = format!("{} as {}", &expr.query, &self.alias);
-        Ok(expr)
+        let expr = self.expr.column_to_sql(ctx)?;
+        Ok(expr.add_no_comma(self.alias.column_to_sql(ctx)?))
     }
 }
 
@@ -28,6 +27,29 @@ impl ColumnToSql for ColumnCast {
 pub enum AliasCast {
     Ident(IdentString),
     Literal(LitStr),
+}
+
+impl ColumnToSql for AliasCast {
+    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+        match self {
+            Self::Ident(ident) => {
+                ctx.alias.insert(ident.clone());
+                Ok(SqlQuery::from(format!(" as {ident}")))
+            }
+            Self::Literal(litstr) => {
+                let re = regex_macro::regex!(r#"^(\w+)[?!]?:\w+$"#);
+                if let Some(captures) = re.captures(&litstr.value()) {
+                    if let Some(alias) = captures.get(1) {
+                        let ident: IdentString =
+                            syn::Ident::new(alias.as_str(), litstr.span()).into();
+                        ctx.alias.insert(ident);
+                        return Ok(format!(" as \"{}\"", litstr.value()).into());
+                    }
+                }
+                Err(SqloError::new_spanned(litstr, "invalid alias format"))
+            }
+        }
+    }
 }
 
 impl From<&syn::Ident> for AliasCast {

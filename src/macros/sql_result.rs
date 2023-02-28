@@ -13,14 +13,15 @@ use super::{sqlo_select::SqloSelectParse, wwhere::process_where, ColumnToSql, Sq
 pub struct SqlResult<'a> {
     pub main_sqlo: &'a Sqlo,
     pub sqlos: &'a Sqlos,
+    pub alias: HashSet<IdentString>,
     columns: String,
-    relation: Option<&'a RelForeignKey>,
     joins: HashSet<String>,
     wwhere: String,
+    order_by: String,
     arguments: Vec<Expr>,
+    relation: Option<&'a RelForeignKey>,
     customs: bool,
     custom_struct: Option<IdentString>,
-    order_by: String,
 }
 
 impl<'a> SqlResult<'a> {
@@ -43,6 +44,7 @@ impl<'a> SqlResult<'a> {
         SqlResult {
             sqlos,
             main_sqlo,
+            alias: HashSet::default(),
             columns: String::default(),
             relation: Option::default(),
             wwhere: String::default(),
