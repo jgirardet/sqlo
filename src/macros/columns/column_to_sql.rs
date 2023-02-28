@@ -1,3 +1,4 @@
+use darling::util::IdentString;
 use syn::{Expr, ExprLit, Lit};
 
 use crate::{
@@ -23,6 +24,16 @@ impl ColumnToSql for Lit {
 impl ColumnToSql for Expr {
     fn column_to_sql(&self, _ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         Ok(self.clone().into())
+    }
+}
+
+impl ColumnToSql for &IdentString {
+    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+        if ctx.alias.contains(self) {
+            Ok(self.to_string().into())
+        } else {
+            Ok(ctx.main_sqlo.column(self.as_ident())?.into())
+        }
     }
 }
 

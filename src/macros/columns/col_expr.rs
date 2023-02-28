@@ -91,7 +91,7 @@ impl syn::parse::Parse for ColExpr {
 impl ColumnToSql for ColExpr {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         match self {
-            Self::Ident(ident) => Ok(ctx.main_sqlo.column(ident.as_ident())?.into()),
+            Self::Ident(ident) => ident.column_to_sql(ctx),
             Self::Call(col_expr_call) => col_expr_call.column_to_sql(ctx),
             Self::Field(col_expr_field) => col_expr_field.column_to_sql(ctx),
             Self::Literal(l) => l.column_to_sql(ctx),

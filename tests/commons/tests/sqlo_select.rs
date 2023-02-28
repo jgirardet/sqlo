@@ -321,5 +321,6 @@ Test! {select_order_by, async fn func(p:PPool) {
    let res = select![Maison[1].lespieces order_by -lg].fetch_all(&p.pool).await.unwrap();
    assert_eq!(res[0].lg, 9);
    // fk custom
-//    let res = select!(Maison count(lespieces.lg) as total order_by -total).fetch_one(&p.pool).await.unwrap();
+   let res = select!(Maison count(lespieces.lg) as total order_by -total).fetch_one(&p.pool).await.unwrap();
+   assert_eq!(res.total, 9);
 }}
