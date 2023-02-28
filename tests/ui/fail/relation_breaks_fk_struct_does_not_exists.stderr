@@ -1,5 +1,7 @@
-error: No struct `SomeWrongStruct` was  found as derived from Sqlo
-  --> tests/ui/fail/relation_breaks_fk_struct_does_not_exists.rs:17:17
+error: Can't find Sqlo struct `SomeWrongStruct`
+  --> tests/ui/fail/relation_breaks_fk_struct_does_not_exists.rs:12:10
    |
-17 |     #[sqlo(fk = "SomeWrongStruct")]
-   |                 ^^^^^^^^^^^^^^^^^
+12 | #[derive(Sqlo, PartialEq, Debug)]
+   |          ^^^^
+   |
+   = note: this error originates in the derive macro `Sqlo` (in Nightly builds, run with -Z macro-backtrace for more info)

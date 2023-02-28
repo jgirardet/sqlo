@@ -9,12 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{
-    error::{SqloError, ToSqloError},
-    field::Field,
-    sqlo::Sqlo,
-    sqlos::Sqlos,
-};
+use crate::{error::SqloError, field::Field, sqlo::Sqlo, sqlos::Sqlos};
 
 // not const so we can use it in macro
 // patter: struct, field, fk_struct, fk_related_name, type
@@ -107,16 +102,16 @@ impl Relations {
             .collect()
     }
 
-    pub fn validate(&self, sqlo: &Sqlo, path: &Path) -> Result<(), SqloError> {
-        let files = std::fs::read_dir(path).sqlo_err(sqlo.ident.span())?;
-        let mut sqlos: Vec<Sqlo> = vec![];
-        for file in files.flatten() {
-            let parsed_sqlo: Sqlo = serde_json::from_str(
-                &std::fs::read_to_string(file.path()).sqlo_err(sqlo.ident.span())?,
-            )
-            .sqlo_err(sqlo.ident.span())?;
-            sqlos.push(parsed_sqlo)
-        }
+    pub fn validate(&self, sqlo: &Sqlo, sqlos: &Sqlos) -> Result<(), SqloError> {
+        // let files = std::fs::read_dir(path).sqlo_err(sqlo.ident.span())?;
+        // let mut sqlos: Vec<Sqlo> = vec![];
+        // for file in files.flatten() {
+        //     let parsed_sqlo: Sqlo = serde_json::from_str(
+        //         &std::fs::read_to_string(file.path()).sqlo_err(sqlo.ident.span())?,
+        //     )
+        //     .sqlo_err(sqlo.ident.span())?;
+        //     sqlos.push(parsed_sqlo)
+        // }
         for relation in self.relations.iter() {
             let Relation::ForeignKey(rel_fk) = relation;
             rel_fk.validate(sqlo, &sqlos)?;
@@ -200,25 +195,20 @@ pub struct RelForeignKey {
 }
 
 impl RelForeignKey {
-    fn validate(&self, sqlo: &Sqlo, sqlos: &[Sqlo]) -> Result<(), SqloError> {
+    fn validate(&self, sqlo: &Sqlo, sqlos: &Sqlos) -> Result<(), SqloError> {
         self.validate_existing_fk_struct(sqlo, sqlos)?; // should always be called first (use of unwrap later)
         self.validate_existing_fk_type(sqlo, sqlos)?;
+        self.validate_no_field_has_the_same_name_as_related(sqlo, sqlos)?;
         Ok(())
     }
-    fn validate_existing_fk_struct(&self, _sqlo: &Sqlo, sqlos: &[Sqlo]) -> Result<(), SqloError> {
-        let matching_sqlo = sqlos.iter().find(|s| s.ident == self.to);
-        if matching_sqlo.is_none() {
-            return Err(SqloError::new(
-                &format!("No struct `{}` was  found as derived from Sqlo", &self.to),
-                self.to.span(),
-            ));
-        }
+    fn validate_existing_fk_struct(&self, _sqlo: &Sqlo, sqlos: &Sqlos) -> Result<(), SqloError> {
+        let _matching_sqlo = sqlos.get(&self.to)?;
         Ok(())
     }
 
-    fn validate_existing_fk_type(&self, _sqlo: &Sqlo, sqlos: &[Sqlo]) -> Result<(), SqloError> {
+    fn validate_existing_fk_type(&self, _sqlo: &Sqlo, sqlos: &Sqlos) -> Result<(), SqloError> {
         use syn::spanned::Spanned;
-        let matching_sqlo = sqlos.iter().find(|s| s.ident == self.to).unwrap(); // safe since validate_fk_struct_called_before
+        let matching_sqlo = sqlos.get(&self.to)?;
 
         if matching_sqlo.pk_field.ty.path != self.ty.path {
             return Err(SqloError::new(
@@ -231,6 +221,23 @@ impl RelForeignKey {
             ));
         }
 
+        Ok(())
+    }
+
+    fn validate_no_field_has_the_same_name_as_related(
+        &self,
+        _sqlo: &Sqlo,
+        sqlos: &Sqlos,
+    ) -> Result<(), SqloError> {
+        let matching_sqlo = sqlos.get(&self.to)?;
+        for field in &matching_sqlo.fields {
+            if field.ident == self.related {
+                return Err(SqloError::new(
+                    "related name must be different from all targeted sqlos's fields",
+                    self.related.span(),
+                ));
+            }
+        }
         Ok(())
     }
 
@@ -299,16 +306,22 @@ impl Display for RelForeignKey {
 
 fn make_field_relations(field: &Field, sqlo: &Sqlo) -> Vec<Relation> {
     let mut res = vec![];
+
     if let Some(ref rel) = field.fk {
+        let related = if let Some(related) = &field.related {
+            related.clone()
+        } else {
+            //adjust span if no related is given
+            let mut ident = sqlo.ident.as_ident().clone();
+            ident.set_span(rel.span());
+            as_related_name(&IdentString::new(ident))
+        };
         res.push(Relation::ForeignKey(RelForeignKey {
             from: sqlo.ident.clone(),
             field: field.ident.clone(),
             ty: field.ty.clone(),
             to: rel.clone(),
-            related: field
-                .related
-                .clone()
-                .unwrap_or_else(|| as_related_name(&sqlo.ident)),
+            related,
         }))
     }
     res

@@ -93,6 +93,7 @@ impl VirtualFile {
     /// Validate relations
     pub fn validate(&self, sqlo: &Sqlo) -> Result<(), SqloError> {
         let fresh_relations = Relations::from_sqlo(sqlo);
-        fresh_relations.validate(sqlo, &self.path)
+        let sqlos = self.load()?;
+        fresh_relations.validate(sqlo, &sqlos)
     }
 }

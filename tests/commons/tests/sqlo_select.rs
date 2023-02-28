@@ -132,6 +132,7 @@ Test! {select_test_like, async fn func(p: PPool) {
     nb_result!(p, Maison, like![adresse,"%dresse1%"], 1);
     nb_result!(p, Maison, like![adresse,"%dresse1"], 1);
     nb_result!(p, Maison, like![adresse,"a%se1"], 1);
+    nb_result!(p, Maison, like![adresse,"a%se1"], 1);
 }}
 
 Test! {select_test_foreign_key, async fn func(p: PPool) {
@@ -158,7 +159,7 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
 
     // join in wherre taken in account
     nb_result!(p, Maison, taille>100 && lespieces.lg >=8, 2);
-    nb_result!(p, Maison, lespieces.lg>4 && adresse.rue == "adresse1", 1);
+    nb_result!(p, Maison, lespieces.lg>4 && adres.rue == "adresse1", 1);
 }}
 
 Test! {select_cutoms_fields, async fn func(p: PPool) {
@@ -203,13 +204,13 @@ Test! {select_cutoms_cast, async fn func(p: PPool) {
 
 Test! {select_cutoms_join_conflict, async fn func(p: PPool) {
   // with join conflict column
-  let res = select![Maison id as idm, adresse.id where adresse.id>1].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison id as idm, adres.id where adres.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[0].idm, 2);
   assert_eq!(res[1].idm, 3);
   assert_eq!(res[0].id, "2");
   assert_eq!(res[1].id, "3");
   // with join conflict column, the reverse with id
-  let res = select![Maison id, adresse.id as ll where adresse.id>1].fetch_all(&p.pool).await.unwrap();
+  let res = select![Maison id, adres.id as ll where adres.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
   // call simple
 

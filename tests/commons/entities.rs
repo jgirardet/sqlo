@@ -34,7 +34,7 @@ pub struct Adresse {
     #[sqlo(create_arg)]
     pub id: String,
     pub rue: Option<String>,
-    #[sqlo(fk = "Maison")]
+    #[sqlo(fk = "Maison", related = "adres")]
     pub m_id: i64,
 }
 
