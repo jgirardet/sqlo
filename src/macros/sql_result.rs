@@ -1,5 +1,6 @@
-use std::collections::HashSet;
 use std::fmt::Write;
+
+use std::collections::HashSet;
 
 use darling::util::IdentString;
 use itertools::Itertools;
@@ -69,6 +70,11 @@ impl<'a> SqlResult<'a> {
 }
 
 impl<'a> SqlResult<'a> {
+    fn extend(&mut self, qr: SqlQuery) {
+        self.arguments.extend(qr.params);
+        self.joins.extend(qr.joins);
+    }
+
     fn set_relation(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(ref related) = parsed.related {
             self.relation = Some(self.sqlos.get_relation(&parsed.entity, related)?);
@@ -83,9 +89,8 @@ impl<'a> SqlResult<'a> {
     fn process_order_by(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(order_bys) = &parsed.order_by {
             let qr = order_bys.column_to_sql(self)?;
-            self.order_by = qr.query;
-            self.arguments.extend(qr.params);
-            self.joins.extend(qr.joins);
+            self.order_by = qr.query.clone();
+            self.extend(qr);
         }
         Ok(())
     }
@@ -93,9 +98,8 @@ impl<'a> SqlResult<'a> {
     fn process_where(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(ref wt) = parsed.wwhere {
             let wwhere_sql = process_where(&self.main_sqlo.ident, &self.sqlos, wt)?;
-            self.wwhere = wwhere_sql.query;
-            self.arguments.extend(wwhere_sql.params);
-            self.joins.extend(wwhere_sql.joins);
+            self.wwhere = wwhere_sql.query.clone();
+            self.extend(wwhere_sql);
         }
         Ok(())
     }
@@ -129,9 +133,8 @@ impl<'a> SqlResult<'a> {
                 Ok(SqlQuery::default()),
                 |acc: Result<SqlQuery, SqloError>, nex| Ok(acc? + nex.column_to_sql(self)?),
             )?;
-            self.columns = columns.query;
-            self.arguments.extend(columns.params);
-            self.joins.extend(columns.joins)
+            self.columns = columns.query.clone();
+            self.extend(columns);
         }
         Ok(())
     }
