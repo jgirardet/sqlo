@@ -100,6 +100,12 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
     nb_result!(p,Maison, id<= taille, 3);
     nb_result!(p,Maison, id == ::taille, 1);
     nb_result!(p,Maison, id == taille, 0);
+    // long patha
+    mod moda {
+        pub const A:i32= 1;
+    }
+    nb_result!(p,Maison, id == ::moda::A, 1);
+
 
 
 }}
@@ -133,6 +139,8 @@ Test! {select_test_like, async fn func(p: PPool) {
     nb_result!(p, Maison, like![adresse,"%dresse1"], 1);
     nb_result!(p, Maison, like![adresse,"a%se1"], 1);
     nb_result!(p, Maison, like![adresse,"a%se1"], 1);
+    // with fk
+    nb_result!(p, Maison, like![adres.rue,"a%se1"], 1);
 }}
 
 Test! {select_test_foreign_key, async fn func(p: PPool) {

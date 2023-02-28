@@ -10,7 +10,7 @@ use syn::{spanned::Spanned, Expr, ExprField, Member};
 use super::{
     tok::{Tok, Toks},
     tokenizer::WhereTokenizer,
-    Like,
+    Like, LikeField,
 };
 
 pub fn process_where<'a>(
@@ -168,7 +168,11 @@ impl<'a> WhereSqlGenerator<'a> {
     }
 
     fn like(&mut self, l: Like) -> Result<String, SqloError> {
-        Ok(l.to_string())
+        let field = match l.field {
+            LikeField::Direct(ident) => ident.to_string(),
+            LikeField::Related(exprfield) => self.foreign_key(exprfield)?,
+        };
+        Ok(format!("{field} LIKE '{}'", l.text))
     }
 
     fn not(&mut self, toks: Toks) -> Result<String, SqloError> {
@@ -191,11 +195,18 @@ impl<'a> WhereSqlGenerator<'a> {
         let sign = match iter
             .next()
             .expect("Sqlo API Error, Null should always have a sign")
-            .to_string()
-            .as_str()
         {
-            "==" => "IS",
-            "!=" => "IS NOT",
+            Tok::Sign(sign) => {
+                if sign == "==" {
+                    "IS"
+                } else if sign == "!=" {
+                    "IS NOT"
+                } else {
+                    return Err(SqloError::new_lost(
+                        "Sqlo API Error, Null should only be used with != or ==",
+                    ));
+                }
+            }
             _ => {
                 return Err(SqloError::new_lost(
                     "Sqlo API Error, Null should only be used with != or ==",

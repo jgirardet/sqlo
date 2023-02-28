@@ -4,5 +4,5 @@ mod tok;
 pub mod tokenizer;
 mod totok;
 
-pub use like::Like;
+pub use like::{Like, LikeField};
 pub use sql_generator::process_where;

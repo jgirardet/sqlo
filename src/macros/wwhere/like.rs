@@ -1,28 +1,29 @@
-use std::fmt::Display;
-
 use darling::util::IdentString;
-use syn::{Ident, LitStr, Token};
+use syn::{ExprField, LitStr, Token};
 
 #[derive(Debug, Clone)]
 pub struct Like {
-    field: IdentString,
-    text: String,
+    pub field: LikeField,
+    pub text: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum LikeField {
+    Direct(IdentString),
+    Related(ExprField),
 }
 
 impl syn::parse::Parse for Like {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let field = input.parse::<Ident>()?;
+        let field = match input.fork().parse::<ExprField>() {
+            Ok(_) => LikeField::Related(input.parse::<ExprField>()?),
+            Err(_) => match input.parse::<syn::Ident>() {
+                Ok(ident) => LikeField::Direct(ident.into()),
+                Err(_) => return Err(input.error("must be field identifier or related identifier")),
+            },
+        };
         input.parse::<Token!(,)>()?;
-        let text = input.parse::<LitStr>()?;
-        Ok(Like {
-            field: field.into(),
-            text: text.value(),
-        })
-    }
-}
-
-impl Display for Like {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} LIKE '{}'", &self.field, &self.text)
+        let text = input.parse::<LitStr>()?.value();
+        Ok(Like { field, text })
     }
 }

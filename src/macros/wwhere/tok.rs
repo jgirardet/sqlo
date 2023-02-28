@@ -1,10 +1,8 @@
 use std::fmt::Display;
 
 use darling::util::IdentString;
-use itertools::Itertools;
-use quote::ToTokens;
 
-use crate::utils::display_expr;
+use quote::ToTokens;
 
 use super::{
     tokenizer::{parse_operator, WhereTokenizer},
@@ -52,9 +50,6 @@ impl Toks {
         self.0.push(Tok::In(toks.clone()))
     }
 
-    // pub fn call(&mut self, expr: &syn::Expr) {
-    //     self.0.push(Tok::Call(expr.clone()))
-    // }
     pub fn like(&mut self, like: Like) {
         self.0.push(Tok::Like(like))
     }
@@ -100,16 +95,6 @@ impl IntoIterator for Toks {
     }
 }
 
-impl Display for Toks {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.0.iter().map(|t| t.to_string()).collect::<String>()
-        )
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum Tok {
     // Call(syn::Expr),
@@ -123,35 +108,4 @@ pub enum Tok {
     Sign(String),
     Value(syn::Expr),
     Error(syn::Error),
-}
-
-impl Display for Tok {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Field(i) => write!(f, "{}", i),
-            Self::ForeignKey(p) => match *p.base {
-                syn::Expr::Path(ref path) => {
-                    let base = path.path.get_ident().unwrap();
-                    let attre = match p.member {
-                        syn::Member::Named(ref x) => x.to_string(),
-                        syn::Member::Unnamed(ref x) => x.index.to_string(),
-                    };
-                    write!(f, "{}.{}", base, attre)
-                }
-                _ => unimplemented!(),
-            },
-            Self::Sign(s) => write!(f, "{}", s),
-            Self::Value(v) => write!(f, "{}", display_expr(v)),
-            Self::Error(e) => write!(f, "{}", e),
-            Self::In(i) => {
-                let mut iter = i.clone().into_iter();
-                write!(f, "{} in ({})", &iter.next().unwrap(), &iter.join(","))
-            }
-            Self::Like(t) => write!(f, "{}", t),
-            Self::Null(t) => write!(f, "{}None", t),
-            Self::Not(n) => write!(f, "!{}", &n.to_string()),
-            // Self::Call(n) => write!(f, "{}", display_expr(n)),
-            Self::Paren(p) => write!(f, "({})", &p.to_string()),
-        }
-    }
 }
