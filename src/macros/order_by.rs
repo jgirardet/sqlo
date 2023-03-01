@@ -1,7 +1,7 @@
 use crate::error::SqloError;
 
 use super::{kw, ColExpr, ColumnToSql, SqlQuery, SqlResult};
-use syn::{punctuated::Punctuated, Token};
+use syn::{bracketed, punctuated::Punctuated, Token};
 
 pub struct OrderBy {
     column: ColExpr,
@@ -58,7 +58,14 @@ pub struct OrderBys(Punctuated<OrderBy, Token![,]>);
 impl syn::parse::Parse for OrderBys {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         input.parse::<kw::order_by>()?;
-        Ok(OrderBys(Punctuated::parse_separated_nonempty(input)?))
+        let content;
+        let reste = if input.peek(syn::token::Bracket) {
+            bracketed!(content in input);
+            &content
+        } else {
+            input
+        };
+        Ok(OrderBys(Punctuated::parse_separated_nonempty(reste)?))
     }
 }
 

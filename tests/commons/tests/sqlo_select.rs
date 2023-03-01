@@ -341,5 +341,14 @@ Test! {select_order_by, async fn func(p:PPool) {
    assert_eq!(res.len(), 2);
    assert_eq!(res[0].id, 2);
    assert_eq!(res[1].id, 1);
+   // square_braquet_syntax
+   let res = select![Lit order_by[surface, id]].fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res[1].id, 1);
+   assert_eq!(res[2].id, 4);
 
 }}
+
+// Test! {select_limit, async fn func(p:PPool) {
+//     let res = select![PieceFk order_by lg limit 2 offset 3].fetch_all(&p.pool).await.unwrap();
+
+// }}
