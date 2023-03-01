@@ -116,7 +116,7 @@ Test! {select_test_where_parethesis, async fn func(p: PPool) {
     nb_result!(p,PieceFk, !(la < 100), 0);
 }}
 
-Test! {select_test_in, async fn func(p: PPool) {
+Test! {select_test_wherein, async fn func(p: PPool) {
 
     // In
     nb_result!(p,PieceFk, maison_id..[1, 3], 6);
@@ -132,7 +132,7 @@ Test! {select_test_in, async fn func(p: PPool) {
     nb_result!(p,PieceFk, maison_id..[::d, ::e, ::f], 7);
 }}
 
-Test! {select_test_like, async fn func(p: PPool) {
+Test! {select_test_where_like, async fn func(p: PPool) {
     nb_result!(p, Maison, like![adresse,"adr%"], 3);
     nb_result!(p, Maison, like![adresse,"%dress%"], 3);
     nb_result!(p, Maison, like![adresse,"%dresse1%"], 1);
@@ -143,7 +143,7 @@ Test! {select_test_like, async fn func(p: PPool) {
     nb_result!(p, Maison, like![adres.rue,"a%se1"], 1);
 }}
 
-Test! {select_test_foreign_key, async fn func(p: PPool) {
+Test! {select_test_where_foreign_key, async fn func(p: PPool) {
     let a = A { a: 2 };
     let array = [0, 1, 2, 3];
     // ForeignKey
@@ -168,6 +168,19 @@ Test! {select_test_foreign_key, async fn func(p: PPool) {
     // join in wherre taken in account
     nb_result!(p, Maison, taille>100 && lespieces.lg >=8, 2);
     nb_result!(p, Maison, lespieces.lg>4 && adres.rue == "adresse1", 1);
+}}
+
+Test! {select_test_where_call, async fn func(p:PPool){
+    // simple
+    let res = select![Maison where trim(adresse, "adr") == "esse2"].fetch_one(&p.pool).await.unwrap();
+    assert_eq!(res.adresse, "adresse2");
+    // call n column and where
+    let res = select![Maison replace(adresse, "2", "XX") as "adresse?:String" where upper(adresse) == "ADRESSE2"].fetch_one(&p.pool).await.unwrap();
+    assert_eq!(res.adresse, Some("adresseXX".into()));
+    // with fk
+    let res = select![Maison where trim(adres.rue, "adr") == "esse2"].fetch_one(&p.pool).await.unwrap();
+    assert_eq!(res.adresse, "adresse2");
+
 }}
 
 Test! {select_cutoms_fields, async fn func(p: PPool) {

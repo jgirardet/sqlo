@@ -452,13 +452,15 @@ It's an aggregate of binary expressions, here are some use cases, by SQL usage:
 - use of parenthesis: `select![House where (width==1 || width==2) && height==4]`
 - NOT: `select![House !(width>5)]`
 - IN (range expression) :
-  - `select![HOUSE where id..(1,3,4)` as tuple
-  - `select![HOUSE where id..[1,2,3]]` as array
-  - `select![HOUSE where id..(1..4)]` as exclusive range
-  - `select![HOUSE where id..(1..=4)` as inclusive range
-  - `let [a,b,c] = myarray; select![HOUSE where id..(a,b,c)]` for known size array. Plain array/vec not supported now.
+  - `select![House where id..(1,3,4)` as tuple
+  - `select![House where id..[1,2,3]]` as array
+  - `select![House where id..(1..4)]` as exclusive range
+  - `select![House where id..(1..=4)` as inclusive range
+  - `let [a,b,c] = myarray; select![House where id..(a,b,c)]` for known size array. Plain array/vec not supported now.
 - LIKE: use a macro syntax since it's magic : `select![House where like![name, "%bla]]`
 - column from join: see [JOIN in where clause](####JOIN-in-where-clause)
+- function call: `select![House where trim(name) == "myhouse"]`
+- AND, OR: chain expressions with `&&`, `||`
 
 ### INNER JOIN:
 

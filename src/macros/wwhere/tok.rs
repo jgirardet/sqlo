@@ -43,6 +43,10 @@ impl Toks {
         self.0.push(Tok::Field(ident.clone().into()))
     }
 
+    pub fn call(&mut self, ident: &syn::Ident, toks: &Toks) {
+        self.0.push(Tok::Call(ident.clone().into(), toks.clone()))
+    }
+
     pub fn foreign_key(&mut self, field: &syn::ExprField) {
         self.0.push(Tok::ForeignKey(field.clone()))
     }
@@ -97,7 +101,7 @@ impl IntoIterator for Toks {
 
 #[derive(Debug, Clone)]
 pub enum Tok {
-    // Call(syn::Expr),
+    Call(IdentString, Toks),
     Field(IdentString),
     ForeignKey(syn::ExprField),
     In(Toks),

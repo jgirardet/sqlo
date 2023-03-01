@@ -1,5 +1,5 @@
 use darling::ToTokens;
-use syn::{parse2, BinOp, Expr, ExprRange};
+use syn::{parse2, BinOp, Expr, ExprCall, ExprRange};
 
 use super::{
     tok::Toks,
@@ -21,7 +21,8 @@ impl ToTok for syn::Expr {
             Expr::Index(i) => i.to_tok(acc),
             Expr::Field(f) => f.to_tok(acc),
             Expr::Path(p) => p.to_tok(acc),
-            _ => acc.error(self, "Not supported as rhs of comparison expression"),
+            Expr::Call(c) => c.to_tok(acc),
+            _ => acc.error(self, "Not supported as member of binary expression"),
         }
     }
 }
@@ -43,6 +44,27 @@ impl ToTok for syn::ExprBinary {
             }
             _ => acc.error(op, "Operator not permitted"),
         }
+    }
+}
+
+impl ToTok for ExprCall {
+    fn to_tok(&self, acc: &mut Toks) {
+        if let syn::Expr::Path(fn_name) = self.func.as_ref() {
+            // if value, quick exitl
+            if fn_name.path.leading_colon.is_some() {
+                acc.value(&self.clone().into());
+                return;
+            }
+            if let Some(ident) = fn_name.path.get_ident() {
+                let mut toks = Toks::default();
+                for item in &self.args {
+                    item.to_tok(&mut toks)
+                }
+                acc.call(ident, &toks);
+                return;
+            }
+        }
+        acc.error(self, "Invalid call expression, did you forget `::` ?")
     }
 }
 

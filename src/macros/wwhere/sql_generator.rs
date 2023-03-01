@@ -72,7 +72,7 @@ impl<'a> WhereSqlGenerator<'a> {
             Tok::Field(f) => self.field(f)?,
             Tok::ForeignKey(f) => self.foreign_key(f)?,
             Tok::Null(t) => self.null(t)?,
-            // Tok::Between(t) => self.between(t)?,
+            Tok::Call(i, t) => self.call(i, t)?,
             Tok::Like(t) => self.like(t)?,
             Tok::Paren(t) => self.parenthesis(t)?,
             Tok::Sign(s) => self.sign(s)?,
@@ -91,6 +91,14 @@ impl<'a> WhereSqlGenerator<'a> {
 }
 
 impl<'a> WhereSqlGenerator<'a> {
+    fn call(&mut self, ident: IdentString, toks: Toks) -> Result<String, SqloError> {
+        let mut res = vec![];
+        for r in toks {
+            res.push(self.dispatch_tok(r)?)
+        }
+        Ok(format!("{ident}({})", res.join(",")))
+    }
+
     fn error(&mut self, e: syn::Error) -> Result<String, SqloError> {
         Err(e.into())
     }
@@ -300,7 +308,13 @@ mod test_wwhere_sql_generator {
         " WHERE fstring <> ?",
         1
     );
-    test_where_sql_generator!(field_inferior, "Aaa", "fstring < 1", " WHERE fstring < ?", 1);
+    test_where_sql_generator!(
+        field_inferior,
+        "Aaa",
+        "fstring < 1",
+        " WHERE fstring < ?",
+        1
+    );
     test_where_sql_generator!(
         field_inferior_eq,
         "Aaa",
@@ -308,7 +322,13 @@ mod test_wwhere_sql_generator {
         " WHERE fstring <= ?",
         1
     );
-    test_where_sql_generator!(field_superior, "Aaa", "fstring > 1", " WHERE fstring > ?", 1);
+    test_where_sql_generator!(
+        field_superior,
+        "Aaa",
+        "fstring > 1",
+        " WHERE fstring > ?",
+        1
+    );
     test_where_sql_generator!(
         field_superior_eq,
         "Aaa",
@@ -334,7 +354,13 @@ mod test_wwhere_sql_generator {
     );
 
     //Parenthes
-    test_where_sql_generator!(parenthes, "Aaa", "(fstring == 1)", " WHERE (fstring = ?)", 1);
+    test_where_sql_generator!(
+        parenthes,
+        "Aaa",
+        "(fstring == 1)",
+        " WHERE (fstring = ?)",
+        1
+    );
 
     //Not
     test_where_sql_generator!(
@@ -361,56 +387,6 @@ mod test_wwhere_sql_generator {
         2
     );
 
-    // Foreignkey
-    // test_where_sql_generator!(
-    //     fk_same_table_same_column,
-    //     "Aaa",
-    //     "bbb.fi32>3",
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk  WHERE bbb.fi32 > ?",
-    //     1
-    // );
-    // test_where_sql_generator!(
-    //     fk_same_table_other_column,
-    //     "Aaa",
-    //     "bbb.fstring>3",
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk  WHERE bbb.fstringcol > ?",
-    //     1
-    // );
-    // test_where_sql_generator!(
-    //     fk_other_table_same_field_and_complex_type,
-    //     "Bbb",
-    //     "ccc.height>3",
-    //     "INNER JOIN ccctable ON bbb.uu=ccctable.bbb_fk  WHERE ccctable.height > ?",
-    //     1
-    // );
-    // test_where_sql_generator!(
-    //     fk_related,
-    //     "Aaa",
-    //     "the_ddds.size==1",
-    //     "INNER JOIN ddd ON aaa.id=ddd.aaa_if  WHERE ddd.size = ?",
-    //     1
-    // );
-    // test_where_sql_generator!(
-    //     fk_many_fk_field_query_only_one_join,
-    //     "Aaa",
-    //     r#"bbb.fstring == "bla" && bbb.fi32>3"#,
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk  WHERE bbb.fstringcol = ? AND bbb.fi32 > ?",
-    //     2
-    // );
-    // test_where_sql_generator!(
-    //     fk_two_different_joins,
-    //     "Aaa",
-    //     "bbb.fi32==1 && the_ddds.size>3",
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk INNER JOIN ddd ON aaa.id=ddd.aaa_if  WHERE bbb.fi32 = ? AND ddd.size > ?",
-    //     2    );
-
-    // test_where_sql_generator!(
-    //     fk_many_fk_for_same_join_and_related_and_two_different_joins,
-    //     "Aaa",
-    //     r#"bbb.fstring == "bla" && bbb.fi32==1 && the_ddds.size>3"#,
-    //     "INNER JOIN bbb ON aaa.id=bbb.aaa_fk INNER JOIN ddd ON aaa.id=ddd.aaa_if  WHERE bbb.fstringcol = ? AND bbb.fi32 = ? AND ddd.size > ?",
-    //     3);
-
     // IN
     test_where_sql_generator!(
         in_field_array,
@@ -419,13 +395,7 @@ mod test_wwhere_sql_generator {
         " WHERE fi32col IN (?,?,?)",
         3
     );
-    // test_where_sql_generator!(
-    //     in_fk_array,
-    //     "Aaa",
-    //     "the_ddds.size..[1,2,3]",
-    //     "INNER JOIN ddd ON aaa.id=ddd.aaa_if  WHERE ddd.size IN (?,?,?)",
-    //     3
-    // );
+
     test_where_sql_generator!(
         in_field_tupple,
         "Aaa",
