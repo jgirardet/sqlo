@@ -515,8 +515,21 @@ select![House where id == width] // variable width is ignored, column name wil b
 ### The Order by clause
 
 Order result with the `order_by` keyword. Descending order is specified with a `-` before the field name.
+A brackted syntax is available with `[]`.
 
 ```rust
 select![House order_by -width, height]
+select![House order_by[-width, height]]
 select![House id, width as "bla:i32" order_by bla]
+```
+
+### Limit/Offset and pagination
+
+Use limit clause with optional offset separated by comma.
+A brackted syntax is available with `[]`.
+
+```rust
+select![House limit 5] // SELECT * FROM house LIMIT 5
+select![House limit 5,8] // SELECT * FROM house LIMIT 5 OFFSET 8
+select![House limit[5,8]] // SELECT * FROM house LIMIT 5 OFFSET 8
 ```
