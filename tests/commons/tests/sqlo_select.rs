@@ -221,6 +221,21 @@ Test! {select_cutoms_cast, async fn func(p: PPool) {
   // with join in cast
   let res = select![Maison lespieces.lg as lll].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
+  // alias string
+  use uuid::Uuid;
+  select![PieceFk nb as "nb:Uuid"].fetch_all(&p.pool).await.unwrap();
+  // alias force non null
+  select![PieceFk nb as "nb!"].fetch_all(&p.pool).await.unwrap();
+  // alias force nullable
+  select![PieceFk nb as "nb?"].fetch_all(&p.pool).await.unwrap();
+  // alias force cast nullable
+  select![PieceFk lg as "nb?:i16"].fetch_all(&p.pool).await.unwrap();
+  // alias force cast non  nullable
+  select![PieceFk lg as "nb!:i16"].fetch_all(&p.pool).await.unwrap();
+  // long path
+  let res = select![PieceFk nb as "nb:Uuid"].fetch_all(&p.pool).await.unwrap();
+  let res2 = select![PieceFk nb as "nb:uuid::Uuid"].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res[0].nb, res2[0].nb);
 }}
 
 Test! {select_cutoms_join_conflict, async fn func(p: PPool) {
