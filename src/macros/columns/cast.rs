@@ -37,7 +37,7 @@ impl ColumnToSql for AliasCast {
                 Ok(SqlQuery::from(format!(" as {ident}")))
             }
             Self::Literal(litstr) => {
-                let re = regex_macro::regex!(r#"^(\w+)[?!]?:\w+$"#);
+                let re = regex_macro::regex!(r#"^(\w+)[?!]?(?::\w+)?$"#);
                 if let Some(captures) = re.captures(&litstr.value()) {
                     if let Some(alias) = captures.get(1) {
                         let ident: IdentString =

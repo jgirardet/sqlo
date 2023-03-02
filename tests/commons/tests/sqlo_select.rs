@@ -348,7 +348,22 @@ Test! {select_order_by, async fn func(p:PPool) {
 
 }}
 
-// Test! {select_limit, async fn func(p:PPool) {
-//     let res = select![PieceFk order_by lg limit 2 offset 3].fetch_all(&p.pool).await.unwrap();
-
-// }}
+Test! {select_limit, async fn func(p:PPool) {
+    // simple
+    let res = select![PieceFk  limit 2,3].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 2];
+    assert_eq![res[0].lg, 4];
+    assert_eq![res[1].lg, 5];
+    // with order by : force class types
+    use uuid::Uuid;
+    let res = select![ PieceFk,PieceFk nb as "nb!:Uuid", lg as "lg!:i32", la as "la!", maison_id as "maison_id!" order_by -lg limit 2,3].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 2];
+    assert_eq![res[0].lg, 6];
+    assert_eq![res[1].lg, 5];
+    // with order by, force classe  type, bracket
+    let res = select![Maison, Maison id as "id!:i64", taille as "taille!:i64", adresse as "adresse!:String", piscine as "piscine"
+    order_by[-taille] limit[2,1]].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 2];
+    assert_eq![res[0].id, 2];
+    assert_eq![res[1].id, 1];
+}}

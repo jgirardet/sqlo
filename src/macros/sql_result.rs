@@ -19,6 +19,7 @@ pub struct SqlResult<'a> {
     joins: HashSet<String>,
     wwhere: String,
     order_by: String,
+    limit: String,
     arguments: Vec<Expr>,
     relation: Option<&'a RelForeignKey>,
     customs: bool,
@@ -37,6 +38,7 @@ impl<'a> SqlResult<'a> {
         sqlr.process_where(&parsed)?;
         sqlr.link_related_in_where(&parsed);
         sqlr.process_order_by(&parsed)?;
+        sqlr.process_limit(&parsed)?;
         sqlr.set_custom_struct(&parsed);
         Ok(sqlr)
     }
@@ -54,6 +56,7 @@ impl<'a> SqlResult<'a> {
             customs: false,
             custom_struct: None,
             order_by: String::default(),
+            limit: String::default(),
         }
     }
 
@@ -90,6 +93,15 @@ impl<'a> SqlResult<'a> {
         if let Some(order_bys) = &parsed.order_by {
             let qr = order_bys.column_to_sql(self)?;
             self.order_by = qr.query.clone();
+            self.extend(qr);
+        }
+        Ok(())
+    }
+
+    fn process_limit(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+        if let Some(limit) = &parsed.limit {
+            let qr = limit.column_to_sql(self)?;
+            self.limit = qr.query.clone();
             self.extend(qr);
         }
         Ok(())
@@ -145,7 +157,8 @@ impl<'a> SqlResult<'a> {
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
         let order_by_query = &self.order_by;
-        format!("SELECT DISTINCT {columns} FROM {tablename}{joins}{where_query}{order_by_query}")
+        let limit_query = &self.limit;
+        format!("SELECT DISTINCT {columns} FROM {tablename}{joins}{where_query}{order_by_query}{limit_query}")
             .trim_end()
             .into()
     }

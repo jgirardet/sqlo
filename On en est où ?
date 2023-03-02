@@ -1,10 +1,11 @@
 A faire:
 
-,limit
+force non null ?
 paginate ?
+reconsidérer duplicate/disction
+allow long path in alias
 group_by()?
 having()?
-
 
 Bug:
 
@@ -18,5 +19,5 @@ Bug:
 
 à Faire pour tuer le temps:
 -test sqlo\*set de query
-- test Vec<u8>
 
+- test Vec<u8>

@@ -5,11 +5,12 @@ use syn::{parse::ParseStream, punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
-use super::{wwhere::tokenizer::WhereTokenizer, Column, OrderBys, SqlResult};
+use super::{wwhere::tokenizer::WhereTokenizer, Column, Limit, OrderBys, SqlResult};
 
 pub mod kw {
     syn::custom_keyword!(order_by);
     syn::custom_keyword!(limit);
+    syn::custom_keyword!(offset);
 }
 
 pub struct SqloSelectParse {
@@ -20,6 +21,7 @@ pub struct SqloSelectParse {
     pub pk_value: Option<syn::Expr>,
     pub wwhere: Option<WhereTokenizer>,
     pub order_by: Option<OrderBys>,
+    pub limit: Option<Limit>,
 }
 
 impl SqloSelectParse {
@@ -30,6 +32,7 @@ impl SqloSelectParse {
             pk_value: None,
             wwhere: None,
             order_by: None,
+            limit: None,
             customs: Vec::default(),
             custom_struct: None,
         }
@@ -88,14 +91,19 @@ impl syn::parse::Parse for SqloSelectParse {
         }
 
         // parse limit
-        // plus tard
+        if !input.is_empty() && input.peek(kw::limit) {
+            res.limit = Some(input.parse::<Limit>()?)
+        }
 
         Ok(res)
     }
 }
 
 fn next_is_not_a_keyword(input: &ParseStream) -> bool {
-    !input.peek(Token![where]) && !input.peek(kw::order_by)
+    !input.peek(Token![where])
+        && !input.peek(kw::order_by)
+        && !input.peek(kw::limit)
+        && !input.peek(kw::offset)
 }
 
 pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {

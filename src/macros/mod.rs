@@ -1,4 +1,5 @@
 mod columns;
+mod limit;
 mod order_by;
 mod sql_query;
 mod sql_result;
@@ -7,6 +8,7 @@ pub mod sqlo_update;
 mod wwhere;
 
 pub use columns::*;
+pub use limit::Limit;
 pub use order_by::{OrderBy, OrderBys};
 pub use sql_query::SqlQuery;
 pub use sql_result::SqlResult;
