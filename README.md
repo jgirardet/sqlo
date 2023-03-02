@@ -533,3 +533,12 @@ select![House limit 5] // SELECT * FROM house LIMIT 5
 select![House limit 5,8] // SELECT * FROM house LIMIT 5 OFFSET 8
 select![House limit[5,8]] // SELECT * FROM house LIMIT 5 OFFSET 8
 ```
+
+There is [a bug in sqlx](https://github.com/launchbadge/sqlx/issues/1126#issuecomment-1450905220) when using `order by`
+and `limit` togther: Every field is expected to be nullable which is wrong. Right now to handle this use case you'll have
+to force non nullabilty for each column (except Option<T> fields).
+
+```rust
+select![House, House id as "id!", width as "width!", height as "height!", name as "name!" order_by name limit 4]
+// when using fields `select!` uses query_as! behind the back so reinforce using query_as! with House
+```

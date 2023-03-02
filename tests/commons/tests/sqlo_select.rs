@@ -361,7 +361,7 @@ Test! {select_limit, async fn func(p:PPool) {
     assert_eq![res[0].lg, 6];
     assert_eq![res[1].lg, 5];
     // with order by, force classe  type, bracket
-    let res = select![Maison, Maison id as "id!:i64", taille as "taille!:i64", adresse as "adresse!:String", piscine as "piscine"
+    let res = select![Maison, Maison id as "id!", taille as "taille!", adresse as "adresse!", piscine as "piscine"
     order_by[-taille] limit[2,1]].fetch_all(&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].id, 2];
