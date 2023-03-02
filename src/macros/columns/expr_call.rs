@@ -46,10 +46,10 @@ impl ColumnToSql for ColExprCall {
             joins.extend(j.joins);
             params.extend(j.params);
         }
-        return Ok(SqlQuery {
+        Ok(SqlQuery {
             query,
             params,
             joins,
-        });
+        })
     }
 }

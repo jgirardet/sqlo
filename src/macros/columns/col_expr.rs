@@ -105,19 +105,19 @@ impl ColumnToSql for ColExpr {
 // we support only a fex expr variant and we want to avoid parsing syn cast expr
 fn parse_supported_expr(input: &syn::parse::ParseStream) -> Result<Expr, syn::Error> {
     let mut fork = input.fork();
-    if let Ok(_) = fork.parse::<ExprIndex>() {
+    if fork.parse::<ExprIndex>().is_ok() {
         return Ok(input.parse::<ExprIndex>()?.into());
     }
     fork = input.fork();
-    if let Ok(_) = fork.parse::<ExprField>() {
+    if fork.parse::<ExprField>().is_ok() {
         return Ok(input.parse::<ExprField>()?.into());
     }
     fork = input.fork();
-    if let Ok(_) = fork.parse::<ExprCall>() {
+    if fork.parse::<ExprCall>().is_ok() {
         return Ok(input.parse::<ExprCall>()?.into());
     }
     fork = input.fork();
-    if let Ok(_) = fork.parse::<ExprPath>() {
+    if fork.parse::<ExprPath>().is_ok() {
         return Ok(input.parse::<ExprPath>()?.into());
     }
     Err(input.error("Expression not supported as argument"))

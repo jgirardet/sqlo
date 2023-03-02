@@ -94,7 +94,7 @@ pub fn impl_create(s: &Sqlo) -> TokenStream {
         &s.database_type,
         tablename,
         &insert_query_columns,
-        &all_columns_as_query,
+        all_columns_as_query,
     );
     quote! {
 

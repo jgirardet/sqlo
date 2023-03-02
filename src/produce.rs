@@ -44,7 +44,7 @@ fn impl_additional_utils(s: &Sqlo) -> TokenStream {
     } = s;
     let pkident = &pk_field.ident;
     let pk_ty = &pk_field.ty;
-    let ident_name = LitStr::new(&ident.as_str(), ident.span());
+    let ident_name = LitStr::new(ident.as_str(), ident.span());
     quote! {
         pub fn pk(&self) -> &#pk_ty {
             &self.#pkident

@@ -31,7 +31,7 @@ Test! {get_and_attribute, async fn func(p: PPool) {
     );
 
     // test get with pk as String and string literal
-    let a = Adresse::get(&p.pool, &"1".to_string()).await.unwrap();
+    let a = Adresse::get(&p.pool, "1").await.unwrap();
     let b = Adresse::get(&p.pool, "1").await.unwrap();
     assert_eq!(a, b);
 }}

@@ -36,7 +36,7 @@ impl ColumnToSql for BinOp {
         &self,
         _ctx: &mut SqlResult,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
-        Ok(op_to_sql(&self).to_string().into())
+        Ok(op_to_sql(self).to_string().into())
     }
 }
 

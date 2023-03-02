@@ -84,7 +84,7 @@ mod crud_save {
     const SQLITE: &DatabaseType = &DatabaseType::Sqlite;
     #[test]
     fn test_save_sql_args_query_builder() {
-        assert_eq!(build_sql_query(SQLITE, "latable", &["un","deux"], "lepk", &[&"col",&"if",&"update"]), 
+        assert_eq!(build_sql_query(SQLITE, "latable", &["un","deux"], "lepk", &["col","if","update"]), 
         "INSERT INTO latable (un,deux) VALUES(?,?) ON CONFLICT (lepk) DO UPDATE SET col=?,if=?,update=?;")
     }
     macro_rules! test_save_build_query {

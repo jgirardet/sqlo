@@ -65,7 +65,7 @@ impl VirtualFile {
 
     fn write_fresh_relations_files(&self, fresh: &[PathBuf]) -> io::Result<()> {
         for r in fresh {
-            std::fs::write(&self.relation_path.join(&r), &[])?
+            std::fs::write(&self.relation_path.join(r), [])?
         }
         Ok(())
     }
@@ -82,7 +82,7 @@ impl VirtualFile {
 
         let fresh_relations = Relations::from_sqlo(current_sqlo);
         let existing_relations = Relations::from_path(&self.relation_path)?
-            .filter_entity("from", &current_sqlo.ident.to_string());
+            .filter_entity("from", current_sqlo.ident.as_ref());
         self.delete_old_relations_files(
             &fresh_relations.difference_of_other(&existing_relations.to_files()),
         )?;

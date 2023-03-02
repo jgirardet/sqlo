@@ -50,7 +50,7 @@ mod test_query_builder {
     #[test]
     fn is_not_empty() {
         assert_eq!(
-            commma_sep_with_parenthes_literal_list(&[&"bla", &"bli"]),
+            commma_sep_with_parenthes_literal_list(&["bla", "bli"]),
             "(bla,bli)"
         )
     }

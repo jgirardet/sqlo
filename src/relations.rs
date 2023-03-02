@@ -114,7 +114,7 @@ impl Relations {
         // }
         for relation in self.relations.iter() {
             let Relation::ForeignKey(rel_fk) = relation;
-            rel_fk.validate(sqlo, &sqlos)?;
+            rel_fk.validate(sqlo, sqlos)?;
         }
         Ok(())
     }
@@ -243,7 +243,7 @@ impl RelForeignKey {
 
     pub fn to_inner_join(&self, sqlos: &Sqlos) -> String {
         let from_sqlo = {
-            let ref this = sqlos;
+            let this = &sqlos;
             let name = &self.from;
             this.entities
                 .iter()
@@ -252,7 +252,7 @@ impl RelForeignKey {
         }
         .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let to_sqlo = {
-            let ref this = sqlos;
+            let this = &sqlos;
             let name = &self.to;
             this.entities
                 .iter()
@@ -261,7 +261,7 @@ impl RelForeignKey {
         }
         .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let from_field = from_sqlo
-            .field(&self.field.as_ident())
+            .field(self.field.as_ident())
             .expect("Sqlo Field not Found, please rebuild");
         format!(
             " INNER JOIN {} ON {}.{}={}.{}",
@@ -287,7 +287,7 @@ impl RelForeignKey {
                                                           //     .get(&self.to)
                                                           //     .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let from_field = from_sqlo
-            .field(&self.field.as_ident())
+            .field(self.field.as_ident())
             .expect("Sqlo Field not Found, please rebuild");
         from_field.column.as_str()
     }

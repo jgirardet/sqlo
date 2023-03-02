@@ -106,7 +106,7 @@ impl TryFrom<FieldParser> for Field {
 
     fn try_from(fp: FieldParser) -> Result<Self, Self::Error> {
         Ok(Field {
-            ident: fp.ident()?.clone().into(),
+            ident: fp.ident()?,
             ty: fp.ty()?,
             column: fp.column_name()?,
             type_override: fp.type_override,

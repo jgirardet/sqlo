@@ -31,7 +31,7 @@ impl<'a> SqlResult<'a> {
         parsed: SqloSelectParse,
         sqlos: &'a Sqlos,
     ) -> Result<SqlResult, SqloError> {
-        let main_sqlo = SqlResult::set_main_and_relation(&parsed, &sqlos)?;
+        let main_sqlo = SqlResult::set_main_and_relation(&parsed, sqlos)?;
         let mut sqlr = SqlResult::new(main_sqlo, sqlos);
         sqlr.set_columns(&parsed)?;
         sqlr.set_relation(&parsed)?;
@@ -109,7 +109,7 @@ impl<'a> SqlResult<'a> {
 
     fn process_where(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(ref wt) = parsed.wwhere {
-            let wwhere_sql = process_where(&self.main_sqlo.ident, &self.sqlos, wt)?;
+            let wwhere_sql = process_where(&self.main_sqlo.ident, self.sqlos, wt)?;
             self.wwhere = wwhere_sql.query.clone();
             self.extend(wwhere_sql);
         }
@@ -129,7 +129,7 @@ impl<'a> SqlResult<'a> {
                 self.wwhere,
                 "{}{}=?",
                 prefix,
-                relation.get_from_column(&self.sqlos)
+                relation.get_from_column(self.sqlos)
             )
             .expect("Error formatting where related  query");
             self.arguments.push(parsed.pk_value.clone().unwrap()); // ok since related exists only if pk_value is parsed.

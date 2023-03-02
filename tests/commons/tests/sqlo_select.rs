@@ -277,17 +277,17 @@ Test! {select_cutoms_binary_operation, async fn func(p: PPool) {
   assert_eq!(res.total, 1);
   // test all equlity ops
   let res = select![Maison 1<2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
-  assert_eq!(res.total, true);
+  assert!(res.total);
   let res = select![Maison 1<=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
-  assert_eq!(res.total, true);
+  assert!(res.total);
   let res = select![Maison 2>1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
-  assert_eq!(res.total, true);
+  assert!(res.total);
   let res = select![Maison 2>=1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
-  assert_eq!(res.total, true);
+  assert!(res.total);
   let res = select![Maison 1==1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
-  assert_eq!(res.total, true);
+  assert!(res.total);
   let res = select![Maison 1!=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
-  assert_eq!(res.total, true);
+  assert!(res.total);
   // op inside call
   let res = select![Maison max(count(id), 5) as "c!:u16"].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.c, 5)

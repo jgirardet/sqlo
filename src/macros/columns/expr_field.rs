@@ -36,8 +36,8 @@ impl ColumnToSql for ColExprField {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         let relation = ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base)?;
         let related_sqlo = ctx.sqlos.get(&relation.from)?;
-        let join = relation.to_inner_join(&ctx.sqlos);
-        let column = related_sqlo.column(&self.member.as_ident())?;
-        return Ok((column, join).into());
+        let join = relation.to_inner_join(ctx.sqlos);
+        let column = related_sqlo.column(self.member.as_ident())?;
+        Ok((column, join).into())
     }
 }

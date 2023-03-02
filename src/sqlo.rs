@@ -116,11 +116,10 @@ impl Sqlo {
 
     pub fn column(&self, ident: &syn::Ident) -> Result<String, SqloError> {
         let column = &self
-            .field(&ident)
-            .ok_or(SqloError::new_spanned(
-                &ident,
-                &format!("No field `{ident}` in [{}]", &self.ident),
-            ))?
+            .field(ident)
+            .ok_or_else(|| {
+                SqloError::new_spanned(ident, &format!("No field `{ident}` in [{}]", &self.ident))
+            })?
             .column;
         Ok(format!("{}.{}", &self.tablename, column))
     }

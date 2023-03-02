@@ -1,5 +1,5 @@
 // without any attr
-#[derive(sqlo::Sqlo, Debug, PartialEq)]
+#[derive(sqlo::Sqlo, Debug, PartialEq, Eq)]
 pub struct Maison {
     pub id: i64,
     pub adresse: String,
@@ -8,7 +8,7 @@ pub struct Maison {
 }
 
 // with a single attr in sqlo attr
-#[derive(sqlo::Sqlo, PartialEq, Debug)]
+#[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 #[sqlo(tablename = "piece")]
 pub struct WithAttrs {
     #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
@@ -19,7 +19,7 @@ pub struct WithAttrs {
     pub maison_id: i64,
 }
 
-#[derive(sqlo::Sqlo, PartialEq, Debug)]
+#[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 #[sqlo(tablename = "maison")]
 pub struct Maison2 {
     #[sqlo(create_arg, type_override)]
@@ -29,7 +29,7 @@ pub struct Maison2 {
     pub piscine: Option<bool>,
 }
 
-#[derive(sqlo::Sqlo, PartialEq, Debug)]
+#[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 pub struct Adresse {
     #[sqlo(create_arg)]
     pub id: String,
@@ -38,7 +38,7 @@ pub struct Adresse {
     pub m_id: i64,
 }
 
-#[derive(sqlo::Sqlo, PartialEq, Debug)]
+#[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 #[sqlo(tablename = "piece")]
 pub struct PieceFk {
     #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
@@ -50,7 +50,7 @@ pub struct PieceFk {
     pub maison_id: i64,
 }
 
-#[derive(sqlo::Sqlo, PartialEq, Debug)]
+#[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 #[sqlo(tablename = "piece")]
 pub struct PieceFk2 {
     #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
@@ -62,7 +62,7 @@ pub struct PieceFk2 {
     pub maison_id: i64,
 }
 
-#[derive(sqlo::Sqlo, PartialEq, Debug)]
+#[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 pub struct Lit {
     pub id: i64,
     pub surface: i64,
