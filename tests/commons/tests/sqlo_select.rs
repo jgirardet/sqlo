@@ -341,7 +341,7 @@ Test! {select_order_by, async fn func(p:PPool) {
    assert_eq!(res.len(), 2);
    assert_eq!(res[0].id, 2);
    assert_eq!(res[1].id, 1);
-   // square_braquet_syntax
+   // square_bracket_syntax
    let res = select![Lit order_by[surface, id]].fetch_all(&p.pool).await.unwrap();
    assert_eq!(res[1].id, 1);
    assert_eq!(res[2].id, 4);
@@ -360,10 +360,14 @@ Test! {select_limit, async fn func(p:PPool) {
     assert_eq![res.len(), 2];
     assert_eq![res[0].lg, 6];
     assert_eq![res[1].lg, 5];
-    // with order by, force classe  type, bracket
+    // with order by, force class  type, bracket
     let res = select![Maison, Maison id as "id!", taille as "taille!", adresse as "adresse!", piscine as "piscine"
     order_by[-taille] limit[2,1]].fetch_all(&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].id, 2];
     assert_eq![res[1].id, 1];
+    // page simple
+    let res = select![PieceFk limit 2,4].fetch_all(&p.pool).await.unwrap(); //4;5
+    let res2 = select![PieceFk page 3,2].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res, res2);
 }}

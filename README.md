@@ -515,6 +515,7 @@ select![House where id == width] // variable width is ignored, column name wil b
 ### The Order by clause
 
 Order result with the `order_by` keyword. Descending order is specified with a `-` before the field name.
+
 A brackted syntax is available with `[]`.
 
 ```rust
@@ -523,9 +524,12 @@ select![House order_by[-width, height]]
 select![House id, width as "bla:i32" order_by bla]
 ```
 
-### Limit/Offset and pagination
+### Limit/Offset and Pagination
 
-Use limit clause with optional offset separated by comma.
+#### Limit and Offset
+
+Use `limit` clause with optional `offset` separated by **comma**.
+
 A brackted syntax is available with `[]`.
 
 ```rust
@@ -541,4 +545,17 @@ to force non nullabilty for each column (except Option<T> fields).
 ```rust
 select![House, House id as "id!", width as "width!", height as "height!", name as "name!" order_by name limit 4]
 // when using fields `select!` uses query_as! behind the back so reinforce using query_as! with House
+```
+
+#### Pagination
+
+We support a custom `page` to query by _page_ with a mandatory _page_size_ separated by a **comma**.
+
+A brackted syntax is available with `[]`.
+
+```rust
+let limit = select![House limit 2,4].fetch_all(&p.pool).await.unwrap();
+let page = select![House page 3,2].fetch_all(&p.pool).await.unwrap(); //means page 3 with page size of 2.
+// will both select 5th et 6th entries.
+assert_eq!(limit, page);
 ```

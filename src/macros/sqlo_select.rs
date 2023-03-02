@@ -10,7 +10,7 @@ use super::{wwhere::tokenizer::WhereTokenizer, Column, Limit, OrderBys, SqlResul
 pub mod kw {
     syn::custom_keyword!(order_by);
     syn::custom_keyword!(limit);
-    syn::custom_keyword!(offset);
+    syn::custom_keyword!(page);
 }
 
 pub struct SqloSelectParse {
@@ -91,7 +91,7 @@ impl syn::parse::Parse for SqloSelectParse {
         }
 
         // parse limit
-        if !input.is_empty() && input.peek(kw::limit) {
+        if !input.is_empty() && (input.peek(kw::limit) || input.peek(kw::page)) {
             res.limit = Some(input.parse::<Limit>()?)
         }
 
@@ -103,7 +103,7 @@ fn next_is_not_a_keyword(input: &ParseStream) -> bool {
     !input.peek(Token![where])
         && !input.peek(kw::order_by)
         && !input.peek(kw::limit)
-        && !input.peek(kw::offset)
+        && !input.peek(kw::page)
 }
 
 pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {
