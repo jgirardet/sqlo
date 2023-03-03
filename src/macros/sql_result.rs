@@ -151,14 +151,26 @@ impl<'a> SqlResult<'a> {
         Ok(())
     }
 
+    fn get_distinct(&self) -> &str {
+        // auto add distinct
+        // non need of distinct for plain sqlo struct query if no join.
+        // but necessary for everything else
+        if self.customs || self.custom_struct.is_some() || !self.joins.is_empty() {
+            " DISTINCT"
+        } else {
+            ""
+        }
+    }
+
     fn query(&self) -> String {
+        let distinct = self.get_distinct();
         let columns = &self.columns;
         let tablename = &self.main_sqlo.tablename;
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
         let order_by_query = &self.order_by;
         let limit_query = &self.limit;
-        format!("SELECT DISTINCT {columns} FROM {tablename}{joins}{where_query}{order_by_query}{limit_query}")
+        format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{order_by_query}{limit_query}")
             .trim_end()
             .into()
     }

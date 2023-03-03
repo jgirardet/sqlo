@@ -390,7 +390,7 @@ Please keep in mind that is assumes a **main** sqlo struct (`House` here) from w
 Some generals rules :
 
 - It's rust syntax not sql: that's why we use `==` instead of `=`.
-- `DISTINCT` is always added.
+- Sqlo tries to avoid duplicates automatically by adding`DISTINCT` when it's necessary since the need of duplicates is very rare. So keep in mind that every `select!` query won't have duplicated result.
 - By default left hand side expects a field name (aka column name) and right hand side a value. See [Using Rust items as parameters](Using-Rust-items-as-parameters) for more.
 
 ### Query column
