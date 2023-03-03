@@ -18,6 +18,7 @@ pub struct SqlResult<'a> {
     columns: String,
     joins: HashSet<String>,
     wwhere: String,
+    group_by: String,
     order_by: String,
     limit: String,
     arguments: Vec<Expr>,
@@ -37,6 +38,7 @@ impl<'a> SqlResult<'a> {
         sqlr.set_relation(&parsed)?;
         sqlr.process_where(&parsed)?;
         sqlr.link_related_in_where(&parsed);
+        sqlr.process_group_by(&parsed)?;
         sqlr.process_order_by(&parsed)?;
         sqlr.process_limit(&parsed)?;
         sqlr.set_custom_struct(&parsed);
@@ -51,6 +53,7 @@ impl<'a> SqlResult<'a> {
             columns: String::default(),
             relation: Option::default(),
             wwhere: String::default(),
+            group_by: String::default(),
             arguments: Vec::default(),
             joins: HashSet::default(),
             customs: false,
@@ -87,6 +90,15 @@ impl<'a> SqlResult<'a> {
 
     fn set_custom_struct(&mut self, parsed: &SqloSelectParse) {
         self.custom_struct = parsed.custom_struct.clone();
+    }
+
+    fn process_group_by(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+        if let Some(group_by) = &parsed.group_by {
+            let qr = group_by.column_to_sql(self)?;
+            self.group_by = qr.query.clone();
+            self.extend(qr);
+        }
+        Ok(())
     }
 
     fn process_order_by(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
@@ -168,9 +180,10 @@ impl<'a> SqlResult<'a> {
         let tablename = &self.main_sqlo.tablename;
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
+        let group_by_query = &self.group_by;
         let order_by_query = &self.order_by;
         let limit_query = &self.limit;
-        format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{order_by_query}{limit_query}")
+        format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{group_by_query}{order_by_query}{limit_query}")
             .trim_end()
             .into()
     }

@@ -71,7 +71,7 @@ impl ColumnToSql for OrderBys {
     ) -> Result<super::SqlQuery, crate::error::SqloError> {
         let mut res = self.0.iter().fold(
             Ok(SqlQuery::default()),
-            |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?),
+            |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?), //unwrap ok can't be None
         )?;
         res.prepend_str(" ORDER BY ");
         Ok(res)

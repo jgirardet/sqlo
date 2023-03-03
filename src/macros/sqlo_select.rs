@@ -5,12 +5,13 @@ use syn::{parse::ParseStream, punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
-use super::{wwhere::tokenizer::WhereTokenizer, Column, Limit, OrderBys, SqlResult};
+use super::{wwhere::tokenizer::WhereTokenizer, Column, GroupBy, Limit, OrderBys, SqlResult};
 
 pub mod kw {
     syn::custom_keyword!(order_by);
     syn::custom_keyword!(limit);
     syn::custom_keyword!(page);
+    syn::custom_keyword!(group_by);
 }
 
 pub struct SqloSelectParse {
@@ -22,6 +23,7 @@ pub struct SqloSelectParse {
     pub wwhere: Option<WhereTokenizer>,
     pub order_by: Option<OrderBys>,
     pub limit: Option<Limit>,
+    pub group_by: Option<GroupBy>,
 }
 
 impl SqloSelectParse {
@@ -33,6 +35,7 @@ impl SqloSelectParse {
             wwhere: None,
             order_by: None,
             limit: None,
+            group_by: None,
             customs: Vec::default(),
             custom_struct: None,
         }
@@ -85,6 +88,11 @@ impl syn::parse::Parse for SqloSelectParse {
             res.wwhere = Some(wwhere);
         }
 
+        // parse group by
+        if !input.is_empty() && input.peek(kw::group_by) {
+            res.group_by = Some(input.parse::<GroupBy>()?)
+        }
+
         // parse order by
         if !input.is_empty() && input.peek(kw::order_by) {
             res.order_by = Some(input.parse::<OrderBys>()?)
@@ -104,6 +112,7 @@ fn next_is_not_a_keyword(input: &ParseStream) -> bool {
         && !input.peek(kw::order_by)
         && !input.peek(kw::limit)
         && !input.peek(kw::page)
+        && !input.peek(kw::group_by)
 }
 
 pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {

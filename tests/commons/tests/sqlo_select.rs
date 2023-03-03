@@ -386,3 +386,28 @@ Test! {select_limit, async fn func(p:PPool) {
     let res2 = select![PieceFk page 3,2].fetch_all(&p.pool).await.unwrap();
     assert_eq!(res, res2);
 }}
+
+Test! {select_group_by, async fn func(p:PPool) {
+    // simple
+    let res = select![PieceFk maison_id, count(*) as "total!" group_by maison_id].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].maison_id, 1);
+    assert_eq!(res[0].total, 4);
+    // with fk
+    let res = select![Maison lespieces.maison_id, count(*) as "total!" group_by lespieces.maison_id].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].maison_id, 1);
+    assert_eq!(res[0].total, 4);
+    // with order by with "full qualified aggregate"
+    let res = select![PieceFk maison_id, count(*) as "total!" group_by maison_id order_by count(*)].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].maison_id, 3);
+    assert_eq!(res[0].total, 2);
+    // with order by with "with alias"
+    let res1 = select![PieceFk maison_id, count(*) as total group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].maison_id, 3);
+    assert_eq!(res[0].total, 2);
+    // let res = select![PieceFk maison_id, count(*) as "total:i32" group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
+    // let res = sqlx::query![r#"SELECT maison_id, count(*) as "total?"
+    // FROM PIECE
+    // group by maison_id order by "total?""#].fetch_all(&p.pool).await.unwrap();
+    // assert_eq!(res[0].maison_id, 3);
+    // assert_eq!(res[0].total, Some(2));
+}}
