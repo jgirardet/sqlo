@@ -1,4 +1,3 @@
-use syn::bracketed;
 use syn::Token;
 
 use super::kw;
@@ -26,13 +25,8 @@ impl syn::parse::Parse for Limit {
 impl Limit {
     fn parse_limit(input: syn::parse::ParseStream) -> syn::Result<Self> {
         input.parse::<kw::limit>()?;
-        let content;
-        let reste = if input.peek(syn::token::Bracket) {
-            bracketed!(content in input);
-            &content
-        } else {
-            input
-        };
+        let reste;
+        parse_possible_bracketed!(input, reste);
         let limit = reste.parse()?;
         let offset = if reste.peek(Token![,]) {
             reste.parse::<Token![,]>()?;
@@ -45,13 +39,8 @@ impl Limit {
 
     fn parse_page(input: syn::parse::ParseStream) -> syn::Result<Self> {
         input.parse::<kw::page>()?;
-        let content;
-        let reste = if input.peek(syn::token::Bracket) {
-            bracketed!(content in input);
-            &content
-        } else {
-            input
-        };
+        let reste;
+        parse_possible_bracketed!(input, reste);
         let page_nb: ColExpr = reste.parse()?;
         reste.parse::<Token![,]>()?;
         let page_size: ColExpr = reste.parse()?;

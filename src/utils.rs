@@ -25,3 +25,15 @@ pub fn op_to_str(op: &BinOp) -> &str {
         _ => unimplemented!("Sign to str not supported"),
     }
 }
+
+macro_rules! parse_possible_bracketed {
+    ($input:expr, $reste:ident) => {
+        let content;
+        $reste = if $input.peek(syn::token::Bracket) {
+        syn::bracketed!(content in $input);
+        &content
+        } else {
+        $input
+         }
+    };
+}
