@@ -236,6 +236,10 @@ Test! {select_cutoms_cast, async fn func(p: PPool) {
   let res = select![PieceFk nb as "nb:Uuid"].fetch_all(&p.pool).await.unwrap();
   let res2 = select![PieceFk nb as "nb:uuid::Uuid"].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res[0].nb, res2[0].nb);
+  // Non nullable without string
+  let res  = select![ PieceFk lg as p!, la as a?].fetch_all(&p.pool).await.unwrap();
+  assert_eq![res[0].p,1 ];
+  assert_eq![res[0].a,Some(10) ];
 }}
 
 Test! {select_cutoms_join_conflict, async fn func(p: PPool) {

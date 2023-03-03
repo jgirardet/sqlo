@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use darling::util::IdentString;
-use syn::LitStr;
+use syn::{LitStr, Token};
 
 use crate::{
     error::SqloError,
@@ -74,7 +74,17 @@ impl syn::parse::Parse for AliasCast {
         match input.parse::<LitStr>() {
             Ok(l) => Ok(AliasCast::Literal(l)),
             Err(_) => match input.parse::<syn::Ident>() {
-                Ok(i) => Ok(AliasCast::Ident(i.into())),
+                Ok(i) => {
+                    if input.peek(Token![?]) {
+                        input.parse::<Token![?]>()?;
+                        Ok(AliasCast::Literal(LitStr::new(&format!("{i}?"), i.span())))
+                    } else if input.peek(Token![!]) {
+                        input.parse::<Token![!]>()?;
+                        Ok(AliasCast::Literal(LitStr::new(&format!("{i}!"), i.span())))
+                    } else {
+                        Ok(AliasCast::Ident(i.into()))
+                    }
+                }
                 Err(_) => Err(input.error("as must be followed by identifier or string literal")),
             },
         }

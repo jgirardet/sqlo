@@ -442,6 +442,12 @@ sqlx::query![r#"SELECT id, count(width) as "total!:i32" group by "total!:i32" "#
 select![House id, count(width) as "total!:i32" group_by total]
 ```
 
+as a convenience shortcut `!` and `?` can be used without quotes:
+
+```rust
+select![House id as name!, count(width) as total?]
+```
+
 - `*` can also be used:
 
 ```rust
