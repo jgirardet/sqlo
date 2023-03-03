@@ -409,7 +409,7 @@ select![House  max(width) as my_max where height > 1].fetch_one(&pool).await;
 struct Total {
     all: i32
 }
-let total = select![Total, House count(id)].fetch_one(&pool).await.unwrap();
+let total = select![Total, House count(id) as all].fetch_one(&pool).await.unwrap();
 assert_eq!(total.all, 5);
 ```
 
@@ -432,6 +432,14 @@ select![House replace(name, ::myvar, ::myarray[1]) as new_name].fetch_all(&pool)
 
 ```rust
 select![House replace(name, ::myvar, ::myarray[1]) as "new_name!:String"].fetch_all(&pool).await.unwrap();
+```
+
+but unlike `sqlx` you don't have to repeat the same complex alias for further use :
+
+```rust
+sqlx::query![r#"SELECT id, count(width) as "total!:i32" group by "total!:i32" "#]
+//instead with sqlo, just repeat the alias name without type indication
+select![House id, count(width) as "total!:i32" group_by total]
 ```
 
 - `*` can also be used:
@@ -510,6 +518,17 @@ select![House where id == ::width] // variable width is used
 // sql : select * from house where id=? (? will be 34 as parameter)
 select![House where id == width] // variable width is ignored, column name wil be used in sql
 // sql : select * from house where id=width
+```
+
+### The Group By clause
+
+Group your result with `group_by` keyword followed be column or alias names.
+
+A brackted syntax is available with `[]`.
+
+```rust
+select![House width, count(id) as "total!:i32" group_by width order_by total]
+select![House name, count(therooms.house_id) as total group_by name] // follows foreign keys
 ```
 
 ### The Order by clause

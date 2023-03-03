@@ -1,4 +1,4 @@
-use std::fmt::Write;
+use std::{collections::HashMap, fmt::Write};
 
 use std::collections::HashSet;
 
@@ -14,7 +14,7 @@ use super::{sqlo_select::SqloSelectParse, wwhere::process_where, ColumnToSql, Sq
 pub struct SqlResult<'a> {
     pub main_sqlo: &'a Sqlo,
     pub sqlos: &'a Sqlos,
-    pub alias: HashSet<IdentString>,
+    pub alias: HashMap<IdentString, String>,
     columns: String,
     joins: HashSet<String>,
     wwhere: String,
@@ -49,7 +49,7 @@ impl<'a> SqlResult<'a> {
         SqlResult {
             sqlos,
             main_sqlo,
-            alias: HashSet::default(),
+            alias: HashMap::default(),
             columns: String::default(),
             relation: Option::default(),
             wwhere: String::default(),

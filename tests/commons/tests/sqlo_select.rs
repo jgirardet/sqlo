@@ -360,6 +360,9 @@ Test! {select_order_by, async fn func(p:PPool) {
    let res = select![Lit order_by[surface, id]].fetch_all(&p.pool).await.unwrap();
    assert_eq!(res[1].id, 1);
    assert_eq!(res[2].id, 4);
+   // with string alias and non string alias used
+   let res = select![Lit surface as "ss!" order_by ss].fetch_all(&p.pool).await.unwrap();
+   assert_eq!(res[0].ss, 100);
 
 }}
 
@@ -401,13 +404,15 @@ Test! {select_group_by, async fn func(p:PPool) {
     assert_eq!(res[0].maison_id, 3);
     assert_eq!(res[0].total, 2);
     // with order by with "with alias"
-    let res1 = select![PieceFk maison_id, count(*) as total group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
+    let res = select![PieceFk maison_id, count(*) as total group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].maison_id, 3);
+    assert_eq!(res[0].total, Some(2));
+    // with order by with string alias
+    let res = select![PieceFk maison_id, count(*) as "total!:i32" group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
     assert_eq!(res[0].maison_id, 3);
     assert_eq!(res[0].total, 2);
-    // let res = select![PieceFk maison_id, count(*) as "total:i32" group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
-    // let res = sqlx::query![r#"SELECT maison_id, count(*) as "total?"
-    // FROM PIECE
-    // group by maison_id order by "total?""#].fetch_all(&p.pool).await.unwrap();
-    // assert_eq!(res[0].maison_id, 3);
-    // assert_eq!(res[0].total, Some(2));
+    // with order by with string alias
+    let res = select![PieceFk maison_id, count(*) as "total!:i32" group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].maison_id, 3);
+    assert_eq!(res[0].total, 2);
 }}

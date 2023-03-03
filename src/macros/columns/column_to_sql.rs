@@ -29,8 +29,8 @@ impl ColumnToSql for Expr {
 
 impl ColumnToSql for &IdentString {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
-        if ctx.alias.contains(self) {
-            Ok(self.to_string().into())
+        if ctx.alias.contains_key(self) {
+            Ok(ctx.alias[self].clone().into())
         } else {
             Ok(ctx.main_sqlo.column(self.as_ident())?.into())
         }

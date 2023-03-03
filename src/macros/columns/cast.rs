@@ -33,17 +33,19 @@ impl ColumnToSql for AliasCast {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         match self {
             Self::Ident(ident) => {
-                ctx.alias.insert(ident.clone());
+                ctx.alias.insert(ident.clone(), ident.to_string());
                 Ok(SqlQuery::from(format!(" as {ident}")))
             }
             Self::Literal(litstr) => {
                 let re = regex_macro::regex!(r#"^(\w+)[?!]?(?::\w+(?:::\w+)*)?$"#);
-                if let Some(captures) = re.captures(&litstr.value()) {
+                let alias_str = &litstr.value();
+                if let Some(captures) = re.captures(alias_str) {
                     if let Some(alias) = captures.get(1) {
                         let ident: IdentString =
                             syn::Ident::new(alias.as_str(), litstr.span()).into();
-                        ctx.alias.insert(ident);
-                        return Ok(format!(" as \"{}\"", litstr.value()).into());
+                        let formated_alias_string = format!("\"{alias_str}\"");
+                        ctx.alias.insert(ident, formated_alias_string.clone());
+                        return Ok(format!(" as {formated_alias_string}").into());
                     }
                 }
                 Err(SqloError::new_spanned(litstr, "invalid alias format"))
