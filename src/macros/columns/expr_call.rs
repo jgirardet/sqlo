@@ -7,7 +7,7 @@ use syn::{punctuated::Punctuated, spanned::Spanned, Token};
 
 use crate::{
     error::SqloError,
-    macros::{SqlQuery, SqlResult},
+    macros::{Context, SqlQuery, SqlResult},
 };
 
 use super::{ColExpr, ColumnToSql};
@@ -33,9 +33,11 @@ impl ColumnToSql for ColExprCall {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         let mut args = vec![];
         let mut params = vec![];
+        ctx.context = Context::Call;
         for arg in self.args.iter() {
             args.push(arg.column_to_sql(ctx)?);
         }
+        ctx.context = Context::None;
         let query = format!(
             "{}({})",
             &self.base,

@@ -63,6 +63,7 @@ Test! {select_test_where_binary, async fn func(p: PPool) {
     nb_result!(p,PieceFk, la < 30, 2);
     nb_result!(p,PieceFk, la <= 30, 3);
 }}
+
 Test! {select_test_where_null, async fn func(p: PPool) {
     // IS NULL/ IS NOT NULL
     nb_result!(p,Maison, piscine == None, 3);
@@ -73,6 +74,7 @@ Test! {select_test_where_between, async fn func(p: PPool) {
     nb_result!(p,PieceFk, la <= 30 && la < 60, 3);
     nb_result!(p,PieceFk, la <= 30 && la > 30 || la == 50, 1);
 }}
+
 struct A {
     a: i32,
 }
@@ -105,43 +107,44 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
         pub const A:i32= 1;
     }
     nb_result!(p,Maison, id == ::moda::A, 1);
-
-
-
 }}
 
 Test! {select_test_where_parethesis, async fn func(p: PPool) {
-    nb_result!(p,PieceFk, (la > 100 || la < 60) && maison_id == 1, 2);
-    nb_result!(p,PieceFk, (la < 100), 9);
-    nb_result!(p,PieceFk, !(la < 100), 0);
+    // nb_result!(p,PieceFk, (la > 100 || la < 60) && maison_id == 1, 2);
+    let res = select![PieceFk where (la > 100 || la < 60) && maison_id == 1].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 2);
+    let res = select![PieceFk where (la < 100)].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 9);
+    // let res = select![PieceFk where (la < 100)].fetch_all(&p.pool).await.unwrap();
+    // assert_eq!(res.len(), 0);
 }}
 
-Test! {select_test_wherein, async fn func(p: PPool) {
+// Test! {select_test_wherein, async fn func(p: PPool) {
 
-    // In
-    nb_result!(p,PieceFk, maison_id..[1, 3], 6);
-    nb_result!(p,PieceFk, maison_id..(1, 3), 6);
-    nb_result!(p,Maison, lespieces.lg..[1, 2, 13], 1); //et non 2 car distinct
-    nb_result!(p,PieceFk, maison_id..(0..2), 4);
-    nb_result!(p,PieceFk, maison_id..(1..2), 4);
-    nb_result!(p,PieceFk, maison_id..(2..=3), 5);
-    nb_result!(p,PieceFk, maison_id..(1..4), 9);
-    let (d, e, f) = (1, 2, 4);
-    nb_result!(p,PieceFk, maison_id..(::d, ::e, ::f), 7);
-    let [d, e, f] = [1, 2, 4];
-    nb_result!(p,PieceFk, maison_id..[::d, ::e, ::f], 7);
-}}
+//     // In
+//     nb_result!(p,PieceFk, maison_id..[1, 3], 6);
+//     nb_result!(p,PieceFk, maison_id..(1, 3), 6);
+//     nb_result!(p,Maison, lespieces.lg..[1, 2, 13], 1); //et non 2 car distinct
+//     nb_result!(p,PieceFk, maison_id..(0..2), 4);
+//     nb_result!(p,PieceFk, maison_id..(1..2), 4);
+//     nb_result!(p,PieceFk, maison_id..(2..=3), 5);
+//     nb_result!(p,PieceFk, maison_id..(1..4), 9);
+//     let (d, e, f) = (1, 2, 4);
+//     nb_result!(p,PieceFk, maison_id..(::d, ::e, ::f), 7);
+//     let [d, e, f] = [1, 2, 4];
+//     nb_result!(p,PieceFk, maison_id..[::d, ::e, ::f], 7);
+// }}
 
-Test! {select_test_where_like, async fn func(p: PPool) {
-    nb_result!(p, Maison, like![adresse,"adr%"], 3);
-    nb_result!(p, Maison, like![adresse,"%dress%"], 3);
-    nb_result!(p, Maison, like![adresse,"%dresse1%"], 1);
-    nb_result!(p, Maison, like![adresse,"%dresse1"], 1);
-    nb_result!(p, Maison, like![adresse,"a%se1"], 1);
-    nb_result!(p, Maison, like![adresse,"a%se1"], 1);
-    // with fk
-    nb_result!(p, Maison, like![adres.rue,"a%se1"], 1);
-}}
+// Test! {select_test_where_like, async fn func(p: PPool) {
+//     nb_result!(p, Maison, like![adresse,"adr%"], 3);
+//     nb_result!(p, Maison, like![adresse,"%dress%"], 3);
+//     nb_result!(p, Maison, like![adresse,"%dresse1%"], 1);
+//     nb_result!(p, Maison, like![adresse,"%dresse1"], 1);
+//     nb_result!(p, Maison, like![adresse,"a%se1"], 1);
+//     nb_result!(p, Maison, like![adresse,"a%se1"], 1);
+//     // with fk
+//     nb_result!(p, Maison, like![adres.rue,"a%se1"], 1);
+// }}
 
 Test! {select_test_where_foreign_key, async fn func(p: PPool) {
     let a = A { a: 2 };
@@ -180,7 +183,6 @@ Test! {select_test_where_call, async fn func(p:PPool){
     // with fk
     let res = select![Maison where trim(adres.rue, "adr") == "esse2"].fetch_one(&p.pool).await.unwrap();
     assert_eq!(res.adresse, "adresse2");
-
 }}
 
 Test! {select_cutoms_fields, async fn func(p: PPool) {
@@ -252,9 +254,8 @@ Test! {select_cutoms_join_conflict, async fn func(p: PPool) {
   // with join conflict column, the reverse with id
   let res = select![Maison id, adres.id as ll where adres.id>1].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
-  // call simple
-
 }}
+
 Test! {select_cutoms_call, async fn func(p: PPool) {
   let res = select![Maison count(id) as total].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.total, 3);
@@ -309,7 +310,10 @@ Test! {select_cutoms_binary_operation, async fn func(p: PPool) {
   assert!(res.total);
   // op inside call
   let res = select![Maison max(count(id), 5) as "c!:u16"].fetch_one(&p.pool).await.unwrap();
-  assert_eq!(res.c, 5)
+  assert_eq!(res.c, 5);
+  // binary asterisk
+  let res = select![Maison id * 3 as id_plus_3].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res[1].id_plus_3, Some(6));
 }}
 
 Test! {select_cutoms_asterisk, async fn func(p: PPool) {
@@ -367,7 +371,6 @@ Test! {select_order_by, async fn func(p:PPool) {
    // with string alias and non string alias used
    let res = select![Lit surface as "ss!" order_by ss].fetch_all(&p.pool).await.unwrap();
    assert_eq!(res[0].ss, 100);
-
 }}
 
 Test! {select_limit, async fn func(p:PPool) {

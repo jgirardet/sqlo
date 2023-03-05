@@ -20,6 +20,17 @@ impl From<String> for SqlQuery {
     }
 }
 
+// Take  a string query
+impl From<&str> for SqlQuery {
+    fn from(s: &str) -> Self {
+        SqlQuery {
+            query: s.to_string(),
+            params: vec![],
+            joins: HashSet::default(),
+        }
+    }
+}
+
 // Take to tupple string (query, join)
 impl From<(String, String)> for SqlQuery {
     fn from(s: (String, String)) -> Self {

@@ -3,7 +3,7 @@ use syn::{Expr, ExprLit, Lit};
 
 use crate::{
     error::SqloError,
-    macros::{SqlQuery, SqlResult},
+    macros::{Context, SqlQuery, SqlResult},
 };
 
 pub trait ColumnToSql {
@@ -30,7 +30,10 @@ impl ColumnToSql for Expr {
 impl ColumnToSql for &IdentString {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
         if ctx.alias.contains_key(self) {
-            Ok(ctx.alias[self].clone().into())
+            match ctx.context {
+                Context::None => Ok(ctx.alias[self].clone().into()),
+                Context::Call => Ok(format! {"{self}"}.into()), // no sqlx text alias in call
+            }
         } else {
             Ok(ctx.main_sqlo.column(self.as_ident())?.into())
         }

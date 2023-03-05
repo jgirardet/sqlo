@@ -9,12 +9,13 @@ use syn::Expr;
 
 use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{sqlo_select::SqloSelectParse, wwhere::process_where, ColumnToSql, SqlQuery};
+use super::{ColumnToSql, Context, SqlQuery, SqloSelectParse};
 
 pub struct SqlResult<'a> {
     pub main_sqlo: &'a Sqlo,
     pub sqlos: &'a Sqlos,
     pub alias: HashMap<IdentString, String>,
+    pub context: Context,
     columns: String,
     joins: HashSet<String>,
     wwhere: String,
@@ -60,6 +61,7 @@ impl<'a> SqlResult<'a> {
             custom_struct: None,
             order_by: String::default(),
             limit: String::default(),
+            context: Context::default(),
         }
     }
 
@@ -120,10 +122,10 @@ impl<'a> SqlResult<'a> {
     }
 
     fn process_where(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
-        if let Some(ref wt) = parsed.wwhere {
-            let wwhere_sql = process_where(&self.main_sqlo.ident, self.sqlos, wt)?;
-            self.wwhere = wwhere_sql.query.clone();
-            self.extend(wwhere_sql);
+        if let Some(conditions) = &parsed.wwhere {
+            let qr = conditions.column_to_sql(self)?;
+            self.wwhere = qr.query.clone();
+            self.extend(qr);
         }
         Ok(())
     }

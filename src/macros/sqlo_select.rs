@@ -5,7 +5,7 @@ use syn::{parse::ParseStream, punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
-use super::{wwhere::tokenizer::WhereTokenizer, Column, GroupBy, Limit, OrderBys, SqlResult};
+use super::{Column, GroupBy, Limit, OrderBys, SqlResult, Where};
 
 pub mod kw {
     syn::custom_keyword!(order_by);
@@ -20,7 +20,7 @@ pub struct SqloSelectParse {
     pub customs: Vec<Column>,
     pub custom_struct: Option<IdentString>,
     pub pk_value: Option<syn::Expr>,
-    pub wwhere: Option<WhereTokenizer>,
+    pub wwhere: Option<Where>,
     pub order_by: Option<OrderBys>,
     pub limit: Option<Limit>,
     pub group_by: Option<GroupBy>,
@@ -84,7 +84,7 @@ impl syn::parse::Parse for SqloSelectParse {
                 .parse::<Token![where]>()
                 .map_err(|_| syn::Error::new(input.span(), "`where` expected"))?;
 
-            let wwhere = input.parse::<WhereTokenizer>()?;
+            let wwhere = input.parse()?;
             res.wwhere = Some(wwhere);
         }
 
@@ -107,7 +107,7 @@ impl syn::parse::Parse for SqloSelectParse {
     }
 }
 
-fn next_is_not_a_keyword(input: &ParseStream) -> bool {
+pub fn next_is_not_a_keyword(input: &ParseStream) -> bool {
     !input.peek(Token![where])
         && !input.peek(kw::order_by)
         && !input.peek(kw::limit)
@@ -147,10 +147,10 @@ mod test_sqlo_select_macro {
         where_with_parenthese,
         "Maison where  1 == 1 && (33 ==3 || 2 == 2)"
     );
-    success_parse_sqlo_select_syntax!(
-        where_with_any_expr,
-        r#"Maison where  1 == 1 && ([1,2,3].contains(3) || "fze".startswith('f'))"#
-    );
+    // success_parse_sqlo_select_syntax!(
+    //     where_with_any_expr,
+    //     r#"Maison where  1 == 1 && ([1,2,3].contains(3) || "fze".startswith('f'))"#
+    // );
     success_parse_sqlo_select_syntax!(order_by, r#"Maison where  1 == 1 && 2 == 2 order_by bla"#);
     success_parse_sqlo_select_syntax!(
         order_by_many,

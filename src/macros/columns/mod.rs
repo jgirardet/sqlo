@@ -5,6 +5,7 @@ mod column_to_sql;
 mod expr_call;
 mod expr_field;
 mod expr_op;
+mod expr_paren;
 
 pub use cast::{AliasCast, ColumnCast};
 pub use col_expr::ColExpr;
@@ -13,3 +14,4 @@ pub use column_to_sql::ColumnToSql;
 pub use expr_call::ColExprCall;
 pub use expr_field::ColExprField;
 pub use expr_op::ColExprOp;
+pub use expr_paren::ColExprParen;

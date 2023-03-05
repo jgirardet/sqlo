@@ -1,6 +1,6 @@
 use syn::{BinOp, Token};
 
-use crate::macros::SqlResult;
+use crate::{error::SqloError, macros::SqlResult};
 
 use super::{ColExpr, ColumnToSql};
 
@@ -25,6 +25,24 @@ impl ColumnToSql for ColExprOp {
         ctx: &mut SqlResult,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
         let lhs = self.lhs.column_to_sql(ctx)?;
+        if let ColExpr::Ident(i) = self.rhs.as_ref() {
+            dbg!(&self.rhs);
+            if i.as_str() == "None" {
+                match &self.sign {
+                    BinOp::Eq(_) => 
+                        return Ok(self.lhs.column_to_sql(ctx)?.add_no_comma(" IS NULL".into())),
+                    
+                    BinOp::Ne(_) => 
+                        return Ok(self.lhs.column_to_sql(ctx)?.add_no_comma(" IS NOT NULL".into())),
+                    _ => {
+                        return Err(SqloError::new_spanned(
+                            self.sign,
+                            "None must be used with == or !=",
+                        ))
+                    }
+                }
+            }
+        };
         let sign = self.sign.column_to_sql(ctx)?;
         let rhs = self.rhs.column_to_sql(ctx)?;
         Ok(lhs.add_no_comma(sign).add_no_comma(rhs))
@@ -48,8 +66,8 @@ pub fn op_to_sql(op: &BinOp) -> &str {
         BinOp::Lt(_) => "<",
         BinOp::Ge(_) => ">=",
         BinOp::Gt(_) => ">",
-        // BinOp::And(_) => "AND",
-        // BinOp::Or(_) => "||",
+        BinOp::And(_) => "AND",
+        BinOp::Or(_) => "OR",
         BinOp::Add(_) => "+",
         BinOp::Sub(_) => "-",
         BinOp::Mul(_) => "*",
@@ -69,4 +87,6 @@ pub fn next_is_supported_op(input: &syn::parse::ParseStream) -> bool {
         || input.peek(Token![<])
         || input.peek(Token![>])
         || input.peek(Token![>=])
+        || input.peek(Token![&&])
+        || input.peek(Token![||])
 }
