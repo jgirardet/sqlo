@@ -135,16 +135,23 @@ Test! {select_test_where_parethesis, async fn func(p: PPool) {
 //     nb_result!(p,PieceFk, maison_id..[::d, ::e, ::f], 7);
 // }}
 
-// Test! {select_test_where_like, async fn func(p: PPool) {
-//     nb_result!(p, Maison, like![adresse,"adr%"], 3);
-//     nb_result!(p, Maison, like![adresse,"%dress%"], 3);
-//     nb_result!(p, Maison, like![adresse,"%dresse1%"], 1);
-//     nb_result!(p, Maison, like![adresse,"%dresse1"], 1);
-//     nb_result!(p, Maison, like![adresse,"a%se1"], 1);
-//     nb_result!(p, Maison, like![adresse,"a%se1"], 1);
-//     // with fk
-//     nb_result!(p, Maison, like![adres.rue,"a%se1"], 1);
-// }}
+Test! {select_test_where_like, async fn func(p: PPool) {
+    let res = select![Maison where adresse # "adr%"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 3);
+    let res = select![Maison where adresse # "%dress%"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 3);
+    let res = select![Maison where adresse # "%dresse1%"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 1);
+    let res = select![Maison where adresse # "%dresse1"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 1);
+    let res = select![Maison where adresse # "a%se1"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 1);
+    let res = select![Maison where adresse # "a%se1"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 1);
+    // // with fk
+    let res = select![Maison where adres.rue # "a%se1"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 1);
+}}
 
 Test! {select_test_where_foreign_key, async fn func(p: PPool) {
     let a = A { a: 2 };
