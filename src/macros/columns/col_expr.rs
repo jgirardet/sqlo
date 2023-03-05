@@ -1,17 +1,15 @@
 use darling::util::IdentString;
 use syn::{
-    parenthesized, parse::Parse, punctuated::Punctuated, BinOp, Expr, ExprCall, ExprField,
-    ExprIndex, ExprPath, Lit, Token,
+    parenthesized, parse::Parse, punctuated::Punctuated, Expr, ExprCall, ExprField, ExprIndex,
+    ExprPath, Lit, Token,
 };
 
 use crate::{
     error::SqloError,
-    macros::{SqlQuery, SqlResult},
+    macros::{Operator, SqlQuery, SqlResult},
 };
 
-use super::{
-    expr_op::next_is_supported_op, ColExprCall, ColExprField, ColExprOp, ColExprParen, ColumnToSql,
-};
+use super::{ColExprCall, ColExprField, ColExprOp, ColExprParen, ColumnToSql};
 
 #[derive(Debug)]
 pub enum ColExpr {
@@ -48,7 +46,7 @@ impl syn::parse::Parse for ColExpr {
             return parse_paren(input);
         }
         let col = parse_initial(input)?;
-        if next_is_supported_op(&input) {
+        if Operator::next_is_supported_op(&input) {
             parse_operation(input, col)
         } else {
             Ok(col)
@@ -60,12 +58,12 @@ fn parse_paren(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
     let content;
     parenthesized!(content in input);
     let paren = ColExprParen::new(content.parse()?).into();
-    if next_is_supported_op(&input) {
+    if Operator::next_is_supported_op(&input) {
         let sign = input.parse()?;
         let rhs = input.parse()?;
         Ok(ColExpr::Operation(ColExprOp {
             lhs: Box::new(paren),
-            sign,
+            op: sign,
             rhs: Box::new(rhs),
         }))
     } else {
@@ -113,21 +111,21 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
 }
 
 fn parse_operation(input: syn::parse::ParseStream, lhs: ColExpr) -> syn::Result<ColExpr> {
-    let sign = input.parse::<BinOp>()?;
+    let op = input.parse::<Operator>()?;
     if input.peek(Token![-]) {
         input.parse::<Token![-]>()?;
         let rhs = input.parse::<ColExpr>()?;
 
         return Ok(ColExpr::Operation(ColExprOp {
             lhs: Box::new(lhs),
-            sign,
+            op,
             rhs: Box::new(ColExpr::Unary(Box::new(rhs))),
         }));
     }
     let rhs = input.parse::<ColExpr>()?;
     Ok(ColExpr::Operation(ColExprOp {
         lhs: Box::new(lhs),
-        sign,
+        op,
         rhs: Box::new(rhs),
     }))
 }
