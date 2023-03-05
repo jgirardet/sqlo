@@ -471,7 +471,7 @@ It's an aggregate of binary expressions, here are some use cases, by SQL usage:
   - `select![House where id..(1..4)]` as exclusive range
   - `select![House where id..(1..=4)` as inclusive range
   - `let [a,b,c] = myarray; select![House where id..(a,b,c)]` for known size array. Plain array/vec not supported now.
-- LIKE: use `#` operator : `select![House where name  # "%bla"]`. If yoy don't like it, plese contat [@nicolaskapfer](https://github.com/nicolaskapfer).
+- LIKE: use `#` operator : `select![House where name  # "%bla"]`. If yoy don't like it, please contat [@nicolaskapfer](https://github.com/nicolaskapfer).
 - column from join: see [JOIN in where clause](####JOIN-in-where-clause)
 - function call: `select![House where trim(name) == "myhouse"]`
 - AND, OR: chain expressions with `&&`, `||`
