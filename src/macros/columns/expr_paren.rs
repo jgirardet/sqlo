@@ -1,11 +1,13 @@
+use crate::{error::SqloError, macros::SqlQuery};
+
 use super::{ColExpr, ColumnToSql};
 
 #[derive(Debug)]
-pub struct ColExprParen(Box<ColExpr>);
+pub struct ColExprParen(Vec<ColExpr>);
 
 impl ColExprParen {
-    pub fn new(colexpr: ColExpr) -> Self {
-        ColExprParen(Box::new(colexpr))
+    pub fn new(colexpr: Vec<ColExpr>) -> Self {
+        ColExprParen(colexpr)
     }
 }
 
@@ -14,7 +16,10 @@ impl ColumnToSql for ColExprParen {
         &self,
         ctx: &mut crate::macros::SqlResult,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
-        let mut res = self.0.as_ref().column_to_sql(ctx)?;
+        let mut res = self.0.iter().fold(
+            Ok(SqlQuery::default()),
+            |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?),
+        )?;
         res.prepend_str("(");
         res.append_str(")");
         Ok(res)
@@ -23,7 +28,7 @@ impl ColumnToSql for ColExprParen {
 
 impl quote::ToTokens for ColExprParen {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let content = self.0.as_ref();
+        let content = &self.0[0];
         quote::quote![(#content)].to_tokens(tokens);
     }
 }

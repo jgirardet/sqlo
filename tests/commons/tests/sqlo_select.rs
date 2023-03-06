@@ -110,30 +110,19 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
 }}
 
 Test! {select_test_where_parethesis, async fn func(p: PPool) {
-    // nb_result!(p,PieceFk, (la > 100 || la < 60) && maison_id == 1, 2);
     let res = select![PieceFk where (la > 100 || la < 60) && maison_id == 1].fetch_all(&p.pool).await.unwrap();
     assert_eq!(res.len(), 2);
     let res = select![PieceFk where (la < 100)].fetch_all(&p.pool).await.unwrap();
     assert_eq!(res.len(), 9);
-    // let res = select![PieceFk where (la < 100)].fetch_all(&p.pool).await.unwrap();
-    // assert_eq!(res.len(), 0);
 }}
 
-// Test! {select_test_wherein, async fn func(p: PPool) {
-
-//     // In
-//     nb_result!(p,PieceFk, maison_id..[1, 3], 6);
-//     nb_result!(p,PieceFk, maison_id..(1, 3), 6);
-//     nb_result!(p,Maison, lespieces.lg..[1, 2, 13], 1); //et non 2 car distinct
-//     nb_result!(p,PieceFk, maison_id..(0..2), 4);
-//     nb_result!(p,PieceFk, maison_id..(1..2), 4);
-//     nb_result!(p,PieceFk, maison_id..(2..=3), 5);
-//     nb_result!(p,PieceFk, maison_id..(1..4), 9);
-//     let (d, e, f) = (1, 2, 4);
-//     nb_result!(p,PieceFk, maison_id..(::d, ::e, ::f), 7);
-//     let [d, e, f] = [1, 2, 4];
-//     nb_result!(p,PieceFk, maison_id..[::d, ::e, ::f], 7);
-// }}
+Test! {select_test_wherein, async fn func(p: PPool) {
+    let res = select![PieceFk where maison_id in (1,3)].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 6);
+    let [d, e, f] = [1, 2, 4];
+    let res = select!(PieceFk where maison_id in (::d, ::e, ::f)).fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 7);
+}}
 
 Test! {select_test_where_like, async fn func(p: PPool) {
     let res = select![Maison where adresse # "adr%"].fetch_all(&p.pool).await.unwrap();

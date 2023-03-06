@@ -15,7 +15,8 @@ pub enum Operator {
     Neq,
     And,
     Or,
-    Like, // Not,
+    Like,
+    In,
 }
 macro_rules! impl_parse_for_operator {
     ($start:ident, $start_sign:tt, $($iden:ident,$sign:tt),+) => {
@@ -82,14 +83,14 @@ impl_parse_for_operator!(
     Add,+, Sub,-, Mul,*, Div,/, Mod,%,
     Eq,==, Neq, !=, Ge,>=, Le, <=,Lt,<, Gt,>, //order matter composed before single token
     And,&&, Or,||, //Not, !
-    Like,#
+    Like,#, In, in
 );
 
 impl_columnto_sql_for_operator!(
     Add "+", Sub "-", Mul "*", Div "/", Mod "%",
     Ge ">=", Le "<=", Lt "<", Gt ">",  Eq "=", Neq "<>",
     And "AND", Or "OR",
-    Like "LIKE"
+    Like "LIKE", In "IN"
 
 );
 
@@ -97,7 +98,7 @@ impl_to_tokens_for_operator!(
     Add "+", Sub "-", Mul "*", Div "/", Mod "%",
     Ge ">=", Le "<=", Lt "<", Gt ">", Eq "==", Neq "!=",
     And "&&", Or "||",
-    Like "#"
+    Like "#", In "in"
 );
 // Self::Not => Ok("NOT".into()),
 
@@ -105,5 +106,5 @@ impl_is_next_supported_operator!(
     +, -, *, /, %,
     <=, >=, <, >, ==, !=,
     &&, ||,
-    #
+    #, in
 );

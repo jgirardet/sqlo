@@ -57,17 +57,24 @@ impl syn::parse::Parse for ColExpr {
 fn parse_paren(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
     let content;
     parenthesized!(content in input);
-    let paren = ColExprParen::new(content.parse()?).into();
-    if Operator::next_is_supported_op(&input) {
-        let sign = input.parse()?;
-        let rhs = input.parse()?;
-        Ok(ColExpr::Operation(ColExprOp {
-            lhs: Box::new(paren),
-            op: sign,
-            rhs: Box::new(rhs),
-        }))
+    let seq: Punctuated<ColExpr, Token![,]> = Punctuated::parse_separated_nonempty(&content)?;
+
+    // should be no case where multiple args parenthes is inside an operator
+    if seq.len() == 1 {
+        let paren = ColExprParen::new(seq.into_iter().collect::<Vec<ColExpr>>()).into();
+        if Operator::next_is_supported_op(&input) {
+            let sign = input.parse()?;
+            let rhs = input.parse()?;
+            Ok(ColExpr::Operation(ColExprOp {
+                lhs: Box::new(paren),
+                op: sign,
+                rhs: Box::new(rhs),
+            }))
+        } else {
+            Ok(paren)
+        }
     } else {
-        Ok(ColExprParen::new(paren).into())
+        Ok(ColExprParen::new(seq.into_iter().collect()).into())
     }
 }
 

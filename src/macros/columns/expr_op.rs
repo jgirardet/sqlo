@@ -27,7 +27,6 @@ impl ColumnToSql for ColExprOp {
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
         let lhs = self.lhs.column_to_sql(ctx)?;
         if let ColExpr::Ident(i) = self.rhs.as_ref() {
-            dbg!(&self.rhs);
             if i.as_str() == "None" {
                 match &self.op {
                     Operator::Eq => {

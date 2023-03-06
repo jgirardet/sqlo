@@ -2,18 +2,11 @@ A faire:
 
 
 WHERE:
-- == sera utilsier à la place de is mais sera converti correctement
-
-TEst à derefaire:
-indexing
-in
-like
 not dans test_where_parenthesis!
 
 sqlrsult: un macro pour les process
-
 having()?
-les sous requetes/all/exists/any/some  
+les sous requetes/all/exists/any/some  avec in aussi
 case
 left join/right join/self
 union/intersect/except
