@@ -62,6 +62,23 @@ Test! {select_test_where_binary, async fn func(p: PPool) {
     nb_result!(p,PieceFk, la >= 30, 7);
     nb_result!(p,PieceFk, la < 30, 2);
     nb_result!(p,PieceFk, la <= 30, 3);
+
+}}
+Test! {select_test_where_unary, async fn func(p: PPool) {
+    // minus
+    let res = select![Maison where id == -1 + 2].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].id, 1);
+    let res = select![Maison where id == 1 - -1].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].id, 2);
+    let res = select![Maison where id == -1 * (-2 - -1)].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].id, 1);
+    // not
+    let res = select![Maison where !(id == 1)].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 2);
+    assert_eq!(res[0].id, 2);
+    assert_eq!(res[1].id, 3);
+    let res = select![Maison  where !(id!=1) && !(1==1 && 0==1)].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].id, 1);
 }}
 
 Test! {select_test_where_null, async fn func(p: PPool) {

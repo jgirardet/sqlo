@@ -6,10 +6,10 @@ use syn::{
 
 use crate::{
     error::SqloError,
-    macros::{Operator, SqlQuery, SqlResult},
+    macros::{unarize, Operator, SqlQuery, SqlResult},
 };
 
-use super::{ColExprCall, ColExprField, ColExprOp, ColExprParen, ColumnToSql};
+use super::{ColExprCall, ColExprField, ColExprOp, ColExprParen, ColExprUnary, ColumnToSql};
 
 #[derive(Debug)]
 pub enum ColExpr {
@@ -20,7 +20,7 @@ pub enum ColExpr {
     Value(Expr),
     Operation(ColExprOp),
     Paren(ColExprParen),
-    Unary(Box<ColExpr>),
+    Unary(ColExprUnary),
     Asterisk,
 }
 
@@ -35,47 +35,50 @@ impl quote::ToTokens for ColExpr {
             Self::Operation(o) => o.to_tokens(tokens),
             Self::Asterisk => "*".to_tokens(tokens),
             Self::Paren(p) => p.to_tokens(tokens),
-            Self::Unary(p) => p.as_ref().to_tokens(tokens),
+            Self::Unary(p) => p.to_tokens(tokens),
         }
     }
 }
 
 impl syn::parse::Parse for ColExpr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let unary = ColExprUnary::get_next_unary(input)?;
         if input.peek(syn::token::Paren) {
-            return parse_paren(input);
+            return parse_paren(input, unary);
         }
-        let col = parse_initial(input)?;
+        let initial_col = parse_initial(input)?;
+        let unarized_col = unarize(initial_col, unary);
         if Operator::next_is_supported_op(&input) {
-            parse_operation(input, col)
+            parse_operation(input, unarized_col)
         } else {
-            Ok(col)
+            Ok(unarized_col)
         }
     }
 }
 
-fn parse_paren(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
+fn parse_paren(input: syn::parse::ParseStream, unary: &str) -> syn::Result<ColExpr> {
     let content;
     parenthesized!(content in input);
     let seq: Punctuated<ColExpr, Token![,]> = Punctuated::parse_separated_nonempty(&content)?;
 
     // should be no case where multiple args parenthes is inside an operator
-    if seq.len() == 1 {
+    let res = if seq.len() == 1 {
         let paren = ColExprParen::new(seq.into_iter().collect::<Vec<ColExpr>>()).into();
         if Operator::next_is_supported_op(&input) {
             let sign = input.parse()?;
             let rhs = input.parse()?;
-            Ok(ColExpr::Operation(ColExprOp {
+            ColExpr::Operation(ColExprOp {
                 lhs: Box::new(paren),
                 op: sign,
                 rhs: Box::new(rhs),
-            }))
+            })
         } else {
-            Ok(paren)
+            paren
         }
     } else {
-        Ok(ColExprParen::new(seq.into_iter().collect()).into())
-    }
+        ColExprParen::new(seq.into_iter().collect()).into()
+    };
+    Ok(unarize(res, unary))
 }
 
 fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
@@ -119,21 +122,13 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
 
 fn parse_operation(input: syn::parse::ParseStream, lhs: ColExpr) -> syn::Result<ColExpr> {
     let op = input.parse::<Operator>()?;
-    if input.peek(Token![-]) {
-        input.parse::<Token![-]>()?;
-        let rhs = input.parse::<ColExpr>()?;
-
-        return Ok(ColExpr::Operation(ColExprOp {
-            lhs: Box::new(lhs),
-            op,
-            rhs: Box::new(ColExpr::Unary(Box::new(rhs))),
-        }));
-    }
+    let unary_rhs = ColExprUnary::get_next_unary(input)?;
     let rhs = input.parse::<ColExpr>()?;
+
     Ok(ColExpr::Operation(ColExprOp {
         lhs: Box::new(lhs),
         op,
-        rhs: Box::new(rhs),
+        rhs: Box::new(unarize(rhs, unary_rhs)),
     }))
 }
 
@@ -148,16 +143,33 @@ impl ColumnToSql for ColExpr {
             Self::Operation(expr_op) => expr_op.column_to_sql(ctx),
             Self::Asterisk => Ok("*".to_string().into()),
             Self::Paren(p) => p.column_to_sql(ctx),
-            Self::Unary(p) => Ok(format!("-{}", p.as_ref().column_to_sql(ctx)?.query).into()),
+            Self::Unary(p) => p.column_to_sql(ctx),
         }
     }
 }
 
-impl From<ColExprParen> for ColExpr {
-    fn from(c: ColExprParen) -> Self {
-        ColExpr::Paren(c)
-    }
+macro_rules! impl_from_variant_for_colexpr {
+    ($($variant:ident $target:ident),+) => {
+        $(
+        impl From<$target> for ColExpr {
+            fn from(c: $target) -> Self {
+                ColExpr::$variant(c)
+            }
+        }
+        )+
+    };
 }
+
+impl_from_variant_for_colexpr!(
+    Ident IdentString,
+    Call ColExprCall,
+    Field ColExprField,
+    Literal Lit,
+    Value Expr,
+    Operation ColExprOp,
+    Paren ColExprParen,
+    Unary ColExprUnary
+);
 
 // we support only a fex expr variant and we want to avoid parsing syn cast expr
 fn parse_supported_expr(input: &syn::parse::ParseStream) -> Result<Expr, syn::Error> {

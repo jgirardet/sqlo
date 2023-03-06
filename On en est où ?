@@ -2,9 +2,11 @@ A faire:
 
 
 WHERE:
-not dans test_where_parenthesis!
-
+Refacto:
 sqlrsult: un macro pour les process
+parse de operation dans parenthese : not DRY ?
+parenthes et parenthes de call: Not dry ?
+
 having()?
 les sous requetes/all/exists/any/some  avec in aussi
 case

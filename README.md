@@ -418,6 +418,7 @@ assert_eq!(total.all, 5);
   - a field access (`therooms.bed`): access a related field. It wil add a [INNER JOIN](###INNER-JOIN)
   - a sql function (`sum(id)`, `replace(adresse, "1", "345")`): must always be followed by `as` with an identifier.
   - a binary operation(`id + 3`): must always be followed by `as` with identifier.
+  - unary: `-id`, `-1`, ...
 
 Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case, it must be escaped with a `::` :
 
@@ -464,7 +465,7 @@ It's an aggregate of binary expressions, here are some use cases, by SQL usage:
 - IS NOT NULL: `select![House where width != None]`
 - BETWEEN: `select![House where  width > 1 && width <5]`
 - use of parenthesis: `select![House where (width==1 || width==2) && height==4]`
-- NOT: `select![House !(width>5)]`
+- NOT use `!` with parenthesis: `select![House !(width>5)]`
 - IN (range expression) : `select![House where id..(1,3,4)`
 - LIKE: use `#` operator : `select![House where name  # "%bla"]`.
 - column from join: see [JOIN in where clause](####JOIN-in-where-clause)
