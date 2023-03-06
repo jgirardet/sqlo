@@ -35,14 +35,7 @@ impl<'a> SqlResult<'a> {
     ) -> Result<SqlResult, SqloError> {
         let main_sqlo = SqlResult::set_main_and_relation(&parsed, sqlos)?;
         let mut sqlr = SqlResult::new(main_sqlo, sqlos);
-        sqlr.set_columns(&parsed)?;
-        sqlr.set_relation(&parsed)?;
-        sqlr.process_where(&parsed)?;
-        sqlr.link_related_in_where(&parsed);
-        sqlr.process_group_by(&parsed)?;
-        sqlr.process_order_by(&parsed)?;
-        sqlr.process_limit(&parsed)?;
-        sqlr.set_custom_struct(&parsed);
+        sqlr.parse(&parsed)?;
         Ok(sqlr)
     }
 
@@ -77,6 +70,27 @@ impl<'a> SqlResult<'a> {
     }
 }
 
+macro_rules! impl_process_sqlqueries {
+    ($($clause:ident)+) => {
+        paste::paste! {
+            impl<'a> SqlResult<'a> {
+                $(
+                fn [<process_ $clause>](&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+                    if let Some(case) = &parsed.$clause {
+                        let qr = case.column_to_sql(self)?;
+                        self.$clause = qr.query.clone();
+                        self.extend(qr);
+                    }
+                    Ok(())
+                }
+            )+
+            }
+        }
+    };
+}
+
+impl_process_sqlqueries!(wwhere group_by order_by limit);
+
 impl<'a> SqlResult<'a> {
     fn extend(&mut self, qr: SqlQuery) {
         self.arguments.extend(qr.params);
@@ -92,42 +106,6 @@ impl<'a> SqlResult<'a> {
 
     fn set_custom_struct(&mut self, parsed: &SqloSelectParse) {
         self.custom_struct = parsed.custom_struct.clone();
-    }
-
-    fn process_group_by(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
-        if let Some(group_by) = &parsed.group_by {
-            let qr = group_by.column_to_sql(self)?;
-            self.group_by = qr.query.clone();
-            self.extend(qr);
-        }
-        Ok(())
-    }
-
-    fn process_order_by(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
-        if let Some(order_bys) = &parsed.order_by {
-            let qr = order_bys.column_to_sql(self)?;
-            self.order_by = qr.query.clone();
-            self.extend(qr);
-        }
-        Ok(())
-    }
-
-    fn process_limit(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
-        if let Some(limit) = &parsed.limit {
-            let qr = limit.column_to_sql(self)?;
-            self.limit = qr.query.clone();
-            self.extend(qr);
-        }
-        Ok(())
-    }
-
-    fn process_where(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
-        if let Some(conditions) = &parsed.wwhere {
-            let qr = conditions.column_to_sql(self)?;
-            self.wwhere = qr.query.clone();
-            self.extend(qr);
-        }
-        Ok(())
     }
 
     fn link_related_in_where(&mut self, parsed: &SqloSelectParse) {
@@ -174,6 +152,18 @@ impl<'a> SqlResult<'a> {
         } else {
             ""
         }
+    }
+
+    pub fn parse(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+        self.set_columns(&parsed)?;
+        self.set_relation(&parsed)?;
+        self.process_wwhere(&parsed)?;
+        self.link_related_in_where(&parsed);
+        self.process_group_by(&parsed)?;
+        self.process_order_by(&parsed)?;
+        self.process_limit(&parsed)?;
+        self.set_custom_struct(&parsed);
+        Ok(())
     }
 
     fn query(&self) -> String {
