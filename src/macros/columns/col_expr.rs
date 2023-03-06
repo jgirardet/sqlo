@@ -43,10 +43,11 @@ impl quote::ToTokens for ColExpr {
 impl syn::parse::Parse for ColExpr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let unary = ColExprUnary::get_next_unary(input)?;
-        if input.peek(syn::token::Paren) {
-            return parse_paren(input, unary);
-        }
-        let initial_col = parse_initial(input)?;
+        let initial_col = if input.peek(syn::token::Paren) {
+            parse_paren(input)?
+        } else {
+            parse_initial(input)?
+        };
         let unarized_col = unarize(initial_col, unary);
         if Operator::next_is_supported_op(&input) {
             parse_operation(input, unarized_col)
@@ -56,29 +57,11 @@ impl syn::parse::Parse for ColExpr {
     }
 }
 
-fn parse_paren(input: syn::parse::ParseStream, unary: &str) -> syn::Result<ColExpr> {
+fn parse_paren(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
     let content;
     parenthesized!(content in input);
     let seq: Punctuated<ColExpr, Token![,]> = Punctuated::parse_separated_nonempty(&content)?;
-
-    // should be no case where multiple args parenthes is inside an operator
-    let res = if seq.len() == 1 {
-        let paren = ColExprParen::new(seq.into_iter().collect::<Vec<ColExpr>>()).into();
-        if Operator::next_is_supported_op(&input) {
-            let sign = input.parse()?;
-            let rhs = input.parse()?;
-            ColExpr::Operation(ColExprOp {
-                lhs: Box::new(paren),
-                op: sign,
-                rhs: Box::new(rhs),
-            })
-        } else {
-            paren
-        }
-    } else {
-        ColExprParen::new(seq.into_iter().collect()).into()
-    };
-    Ok(unarize(res, unary))
+    Ok(ColExprParen::new(seq.into_iter().collect()).into())
 }
 
 fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
@@ -122,13 +105,11 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
 
 fn parse_operation(input: syn::parse::ParseStream, lhs: ColExpr) -> syn::Result<ColExpr> {
     let op = input.parse::<Operator>()?;
-    let unary_rhs = ColExprUnary::get_next_unary(input)?;
     let rhs = input.parse::<ColExpr>()?;
-
     Ok(ColExpr::Operation(ColExprOp {
         lhs: Box::new(lhs),
         op,
-        rhs: Box::new(unarize(rhs, unary_rhs)),
+        rhs: Box::new(rhs),
     }))
 }
 

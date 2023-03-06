@@ -4,7 +4,6 @@ A faire:
 WHERE:
 Refacto:
 sqlrsult: un macro pour les process
-parse de operation dans parenthese : not DRY ?
 parenthes et parenthes de call: Not dry ?
 
 having()?
