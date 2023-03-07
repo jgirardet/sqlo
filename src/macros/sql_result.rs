@@ -155,14 +155,14 @@ impl<'a> SqlResult<'a> {
     }
 
     pub fn parse(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
-        self.set_columns(&parsed)?;
-        self.set_relation(&parsed)?;
-        self.process_wwhere(&parsed)?;
-        self.link_related_in_where(&parsed);
-        self.process_group_by(&parsed)?;
-        self.process_order_by(&parsed)?;
-        self.process_limit(&parsed)?;
-        self.set_custom_struct(&parsed);
+        self.set_columns(parsed)?;
+        self.set_relation(parsed)?;
+        self.process_wwhere(parsed)?;
+        self.link_related_in_where(parsed);
+        self.process_group_by(parsed)?;
+        self.process_order_by(parsed)?;
+        self.process_limit(parsed)?;
+        self.set_custom_struct(parsed);
         Ok(())
     }
 

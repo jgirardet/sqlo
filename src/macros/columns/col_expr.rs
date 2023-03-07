@@ -44,7 +44,7 @@ impl syn::parse::Parse for ColExpr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let unary = ColExprUnary::get_next_unary(input)?;
         let initial_col = if input.peek(syn::token::Paren) {
-            parse_paren(input)?
+            input.parse::<ColExprParen>()?.into()
         } else {
             parse_initial(input)?
         };
@@ -55,13 +55,6 @@ impl syn::parse::Parse for ColExpr {
             Ok(unarized_col)
         }
     }
-}
-
-fn parse_paren(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
-    let content;
-    parenthesized!(content in input);
-    let seq: Punctuated<ColExpr, Token![,]> = Punctuated::parse_separated_nonempty(&content)?;
-    Ok(ColExprParen::new(seq.into_iter().collect()).into())
 }
 
 fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
@@ -80,7 +73,7 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
             let args: Punctuated<ColExpr, Token![,]> = content.parse_terminated(ColExpr::parse)?;
             ColExpr::Call(ColExprCall {
                 base: ident.into(),
-                args,
+                args: args.into(),
             })
         } else {
             // nothing more so its a simple identifier
@@ -151,6 +144,13 @@ impl_from_variant_for_colexpr!(
     Paren ColExprParen,
     Unary ColExprUnary
 );
+
+impl From<Punctuated<ColExpr, Token![,]>> for ColExpr {
+    fn from(p: Punctuated<ColExpr, Token![,]>) -> Self {
+        let cp: ColExprParen = p.into();
+        cp.into()
+    }
+}
 
 // we support only a fex expr variant and we want to avoid parsing syn cast expr
 fn parse_supported_expr(input: &syn::parse::ParseStream) -> Result<Expr, syn::Error> {

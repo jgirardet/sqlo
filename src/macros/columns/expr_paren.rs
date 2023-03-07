@@ -1,15 +1,11 @@
+use syn::{parenthesized, punctuated::Punctuated, Token};
+
 use crate::{error::SqloError, macros::SqlQuery};
 
 use super::{ColExpr, ColumnToSql};
 
 #[derive(Debug)]
-pub struct ColExprParen(Vec<ColExpr>);
-
-impl ColExprParen {
-    pub fn new(colexpr: Vec<ColExpr>) -> Self {
-        ColExprParen(colexpr)
-    }
-}
+pub struct ColExprParen(Punctuated<ColExpr, Token![,]>);
 
 impl ColumnToSql for ColExprParen {
     fn column_to_sql(
@@ -28,7 +24,21 @@ impl ColumnToSql for ColExprParen {
 
 impl quote::ToTokens for ColExprParen {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let content = &self.0[0];
-        quote::quote![(#content)].to_tokens(tokens);
+        self.0.to_tokens(tokens);
+    }
+}
+
+impl From<Punctuated<ColExpr, Token![,]>> for ColExprParen {
+    fn from(p: Punctuated<ColExpr, Token![,]>) -> Self {
+        ColExprParen(p)
+    }
+}
+
+impl syn::parse::Parse for ColExprParen {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let content;
+        parenthesized!(content in input);
+        let seq: Punctuated<ColExpr, Token![,]> = Punctuated::parse_separated_nonempty(&content)?;
+        Ok(seq.into())
     }
 }

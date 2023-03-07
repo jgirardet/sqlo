@@ -190,7 +190,7 @@ Test! {select_test_where_call, async fn func(p:PPool){
     // simple
     let res = select![Maison where trim(adresse, "adr") == "esse2"].fetch_one(&p.pool).await.unwrap();
     assert_eq!(res.adresse, "adresse2");
-    // call n column and where
+    // call n column and where, use of context::Call
     let res = select![Maison replace(adresse, "2", "XX") as "adresse?:String" where upper(adresse) == "ADRESSE2"].fetch_one(&p.pool).await.unwrap();
     assert_eq!(res.adresse, Some("adresseXX".into()));
     // with fk

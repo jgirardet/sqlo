@@ -1,57 +1,31 @@
-use std::collections::HashSet;
-
 use darling::util::IdentString;
-use itertools::Itertools;
-use proc_macro2::{Delimiter, Group, TokenStream};
-use syn::{punctuated::Punctuated, spanned::Spanned, Token};
 
-use crate::{
-    error::SqloError,
-    macros::{Context, SqlQuery, SqlResult},
-};
+use crate::macros::Context;
 
-use super::{ColExpr, ColumnToSql};
+use super::{ColExprParen, ColumnToSql};
 
 #[derive(Debug)]
 pub struct ColExprCall {
     pub base: IdentString,
-    pub args: Punctuated<ColExpr, Token![,]>,
+    pub args: ColExprParen,
 }
 
 impl quote::ToTokens for ColExprCall {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let mut token_group = TokenStream::new();
-        self.base.to_tokens(&mut token_group);
-        let mut g2 = Group::new(Delimiter::Parenthesis, self.args.to_token_stream());
-        g2.set_span(self.args.span());
-        g2.to_tokens(&mut token_group);
-        token_group.to_tokens(tokens);
+        self.base.to_tokens(tokens);
+        self.args.to_tokens(tokens);
     }
 }
 
 impl ColumnToSql for ColExprCall {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
-        let mut args = vec![];
-        let mut params = vec![];
+    fn column_to_sql(
+        &self,
+        ctx: &mut crate::macros::SqlResult,
+    ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
         ctx.context = Context::Call;
-        for arg in self.args.iter() {
-            args.push(arg.column_to_sql(ctx)?);
-        }
+        let mut res = self.args.column_to_sql(ctx)?;
         ctx.context = Context::None;
-        let query = format!(
-            "{}({})",
-            &self.base,
-            args.iter().map(|x| &x.query).join(" ,")
-        );
-        let mut joins = HashSet::new();
-        for j in args {
-            joins.extend(j.joins);
-            params.extend(j.params);
-        }
-        Ok(SqlQuery {
-            query,
-            params,
-            joins,
-        })
+        res.prepend_str(self.base.as_str());
+        Ok(res)
     }
 }
