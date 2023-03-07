@@ -20,11 +20,6 @@ impl syn::parse::Parse for Column {
             input.parse::<Token![as]>()?;
             let alias = input.parse::<AliasCast>()?;
             Ok(Column::Cast(ColumnCast { expr, alias }))
-        } else if let ColExpr::Call(_) = &expr {
-            Err(syn::Error::new_spanned(
-                expr,
-                "call expression must be followed by as",
-            ))
         } else {
             Ok(Column::Mono(expr))
         }

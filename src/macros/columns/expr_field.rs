@@ -1,9 +1,10 @@
+use context::Context;
 use darling::util::IdentString;
 use proc_macro2::{Punct, Spacing};
 
 use crate::{
     error::SqloError,
-    macros::{SqlQuery, SqlResult},
+    macros::{context, SqlQuery, SqlResult},
 };
 
 use super::ColumnToSql;
@@ -34,10 +35,28 @@ impl quote::ToTokens for ColExprField {
 
 impl ColumnToSql for ColExprField {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
-        let relation = ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base)?;
+        ctx.context.push(Context::Field);
+        let relation = match ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base) {
+            Ok(rel) => rel,
+            Err(_) => {
+                if let Some(f) = ctx
+                    .sqlos
+                    .get(self.base.as_str())?
+                    .field(self.member.as_ident())
+                {
+                    return Ok(f.column.clone().into());
+                } else {
+                    return Err(SqloError::new_spanned(
+                        &self.base,
+                        "This is neither a related name or entity name",
+                    ));
+                }
+            }
+        };
         let related_sqlo = ctx.sqlos.get(&relation.from)?;
         let join = relation.to_inner_join(ctx.sqlos);
         let column = related_sqlo.column(self.member.as_ident())?;
+        ctx.context.pop();
         Ok((column, join).into())
     }
 }

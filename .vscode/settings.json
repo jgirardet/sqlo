@@ -31,5 +31,6 @@
             "database": "/tmp/sqlo.sqlite"
         }
     ],
-    "rust-analyzer.check.command": "clippy"
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.check.features": "all"
 }

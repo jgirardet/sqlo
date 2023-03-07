@@ -4,6 +4,7 @@ use crate::error::SqloError;
 
 use super::{kw, ColExpr, ColumnToSql, SqlQuery};
 
+#[derive(Debug)]
 pub struct GroupBy(Vec<ColExpr>);
 
 impl syn::parse::Parse for GroupBy {

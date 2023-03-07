@@ -5,7 +5,7 @@ use syn::{LitStr, Token};
 
 use crate::{
     error::SqloError,
-    macros::{SqlQuery, SqlResult},
+    macros::{Context, SqlQuery, SqlResult},
 };
 
 use super::{ColExpr, ColumnToSql};
@@ -18,8 +18,11 @@ pub struct ColumnCast {
 
 impl ColumnToSql for ColumnCast {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+        ctx.context.push(Context::Cast);
         let expr = self.expr.column_to_sql(ctx)?;
-        Ok(expr.add_no_comma(self.alias.column_to_sql(ctx)?))
+        let res = expr.add_no_comma(self.alias.column_to_sql(ctx)?);
+        ctx.context.pop();
+        Ok(res)
     }
 }
 

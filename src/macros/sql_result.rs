@@ -15,7 +15,7 @@ pub struct SqlResult<'a> {
     pub main_sqlo: &'a Sqlo,
     pub sqlos: &'a Sqlos,
     pub alias: HashMap<IdentString, String>,
-    pub context: Context,
+    pub context: Vec<Context>,
     columns: String,
     joins: HashSet<String>,
     wwhere: String,
@@ -33,9 +33,13 @@ impl<'a> SqlResult<'a> {
     pub fn from_sqlo_parse(
         parsed: SqloSelectParse,
         sqlos: &'a Sqlos,
+        subuqery: bool,
     ) -> Result<SqlResult, SqloError> {
         let main_sqlo = SqlResult::set_main_and_relation(&parsed, sqlos)?;
         let mut sqlr = SqlResult::new(main_sqlo, sqlos);
+        if subuqery {
+            sqlr.context.push(Context::SubQuery);
+        }
         sqlr.parse(&parsed)?;
         Ok(sqlr)
     }
@@ -56,7 +60,7 @@ impl<'a> SqlResult<'a> {
             order_by: String::default(),
             having: String::default(),
             limit: String::default(),
-            context: Context::default(),
+            context: Vec::default(),
         }
     }
 
@@ -207,6 +211,16 @@ impl<'a> SqlResult<'a> {
             Ok(quote::quote! {
                 sqlx::query_as!(#ident,#query, #(#arguments),*)
             })
+        }
+    }
+}
+
+impl<'a> From<SqlResult<'a>> for SqlQuery {
+    fn from(result: SqlResult) -> Self {
+        SqlQuery {
+            query: result.query(),
+            params: result.arguments,
+            joins: HashSet::default(), //result.joins,
         }
     }
 }

@@ -462,3 +462,28 @@ Test! {select_having, async fn func(p:PPool){
     assert_eq![res[0].maison_id, 2];
     assert_eq![res[0].total, 16];
 }}
+
+Test! {select_sub_select, async fn func(p:PPool){
+    // simple
+    let res = select![Maison where id == {PieceFk 1 limit 1}].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 1];
+    assert_eq![res[0].id, 1];
+    // use comparator
+    let res = select![PieceFk where maison_id == {Maison id where taille == 101 limit 1}].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 4];
+    // use in
+    let res = select![PieceFk where maison_id in {Maison id where taille > 101}].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 5];
+    // use fk
+    let res = select![Lit where id in {Maison lespieces.maison_id where lespieces.lg>=8}].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 2];
+    assert_eq![res[0].id, 1];
+    assert_eq![res[1].id, 2];
+    // in column
+    let res = select![Lit id, surface, {PieceFk count(*)  where maison_id==Lit.id} as p].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(),4];
+    assert_eq![res[0].id,1];
+    assert_eq![res[0].p,4];
+    assert_eq![res[3].id,4];
+    assert_eq![res[3].p,0];
+}}

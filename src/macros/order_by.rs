@@ -1,8 +1,9 @@
 use crate::error::SqloError;
 
-use super::{kw, ColExpr, ColumnToSql, SqlQuery, SqlResult};
+use super::{kw, ColExpr, ColumnToSql, Context, SqlQuery, SqlResult};
 use syn::{punctuated::Punctuated, Token};
 
+#[derive(Debug)]
 pub struct OrderBy {
     column: ColExpr,
     sens: bool,
@@ -53,6 +54,7 @@ impl ColumnToSql for OrderBy {
     }
 }
 
+#[derive(Debug)]
 pub struct OrderBys(Punctuated<OrderBy, Token![,]>);
 
 impl syn::parse::Parse for OrderBys {
@@ -69,11 +71,13 @@ impl ColumnToSql for OrderBys {
         &self,
         ctx: &mut SqlResult,
     ) -> Result<super::SqlQuery, crate::error::SqloError> {
+        ctx.context.push(Context::OrderBy);
         let mut res = self.0.iter().fold(
             Ok(SqlQuery::default()),
             |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?), //unwrap ok can't be None
         )?;
         res.prepend_str(" ORDER BY ");
+        ctx.context.pop();
         Ok(res)
     }
 }

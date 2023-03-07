@@ -15,6 +15,7 @@ pub mod kw {
     syn::custom_keyword!(having);
 }
 
+#[derive(Debug)]
 pub struct SqloSelectParse {
     pub entity: IdentString,
     pub related: Option<IdentString>,
@@ -121,11 +122,12 @@ pub fn next_is_not_a_keyword(input: &ParseStream) -> bool {
         && !input.peek(kw::limit)
         && !input.peek(kw::page)
         && !input.peek(kw::group_by)
+        && !input.peek(kw::having)
 }
 
 pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {
     let sqlos = VirtualFile::new().load()?;
-    let sqlr = SqlResult::from_sqlo_parse(input, &sqlos)?;
+    let sqlr = SqlResult::from_sqlo_parse(input, &sqlos, false)?;
     match sqlr.expand() {
         Ok(o) => Ok(o),
         Err(e) => Err(e.into()),
@@ -192,10 +194,5 @@ mod test_sqlo_select_macro {
         not_comma_field_after_order_by,
         "Maison where 1 == 1 order_by",
         "unexpected end of input, Sqlo: Invalid input"
-    );
-    fail_parse_sqlo_select_syntax!(
-        no_call_without_cast_allowed,
-        "Maison count(id)",
-        "call expression must be followed by as"
     );
 }

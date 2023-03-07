@@ -1,6 +1,6 @@
 use crate::{
     error::SqloError,
-    macros::{Operator, SqlResult},
+    macros::{Context, Operator, SqlResult},
 };
 
 use super::{ColExpr, ColumnToSql};
@@ -25,6 +25,7 @@ impl ColumnToSql for ColExprOp {
         &self,
         ctx: &mut SqlResult,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+        ctx.context.push(Context::Operation);
         let lhs = self.lhs.column_to_sql(ctx)?;
         if let ColExpr::Ident(i) = self.rhs.as_ref() {
             if i.as_str() == "None" {
@@ -50,6 +51,7 @@ impl ColumnToSql for ColExprOp {
         };
         let sign = self.op.column_to_sql(ctx)?;
         let rhs = self.rhs.column_to_sql(ctx)?;
+        ctx.context.pop();
         Ok(lhs.add_no_comma(sign).add_no_comma(rhs))
     }
 }

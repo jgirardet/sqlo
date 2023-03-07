@@ -4,6 +4,7 @@ use super::kw;
 use super::ColExpr;
 use super::ColumnToSql;
 
+#[derive(Debug)]
 pub struct Limit {
     limit: ColExpr,
     offset: Option<ColExpr>,

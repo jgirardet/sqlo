@@ -1,6 +1,9 @@
 use syn::{parenthesized, punctuated::Punctuated, Token};
 
-use crate::{error::SqloError, macros::SqlQuery};
+use crate::{
+    error::SqloError,
+    macros::{Context, SqlQuery},
+};
 
 use super::{ColExpr, ColumnToSql};
 
@@ -12,12 +15,14 @@ impl ColumnToSql for ColExprParen {
         &self,
         ctx: &mut crate::macros::SqlResult,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+        ctx.context.push(Context::Paren);
         let mut res = self.0.iter().fold(
             Ok(SqlQuery::default()),
             |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?),
         )?;
         res.prepend_str("(");
         res.append_str(")");
+        ctx.context.pop();
         Ok(res)
     }
 }

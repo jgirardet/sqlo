@@ -1,11 +1,12 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Context {
-    None,
     Call,
-}
-
-impl Default for Context {
-    fn default() -> Self {
-        Self::None
-    }
+    Cast,
+    SubQuery,
+    Where,
+    Field,
+    OrderBy,
+    Operation,
+    Paren,
+    Unary,
 }

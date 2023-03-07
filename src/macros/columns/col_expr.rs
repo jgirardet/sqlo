@@ -9,7 +9,9 @@ use crate::{
     macros::{unarize, Operator, SqlQuery, SqlResult},
 };
 
-use super::{ColExprCall, ColExprField, ColExprOp, ColExprParen, ColExprUnary, ColumnToSql};
+use super::{
+    ColExprCall, ColExprField, ColExprOp, ColExprParen, ColExprSubSelect, ColExprUnary, ColumnToSql,
+};
 
 #[derive(Debug)]
 pub enum ColExpr {
@@ -20,6 +22,7 @@ pub enum ColExpr {
     Value(Expr),
     Operation(ColExprOp),
     Paren(ColExprParen),
+    SubSelect(ColExprSubSelect),
     Unary(ColExprUnary),
     Asterisk,
 }
@@ -35,6 +38,7 @@ impl quote::ToTokens for ColExpr {
             Self::Operation(o) => o.to_tokens(tokens),
             Self::Asterisk => "*".to_tokens(tokens),
             Self::Paren(p) => p.to_tokens(tokens),
+            Self::SubSelect(s) => s.to_tokens(tokens),
             Self::Unary(p) => p.to_tokens(tokens),
         }
     }
@@ -90,6 +94,9 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
     } else if input.peek(Token![*]) {
         input.parse::<Token![*]>()?;
         ColExpr::Asterisk
+    } else if input.peek(syn::token::Brace) {
+        // this is a macro like sub_select
+        ColExprSubSelect::parse(input)?.into()
     } else {
         return Err(input.error("Sqlo: Invalid input"));
     };
@@ -117,6 +124,7 @@ impl ColumnToSql for ColExpr {
             Self::Operation(expr_op) => expr_op.column_to_sql(ctx),
             Self::Asterisk => Ok("*".to_string().into()),
             Self::Paren(p) => p.column_to_sql(ctx),
+            Self::SubSelect(p) => p.column_to_sql(ctx),
             Self::Unary(p) => p.column_to_sql(ctx),
         }
     }
@@ -142,6 +150,7 @@ impl_from_variant_for_colexpr!(
     Value Expr,
     Operation ColExprOp,
     Paren ColExprParen,
+    SubSelect ColExprSubSelect,
     Unary ColExprUnary
 );
 

@@ -1,8 +1,12 @@
 A faire:
 
 
-having()?
-les sous requetes/all/exists/any/some  avec in aussi
+les sous requetes
+
+- all/exists/any/some  avec in aussi
+- refacto call avec paren dans colexpr
+
+
 case
 left join/right join/self
 union/intersect/except

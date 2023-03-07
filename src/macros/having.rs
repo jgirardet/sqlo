@@ -1,4 +1,4 @@
-use super::{ColExpr, ColumnToSql, kw};
+use super::{kw, ColExpr, ColumnToSql};
 
 #[derive(Debug)]
 pub struct Having(ColExpr);

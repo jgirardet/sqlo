@@ -6,6 +6,7 @@ mod expr_call;
 mod expr_field;
 mod expr_op;
 mod expr_paren;
+mod sub_select;
 mod unary_expr;
 
 pub use cast::{AliasCast, ColumnCast};
@@ -16,4 +17,5 @@ pub use expr_call::ColExprCall;
 pub use expr_field::ColExprField;
 pub use expr_op::ColExprOp;
 pub use expr_paren::ColExprParen;
+pub use sub_select::ColExprSubSelect;
 pub use unary_expr::{unarize, ColExprUnary};

@@ -1,5 +1,7 @@
 use syn::Token;
 
+use crate::macros::Context;
+
 use super::{ColExpr, ColumnToSql};
 
 #[derive(Debug)]
@@ -28,18 +30,21 @@ impl ColumnToSql for ColExprUnary {
         &self,
         ctx: &mut crate::macros::SqlResult,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
-        match self {
+        ctx.context.push(Context::Unary);
+        let res = match self {
             Self::Minus(m) => {
                 let mut qr = m.as_ref().column_to_sql(ctx)?;
                 qr.prepend_str("-");
-                Ok(qr)
+                qr
             }
             Self::Not(n) => {
                 let mut qr = n.as_ref().column_to_sql(ctx)?;
                 qr.prepend_str(" NOT ");
-                Ok(qr)
+                qr
             }
-        }
+        };
+        ctx.context.pop();
+        Ok(res)
     }
 }
 

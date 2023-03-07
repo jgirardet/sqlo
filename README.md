@@ -356,7 +356,8 @@ struct House {
     id: i64,
     name: String,
     width: i64,
-    height: i64
+    height: i64,
+    zipcode: i64
 }
 
 
@@ -368,8 +369,6 @@ struct Room {
 }
 
 ```
-
-All SQL keywords and features are not implemented now. You can find a feature list of what is working right now below.
 
 ### Introduction
 
@@ -391,7 +390,6 @@ Some generals rules :
 
 - It's rust syntax not sql: that's why we use `==` instead of `=`.
 - Sqlo tries to avoid duplicates automatically by adding`DISTINCT` when it's necessary since the need of duplicates is very rare. So keep in mind that every `select!` query won't have duplicated result.
-- By default left hand side expects a field name (aka column name) and right hand side a value. See [Using Rust items as parameters](Using-Rust-items-as-parameters) for more.
 
 ### Query column
 
@@ -416,9 +414,12 @@ assert_eq!(total.all, 5);
 - we support the following "column" format:
   - identifier (`id`, `width`, ...): a field.
   - a field access (`therooms.bed`): access a related field. It wil add a [INNER JOIN](###INNER-JOIN)
-  - a sql function (`sum(id)`, `replace(adresse, "1", "345")`): must always be followed by `as` with an identifier.
-  - a binary operation(`id + 3`): must always be followed by `as` with identifier.
+  - a field acces with the struct name: `House.width`
+  - a sql function (`sum(id)`, `replace(adresse, "1", "345")`)
+  - a binary operation(`id + 3`)
   - unary: `-id`, `-1`, ...
+
+In the "select" part of the query (the columns queried), function, operation, unary must be followed by `as` with an identifier.
 
 Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case, it must be escaped with a `::` :
 
@@ -460,13 +461,13 @@ select![House count(*)]
 It's an aggregate of binary expressions, here are some use cases, by SQL usage:
 
 - field: `select![House where id == 1]`
-- binary `operator: `select![House where width >= 1]`
+- binary operator: `select![House where width >= 1]`
 - IS NULL: `select![House where width == None]`
 - IS NOT NULL: `select![House where width != None]`
 - BETWEEN: `select![House where  width > 1 && width <5]`
 - use of parenthesis: `select![House where (width==1 || width==2) && height==4]`
 - NOT use `!` with parenthesis: `select![House !(width>5)]`
-- IN (range expression) : `select![House where id..(1,3,4)`
+- IN : `select![House where id in (1,3,4)`
 - LIKE: use `#` operator : `select![House where name  # "%bla"]`.
 - column from join: see [JOIN in where clause](####JOIN-in-where-clause)
 - function call: `select![House where trim(name) == "myhouse"]`
@@ -533,6 +534,18 @@ select![House width, count(id) as "total!:i32" group_by width order_by total]
 select![House name, count(therooms.house_id) as total group_by name] // follows foreign keys
 ```
 
+### The Having clause
+
+Use the having clause just like in sql. A bracketed syntax is also availabble with `[]`
+
+```rust
+select![House id, sum(width) as total having total > 350]
+
+// with foreign keys
+select![House id, count(therooms.id) as total having total > 4]
+
+```
+
 ### The Order by clause
 
 Order result with the `order_by` keyword. Descending order is specified with a `-` before the field name.
@@ -579,4 +592,24 @@ let limit = select![House limit 2,4].fetch_all(&p.pool).await.unwrap();
 let page = select![House page 3,2].fetch_all(&p.pool).await.unwrap(); //means page 3 with page size of 2.
 // will both select 5th et 6th entries.
 assert_eq!(limit, page);
+```
+
+### Subqueries
+
+Subqueries are done using braces `{}`.
+
+```rust
+select![House where zipcode in {ZipCodeTable zip where zip > 260}].fetch_all...
+// transltates to
+// sqlx::query_as!(House, "select * from house where zipcode in (select distinct zip from zip_table where zip > ?)", 260 ).fetch_all...
+```
+
+Can be used as well in the returned value.
+
+```rust
+select![House id, {HouseKind count(*) where width == House.width} as kind_total ]
+// a few notes here :
+// - it needs an alias since it's returned
+// - use the struct name to leverage ambigous fields (here width)
+// - no `as` is required in the subquery
 ```

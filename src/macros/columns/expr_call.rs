@@ -1,6 +1,6 @@
 use darling::util::IdentString;
 
-use crate::macros::Context;
+use crate::{error::SqloError, macros::Context};
 
 use super::{ColExprParen, ColumnToSql};
 
@@ -22,9 +22,17 @@ impl ColumnToSql for ColExprCall {
         &self,
         ctx: &mut crate::macros::SqlResult,
     ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
-        ctx.context = Context::Call;
+        if ctx.context.is_empty() {
+            // cas in column at begginning of select but not in subquery
+            return Err(SqloError::new_spanned(
+                self,
+                "Call must be followed by `as` with an identifier",
+            ));
+        }
+        // every other cases, as is not mandatory
+        ctx.context.push(Context::Call);
         let mut res = self.args.column_to_sql(ctx)?;
-        ctx.context = Context::None;
+        ctx.context.pop();
         res.prepend_str(self.base.as_str());
         Ok(res)
     }
