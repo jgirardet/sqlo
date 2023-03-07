@@ -5,13 +5,14 @@ use syn::{parse::ParseStream, punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
-use super::{Column, GroupBy, Limit, OrderBys, SqlResult, Where};
+use super::{Column, GroupBy, Having, Limit, OrderBys, SqlResult, Where};
 
 pub mod kw {
     syn::custom_keyword!(order_by);
     syn::custom_keyword!(limit);
     syn::custom_keyword!(page);
     syn::custom_keyword!(group_by);
+    syn::custom_keyword!(having);
 }
 
 pub struct SqloSelectParse {
@@ -24,6 +25,7 @@ pub struct SqloSelectParse {
     pub order_by: Option<OrderBys>,
     pub limit: Option<Limit>,
     pub group_by: Option<GroupBy>,
+    pub having: Option<Having>,
 }
 
 impl SqloSelectParse {
@@ -36,6 +38,7 @@ impl SqloSelectParse {
             order_by: None,
             limit: None,
             group_by: None,
+            having: None,
             customs: Vec::default(),
             custom_struct: None,
         }
@@ -91,6 +94,11 @@ impl syn::parse::Parse for SqloSelectParse {
         // parse group by
         if !input.is_empty() && input.peek(kw::group_by) {
             res.group_by = Some(input.parse::<GroupBy>()?)
+        }
+
+        // parse having
+        if !input.is_empty() && input.peek(kw::having) {
+            res.having = Some(input.parse::<Having>()?)
         }
 
         // parse order by

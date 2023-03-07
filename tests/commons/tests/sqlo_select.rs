@@ -436,3 +436,29 @@ Test! {select_group_by, async fn func(p:PPool) {
     assert_eq!(res[0].maison_id, 3);
     assert_eq!(res[0].total, 2);
 }}
+
+Test! {select_having, async fn func(p:PPool){
+    #[derive(Debug, PartialEq, Eq)]
+    struct Hav {
+        maison_id: i64,
+        total: i32
+    }
+    // standard
+    let res = select![Hav,PieceFk maison_id, sum(lg) as "total!:_" group_by maison_id having total>11].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 2];
+    assert_eq![res[0].maison_id, 1];
+    assert_eq![res[0].total, 18];
+    assert_eq![res[1].maison_id, 2];
+    assert_eq![res[1].total, 16];
+    // fk
+    let res2 = sqlo::select![Hav,Maison id as maison_id, sum(lespieces.lg) as "total!:_" group_by id having total>11].fetch_all(&p.pool).await.unwrap();
+    let res3 = sqlx::query_as!(Hav, r#"SELECT DISTINCT maison.id  as maison_id, sum(piece.lg)  as "total!:_" FROM maison INNER JOIN piece ON maison.id=piece.maison_id GROUP BY maison.id HAVING "total!:_" > ?"#, 11)
+    .fetch_all(&p.pool).await.unwrap();
+    assert_eq![res, res2];
+    assert_eq![res, res3];
+    // two conditions
+    let res = select![Hav,PieceFk maison_id, sum(lg) as "total!:_" group_by maison_id having total>11 && total <18].fetch_all(&p.pool).await.unwrap();
+    assert_eq![res.len(), 1];
+    assert_eq![res[0].maison_id, 2];
+    assert_eq![res[0].total, 16];
+}}

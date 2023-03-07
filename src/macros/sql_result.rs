@@ -21,6 +21,7 @@ pub struct SqlResult<'a> {
     wwhere: String,
     group_by: String,
     order_by: String,
+    having: String,
     limit: String,
     arguments: Vec<Expr>,
     relation: Option<&'a RelForeignKey>,
@@ -53,6 +54,7 @@ impl<'a> SqlResult<'a> {
             customs: false,
             custom_struct: None,
             order_by: String::default(),
+            having: String::default(),
             limit: String::default(),
             context: Context::default(),
         }
@@ -89,7 +91,7 @@ macro_rules! impl_process_sqlqueries {
     };
 }
 
-impl_process_sqlqueries!(wwhere group_by order_by limit);
+impl_process_sqlqueries!(wwhere group_by order_by limit having);
 
 impl<'a> SqlResult<'a> {
     fn extend(&mut self, qr: SqlQuery) {
@@ -160,6 +162,7 @@ impl<'a> SqlResult<'a> {
         self.process_wwhere(parsed)?;
         self.link_related_in_where(parsed);
         self.process_group_by(parsed)?;
+        self.process_having(parsed)?;
         self.process_order_by(parsed)?;
         self.process_limit(parsed)?;
         self.set_custom_struct(parsed);
@@ -173,9 +176,10 @@ impl<'a> SqlResult<'a> {
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
         let group_by_query = &self.group_by;
+        let having_query = &self.having;
         let order_by_query = &self.order_by;
         let limit_query = &self.limit;
-        format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{group_by_query}{order_by_query}{limit_query}")
+        format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}")
             .trim_end()
             .into()
     }
