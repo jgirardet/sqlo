@@ -1,8 +1,6 @@
 A faire:
 
-# les sous requetes
-
-- refacto call avec paren dans colexpr
+# fin de voie de base
 
 case
 left join/right join/self

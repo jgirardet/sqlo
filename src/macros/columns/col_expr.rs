@@ -1,8 +1,5 @@
 use darling::util::IdentString;
-use syn::{
-    parenthesized, parse::Parse, punctuated::Punctuated, Expr, ExprCall, ExprField, ExprIndex,
-    ExprPath, Lit, Token,
-};
+use syn::{punctuated::Punctuated, Expr, ExprCall, ExprField, ExprIndex, ExprPath, Lit, Token};
 
 use crate::{
     error::SqloError,
@@ -71,13 +68,9 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
             let member = input.parse::<syn::Ident>()?;
             ColExpr::Field((ident, member).into())
         } else if input.peek(syn::token::Paren) {
-            // parse call
-            let content;
-            parenthesized!(content in input);
-            let args: Punctuated<ColExpr, Token![,]> = content.parse_terminated(ColExpr::parse)?;
             ColExpr::Call(ColExprCall {
                 base: ident.into(),
-                args: args.into(),
+                args: input.parse::<ColExprParen>()?,
             })
         } else if input.peek(syn::token::Brace) {
             ColExprSubSelect::parse_with_ident(ident.into(), input)?.into()
