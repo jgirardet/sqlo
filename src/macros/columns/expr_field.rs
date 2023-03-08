@@ -39,18 +39,17 @@ impl ColumnToSql for ColExprField {
         let relation = match ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base) {
             Ok(rel) => rel,
             Err(_) => {
-                if let Some(f) = ctx
+                return Ok(ctx
                     .sqlos
-                    .get(self.base.as_str())?
-                    .field(self.member.as_ident())
-                {
-                    return Ok(f.column.clone().into());
-                } else {
-                    return Err(SqloError::new_spanned(
-                        &self.base,
-                        "This is neither a related name or entity name",
-                    ));
-                }
+                    .get(self.base.as_str())
+                    .map_err(|_| {
+                        SqloError::new_spanned(
+                            &self.base,
+                            "This is neither a ralated or entity name",
+                        )
+                    })?
+                    .column(self.member.as_ident())?
+                    .into());
             }
         };
         let related_sqlo = ctx.sqlos.get(&relation.from)?;

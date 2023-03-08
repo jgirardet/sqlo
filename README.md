@@ -613,3 +613,9 @@ select![House id, {HouseKind count(*) where width == House.width} as kind_total 
 // - use the struct name to leverage ambigous fields (here width)
 // - no `as` is required in the subquery
 ```
+
+It supports `exists` keyword:
+
+```rust
+select![House where zipcode where exists {ZipCodeTable zip where zip > 260}].fetch_all...
+```

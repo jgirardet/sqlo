@@ -79,6 +79,8 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
                 base: ident.into(),
                 args: args.into(),
             })
+        } else if input.peek(syn::token::Brace) {
+            ColExprSubSelect::parse_with_ident(ident.into(), input)?.into()
         } else {
             // nothing more so its a simple identifier
             ColExpr::Ident(ident.into())
@@ -96,7 +98,7 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
         ColExpr::Asterisk
     } else if input.peek(syn::token::Brace) {
         // this is a macro like sub_select
-        ColExprSubSelect::parse(input)?.into()
+        ColExprSubSelect::parse_without_ident(input)?.into()
     } else {
         return Err(input.error("Sqlo: Invalid input"));
     };

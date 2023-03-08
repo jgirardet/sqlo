@@ -487,3 +487,11 @@ Test! {select_sub_select, async fn func(p:PPool){
     assert_eq![res[3].id,4];
     assert_eq![res[3].p,0];
 }}
+
+Test! {select_sub_select_exists, async fn func(p:PPool){
+    // exists
+    let res = select![Maison where exists {PieceFk lg where maison_id==4}].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 0);
+    let res = select![Maison where exists {PieceFk lg where lg == Maison.id}].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 3);
+}}
