@@ -418,6 +418,7 @@ assert_eq!(total.all, 5);
   - a sql function (`sum(id)`, `replace(adresse, "1", "345")`)
   - a binary operation(`id + 3`)
   - unary: `-id`, `-1`, ...
+  - case: [case when then](###Case-When-Then)
 
 In the "select" part of the query (the columns queried), function, operation, unary must be followed by `as` with an identifier.
 
