@@ -5,6 +5,7 @@ use proc_macro2::{Punct, Spacing};
 use crate::{
     error::SqloError,
     macros::{context, SqlQuery, SqlResult},
+    relations::Join,
 };
 
 use super::ColumnToSql;
@@ -13,13 +14,15 @@ use super::ColumnToSql;
 pub struct ColExprField {
     base: IdentString,
     member: IdentString,
+    join: Join,
 }
 
-impl From<(syn::Ident, syn::Ident)> for ColExprField {
-    fn from(i: (syn::Ident, syn::Ident)) -> Self {
+impl ColExprField {
+    pub fn new(base: syn::Ident, member: syn::Ident, join: Join) -> Self {
         Self {
-            base: i.0.into(),
-            member: i.1.into(),
+            base: base.into(),
+            member: member.into(),
+            join,
         }
     }
 }
@@ -53,7 +56,7 @@ impl ColumnToSql for ColExprField {
             }
         };
         let related_sqlo = ctx.sqlos.get(&relation.from)?;
-        let join = relation.to_inner_join(ctx.sqlos);
+        let join = relation.to_join(self.join, ctx.sqlos);
         let column = related_sqlo.column(self.member.as_ident())?;
         ctx.context.pop();
         Ok((column, join).into())

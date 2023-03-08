@@ -2,7 +2,10 @@ A faire:
 
 # fin de voie de base
 
-left join/right join/self
+self: Maison=.=maison => beaucoup plus compliqué
+
+Forcer les types sur les colonnes en plus des alias: macolonne! au lieu de macolonne as macolonne!
+
 union/intersect/except
 
 # Bug:

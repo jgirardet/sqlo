@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS with_a_blob (
 INSERT INTO maison (id, adresse, taille) VALUES 
   (1, 'adresse1', 101),
   (2, 'adresse2', 102),
-  (3, 'adresse3', 103);
+  (3, 'adresse3', 103),
+  (4, 'adresse4', 104);
 
 
 

@@ -7,6 +7,7 @@ use syn::{
 use crate::{
     error::SqloError,
     macros::{unarize, Operator, SqlQuery, SqlResult},
+    relations::Join,
 };
 
 use super::{
@@ -69,15 +70,21 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
         // let start to see if it starts with an Ident
         let ident: syn::Ident = input.parse()?;
         if input.peek(Token![.]) {
+            input.parse::<Token![.]>()?;
             //parse field
+            let member = input.parse::<syn::Ident>()?;
+            ColExprField::new(ident, member, Join::Inner).into()
+        } else if input.peek(Token![=]) && input.peek2(Token![.]) {
+            input.parse::<Token![=]>()?;
             input.parse::<Token![.]>()?;
             let member = input.parse::<syn::Ident>()?;
-            ColExpr::Field((ident, member).into())
+            ColExprField::new(ident, member, Join::Left).into()
         } else if input.peek(syn::token::Paren) {
-            ColExpr::Call(ColExprCall {
+            ColExprCall {
                 base: ident.into(),
                 args: input.parse::<ColExprParen>()?,
-            })
+            }
+            .into()
         } else if input.peek(syn::token::Brace) {
             ColExprSubSelect::parse_with_ident(ident.into(), input)?.into()
         } else {

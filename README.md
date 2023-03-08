@@ -470,13 +470,22 @@ It's an aggregate of binary expressions, here are some use cases, by SQL usage:
 - NOT use `!` with parenthesis: `select![House !(width>5)]`
 - IN : `select![House where id in (1,3,4)`
 - LIKE: use `#` operator : `select![House where name  # "%bla"]`.
-- column from join: see [JOIN in where clause](####JOIN-in-where-clause)
+- column from join: see [JOIN in where clause](#using-join)
 - function call: `select![House where trim(name) == "myhouse"]`
 - AND, OR: chain expressions with `&&`, `||`
 
-### INNER JOIN:
+### Relationship:
 
-#### Retrieving related rows
+#### Introduction
+
+You can access related row/collections via a "virtual field", the specified with [`fk` attribute](#relations).
+
+Sqlo supports two of working with relationships.
+
+- the first one without `JOIN` wich allowes you a direct query to some related entries.
+- the second one uses `JOIN` like in regular queries.
+
+#### Retrieving related rows without JOIN
 
 You can access related row/collections via a "virtual field", the specified with `fk` attribute.
 
@@ -484,16 +493,36 @@ You can access related row/collections via a "virtual field", the specified with
 - "virtual" related fielda is accessed by its related name: `House[1].therooms`.
 
 ```rust
+// select all related rooms of house where there is a bed
 let a = 1;
-let romms: Vec<Room> = select![House[a].therooms where bed == true]
-    .fetch_all(&pool).await.unwrap();
+let romms: Vec<Room> = select![House[a].therooms where bed == true].fetch_all(&pool).await.unwrap();
+//sqlx::query_as![Room, r#"SELECT * FROM room where id=? AND bed=?"#, a, true].fetch....
 ```
 
-#### JOIN in where clause
+#### Using JOIN
+
+JOIN is automagically added to queries when using a related field.
+
+Select JOIN type with the following:
+
+    - INNER JOIN with `.` ex: `therooms.bed`
+    - LEFT JOIN with `=.` (think about the inclusie `=` in rust range) ex: `therooms=.bed`
 
 ```rust
 select![House where therooms.bed == true]
-select![House where width>3 && therooms.bed == true]
+// sqlx::query_as![House, "SELECT * FROM house INNER JOIN room ON house.id=room.maison_id WHERE room.bed == ?", true]
+select![House where width>3 && therooms=.bed == true]
+// sqlx::query_as![House, "SELECT * FROM house LEFT JOIN room ON house.id=room.maison_id WHERE house.width> ? AND room.bed == ?", 3, true]
+select![House id, count(therooms.id) as total]
+// sqlx::query_as![House, "SELECT maison.id, count(room.id) as total FROM house JOIN room ON house.id=room.maison_id"]
+```
+
+Since JOIN type needs to stick the same please pay attention to it.
+
+```rust
+select![House id, therooms.id where therooms=.bed == true] // BAD you use to different joins INNER and LEFT (sqlx will fail)
+select![House id, therooms=.id where therooms=.bed == true] // GOOD
+
 ```
 
 ### Using Rust items as parameters:

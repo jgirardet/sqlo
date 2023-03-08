@@ -241,7 +241,7 @@ impl RelForeignKey {
         Ok(())
     }
 
-    pub fn to_inner_join(&self, sqlos: &Sqlos) -> String {
+    pub fn to_join(&self, join: Join, sqlos: &Sqlos) -> String {
         let from_sqlo = {
             let this = &sqlos;
             let name = &self.from;
@@ -264,7 +264,8 @@ impl RelForeignKey {
             .field(self.field.as_ident())
             .expect("Sqlo Field not Found, please rebuild");
         format!(
-            " INNER JOIN {} ON {}.{}={}.{}",
+            " {} JOIN {} ON {}.{}={}.{}",
+            join,
             &from_sqlo.tablename,
             &to_sqlo.tablename,
             &to_sqlo.pk_field.column,
@@ -331,6 +332,21 @@ pub fn as_related_name(ident: &IdentString) -> IdentString {
     use heck::ToSnakeCase;
     let name = ident.to_string().to_snake_case();
     format_ident!("{}", syn::Ident::new(&name, ident.span())).into()
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Join {
+    Inner,
+    Left,
+}
+
+impl Display for Join {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Inner => write!(f, "INNER"),
+            Self::Left => write!(f, "LEFT"),
+        }
+    }
 }
 
 #[cfg(test)]
