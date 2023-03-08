@@ -1,5 +1,8 @@
 use darling::util::IdentString;
-use syn::{punctuated::Punctuated, Expr, ExprCall, ExprField, ExprIndex, ExprPath, Lit, Token};
+use syn::{
+    parse::Parse, punctuated::Punctuated, Expr, ExprCall, ExprField, ExprIndex, ExprPath, Lit,
+    Token,
+};
 
 use crate::{
     error::SqloError,
@@ -7,13 +10,15 @@ use crate::{
 };
 
 use super::{
-    ColExprCall, ColExprField, ColExprOp, ColExprParen, ColExprSubSelect, ColExprUnary, ColumnToSql,
+    ColExprCall, ColExprCase, ColExprField, ColExprOp, ColExprParen, ColExprSubSelect,
+    ColExprUnary, ColumnToSql,
 };
 
 #[derive(Debug)]
 pub enum ColExpr {
     Ident(IdentString),
     Call(ColExprCall),
+    Case(ColExprCase),
     Field(ColExprField),
     Literal(Lit),
     Value(Expr),
@@ -29,6 +34,7 @@ impl quote::ToTokens for ColExpr {
         match self {
             Self::Ident(i) => i.to_tokens(tokens),
             Self::Field(f) => f.to_tokens(tokens),
+            Self::Case(c) => c.to_tokens(tokens),
             Self::Call(c) => c.to_tokens(tokens),
             Self::Literal(l) => l.to_tokens(tokens),
             Self::Value(e) => e.to_tokens(tokens),
@@ -90,8 +96,9 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
         input.parse::<Token![*]>()?;
         ColExpr::Asterisk
     } else if input.peek(syn::token::Brace) {
-        // this is a macro like sub_select
         ColExprSubSelect::parse_without_ident(input)?.into()
+    } else if input.peek(Token![match]) {
+        ColExprCase::parse(input)?.into()
     } else {
         return Err(input.error("Sqlo: Invalid input"));
     };
@@ -113,6 +120,7 @@ impl ColumnToSql for ColExpr {
         match self {
             Self::Ident(ident) => ident.column_to_sql(ctx),
             Self::Call(col_expr_call) => col_expr_call.column_to_sql(ctx),
+            Self::Case(c) => c.column_to_sql(ctx),
             Self::Field(col_expr_field) => col_expr_field.column_to_sql(ctx),
             Self::Literal(l) => l.column_to_sql(ctx),
             Self::Value(expr_value) => expr_value.column_to_sql(ctx),
@@ -146,7 +154,9 @@ impl_from_variant_for_colexpr!(
     Operation ColExprOp,
     Paren ColExprParen,
     SubSelect ColExprSubSelect,
-    Unary ColExprUnary
+    Unary ColExprUnary,
+    Case ColExprCase
+
 );
 
 impl From<Punctuated<ColExpr, Token![,]>> for ColExpr {

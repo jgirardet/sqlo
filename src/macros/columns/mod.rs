@@ -1,3 +1,4 @@
+mod case;
 mod cast;
 mod col_expr;
 mod column;
@@ -9,6 +10,7 @@ mod expr_paren;
 mod sub_select;
 mod unary_expr;
 
+pub use case::ColExprCase;
 pub use cast::{AliasCast, ColumnCast};
 pub use col_expr::ColExpr;
 pub use column::Column;

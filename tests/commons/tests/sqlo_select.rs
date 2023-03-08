@@ -495,3 +495,34 @@ Test! {select_sub_select_exists, async fn func(p:PPool){
     let res = select![Maison where exists {PieceFk lg where lg == Maison.id}].fetch_all(&p.pool).await.unwrap();
     assert_eq!(res.len(), 3);
 }}
+
+Test! {select_case, async fn func(p:PPool){
+    //simple with case
+    let res = select![ Maison match id 1=>"un" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].a, "un");
+    //simple with case and _
+    let res = select![ Maison id, match id 1=>"un",_=>"lol" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].a, "un");
+    assert_eq!(res[0].id, 1);
+    assert_eq!(res[1].a, "lol");
+    assert_eq!(res[1].id, 2);
+    assert_eq!(res[2].a, "lol");
+    // more
+    let res = select![ Maison id, match id 1=>"un",2=>"deux",_=>"lol" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].a, "un");
+    assert_eq!(res[0].id, 1);
+    assert_eq!(res[1].a, "deux");
+    assert_eq!(res[1].id, 2);
+    assert_eq!(res[2].a, "lol");
+
+    //simple no case
+    let res = select![ Maison match id<2=>"un" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].a, "un");
+    //simple with case and _
+    let res = select![ Maison id, match id<2=>"un",_=>"lol" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res[0].a, "un");
+    assert_eq!(res[0].id, 1);
+    assert_eq!(res[1].a, "lol");
+    assert_eq!(res[1].id, 2);
+    assert_eq!(res[2].a, "lol");
+}}

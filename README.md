@@ -619,3 +619,14 @@ It supports `exists` keyword:
 ```rust
 select![House where zipcode where exists {ZipCodeTable zip where zip > 260}].fetch_all...
 ```
+
+### Case When Then
+
+We use rust `match` expression but without braces and `_` as else collector.
+
+```rust
+select[House id, match width 33=>"small", 100=>"big", _=>"don't know" as "how_big:String"]
+//sqlx::query![r#"SELECT id, CASE width WHEN ? THEN ? WHEN ? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "dont know"]
+select[House id, match width<33=>"small", width<100=>"big", _=>"very big" as "how_big:String"]
+//sqlx::query![r#"SELECT id, CASE WHEN house.width<? THEN ? WHEN house.width<? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "very big"]
+```
