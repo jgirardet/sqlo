@@ -213,6 +213,11 @@ impl<'a> SqlResult<'a> {
             })
         }
     }
+
+    #[cfg(debug_assertions)]
+    pub fn debug(&self) {
+        println!("query: {} \nargs: {:?}", self.query(), &self.arguments);
+    }
 }
 
 impl<'a> From<SqlResult<'a>> for SqlQuery {

@@ -660,3 +660,18 @@ select[House id, match width 33=>"small", 100=>"big", _=>"don't know" as "how_bi
 select[House id, match width<33=>"small", width<100=>"big", _=>"very big" as "how_big:String"]
 //sqlx::query![r#"SELECT id, CASE WHEN house.width<? THEN ? WHEN house.width<? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "very big"]
 ```
+
+### Debugging Queries
+
+Debug all queries vith env variable :
+
+- SQLO_DEBUG_QUERY: will show you how queries are translated
+- SQLO_DEBUG_QUERY: will show you how queries are translated + the params
+
+
+or 
+
+Debug a single one with `dbg!`.
+```rust
+select![dbg! House where width >30]...
+```

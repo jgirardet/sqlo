@@ -17,6 +17,8 @@ pub mod kw {
 
 #[derive(Debug)]
 pub struct SqloSelectParse {
+    #[cfg(debug_assertions)]
+    pub debug: bool,
     pub entity: IdentString,
     pub related: Option<IdentString>,
     pub customs: Vec<Column>,
@@ -42,6 +44,8 @@ impl SqloSelectParse {
             having: None,
             customs: Vec::default(),
             custom_struct: None,
+            #[cfg(debug_assertions)]
+            debug: false,
         }
     }
 }
@@ -49,6 +53,10 @@ impl SqloSelectParse {
 // select![Maison where some_binary_ops order_by some,comma_separated,fields limit u32]
 impl syn::parse::Parse for SqloSelectParse {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        // check for debug
+        #[cfg(debug_assertions)]
+        let debug = enable_debug(input);
+
         // First: parse cust struct
         let custom_struct = if input.peek2(Token![,]) {
             let custom_struct = input.parse::<syn::Ident>()?.into();
@@ -65,7 +73,13 @@ impl syn::parse::Parse for SqloSelectParse {
             .parse()
             .map_err(|_| syn::Error::new(input.span(), "Deriving Sqlo struct expected"))?;
         let mut res = SqloSelectParse::new(entity);
+
+        // reapply some previous things
         res.custom_struct = custom_struct; // reapply custom_struct
+        #[cfg(debug_assertions)]
+        {
+            res.debug = debug;
+        }
 
         //related select
         if input.peek(syn::token::Bracket) {
@@ -125,10 +139,31 @@ pub fn next_is_not_a_keyword(input: &ParseStream) -> bool {
         && !input.peek(kw::having)
 }
 
+#[cfg(debug_assertions)]
+fn enable_debug(input: syn::parse::ParseStream) -> bool {
+    use syn::parse::Parse;
+    let fork = input.fork();
+    let ident = syn::Ident::parse(&fork).unwrap_or_else(|_| syn::Ident::new(".", input.span()));
+    if &ident.to_string() == "dbg" && fork.peek(Token![!]) {
+        syn::Ident::parse(input).unwrap();
+        input.parse::<Token!(!)>().unwrap();
+        true
+    } else {
+        false
+    }
+}
+
 pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {
+    #[cfg(debug_assertions)]
+    let debug = input.debug;
     let sqlos = VirtualFile::new().load()?;
     let sqlr = SqlResult::from_sqlo_parse(input, &sqlos, false)?;
-    match sqlr.expand() {
+    let result = sqlr.expand();
+    #[cfg(debug_assertions)]
+    if debug {
+        sqlr.debug();
+    }
+    match result {
         Ok(o) => Ok(o),
         Err(e) => Err(e.into()),
     }
@@ -184,7 +219,7 @@ mod test_sqlo_select_macro {
         };
     }
 
-    fail_parse_sqlo_select_syntax!(empty, "", "Deriving Sqlo struct expected");
+    fail_parse_sqlo_select_syntax!(empty, "dbg!", "Deriving Sqlo struct expected");
     fail_parse_sqlo_select_syntax!(
         not_irder_by_after_binaries,
         "Maison where 1 == 1 bla",
