@@ -1,4 +1,4 @@
-use super::{ColExpr, ColumnToSql, Context};
+use crate::macros::{SqlQuery, SqlResult, ColExpr, ColumnToSql, Context};
 
 #[derive(Debug)]
 pub struct Where(ColExpr);
@@ -10,10 +10,7 @@ impl syn::parse::Parse for Where {
 }
 
 impl ColumnToSql for Where {
-    fn column_to_sql(
-        &self,
-        ctx: &mut super::SqlResult,
-    ) -> Result<super::SqlQuery, crate::error::SqloError> {
+    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, crate::error::SqloError> {
         ctx.context.push(Context::Where);
         let mut res = self.0.column_to_sql(ctx)?;
         res.prepend_str(" WHERE ");

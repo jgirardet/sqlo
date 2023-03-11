@@ -1,6 +1,5 @@
-use crate::error::SqloError;
+use crate::{error::SqloError, macros::{SqlQuery, SqlResult, ColExpr, ColumnToSql, kw, Context}};
 
-use super::{kw, ColExpr, ColumnToSql, Context, SqlQuery, SqlResult};
 use syn::{punctuated::Punctuated, Token};
 
 #[derive(Debug)]
@@ -46,7 +45,7 @@ impl ColumnToSql for OrderBy {
     fn column_to_sql(
         &self,
         ctx: &mut SqlResult,
-    ) -> Result<super::SqlQuery, crate::error::SqloError> {
+    ) -> Result<SqlQuery, crate::error::SqloError> {
         let sens = if self.sens { "" } else { " DESC" };
         let mut res = self.column.column_to_sql(ctx)?;
         res.append_str(sens);
@@ -70,7 +69,7 @@ impl ColumnToSql for OrderBys {
     fn column_to_sql(
         &self,
         ctx: &mut SqlResult,
-    ) -> Result<super::SqlQuery, crate::error::SqloError> {
+    ) -> Result<SqlQuery, crate::error::SqloError> {
         ctx.context.push(Context::OrderBy);
         let mut res = self.0.iter().fold(
             Ok(SqlQuery::default()),

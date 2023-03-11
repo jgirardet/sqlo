@@ -1,10 +1,9 @@
-use context::Context;
 use darling::util::IdentString;
 use proc_macro2::{Punct, Spacing};
 
 use crate::{
     error::SqloError,
-    macros::{context, SqlQuery, SqlResult},
+    macros::{SqlQuery, SqlResult, Context},
     relations::Join,
 };
 

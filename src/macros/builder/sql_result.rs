@@ -7,9 +7,10 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use syn::Expr;
 
+use crate::macros::{ColumnToSql, SqloSelectParse};
 use crate::{error::SqloError, relations::Relation, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{ColumnToSql, Context, SqlQuery, SqloSelectParse, TableAliases};
+use super::{Context, SqlQuery, TableAliases};
 
 pub struct SqlResult<'a> {
     pub main_sqlo: &'a Sqlo,

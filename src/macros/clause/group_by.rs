@@ -1,8 +1,9 @@
 use syn::{punctuated::Punctuated, Token};
 
-use crate::error::SqloError;
-
-use super::{kw, ColExpr, ColumnToSql, SqlQuery};
+use crate::{
+    error::SqloError,
+    macros::{kw, ColExpr, ColumnToSql, SqlQuery, SqlResult},
+};
 
 #[derive(Debug)]
 pub struct GroupBy(Vec<ColExpr>);
@@ -21,10 +22,7 @@ impl syn::parse::Parse for GroupBy {
 }
 
 impl ColumnToSql for GroupBy {
-    fn column_to_sql(
-        &self,
-        ctx: &mut super::SqlResult,
-    ) -> Result<super::SqlQuery, crate::error::SqloError> {
+    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, crate::error::SqloError> {
         let mut qr = self.0.iter().fold(
             Ok(SqlQuery::default()),
             |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?),
