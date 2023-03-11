@@ -21,22 +21,22 @@ macro_rules! fk_pattern {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Relations {
-    pub(crate) relations: Vec<Relation>,
+pub struct Relations(Vec<Relation>);
+
+impl FromIterator<Relation> for Relations {
+    fn from_iter<T: IntoIterator<Item = Relation>>(iter: T) -> Self {
+        Self(iter.into_iter().collect::<Vec<Relation>>())
+    }
 }
 
 impl Relations {
     /// Build new Relations from a Sqlo instance.
     /// Span is preserved for field
     pub fn from_sqlo(sqlo: &Sqlo) -> Relations {
-        Relations {
-            // base: sqlo.ident.to_string(),
-            relations: sqlo
-                .fields
-                .iter()
-                .flat_map(|f| make_field_relations(f, sqlo))
-                .collect(),
-        }
+        sqlo.fields
+            .iter()
+            .flat_map(|f| make_field_relations(f, sqlo))
+            .collect()
     }
 
     /// get all relations present in a dir
@@ -51,46 +51,35 @@ impl Relations {
             .filter_map(Result::ok)
             .collect();
         relations.extend_from_slice(&fk_relations);
-        Ok(Self {
-            relations: relations
-                .into_iter()
-                .filter_map(|f| Relation::try_from(f).ok())
-                .collect(),
-        })
+        Ok(relations
+            .into_iter()
+            .filter_map(|f| Relation::try_from(f).ok())
+            .collect())
     }
 
     /// Turn relation to a Vec of Relation using thier PathBuf representation.
     pub fn to_files(&self) -> Vec<PathBuf> {
-        self.relations
+        self.0
             .iter()
             .map(|r| PathBuf::from(r.to_string()))
             .collect()
     }
 
-    #[allow(irrefutable_let_patterns)]
-    pub fn filter_entity(&self, mode: &str, ident: &str) -> Relations {
-        Relations {
-            relations: self
-                .relations
-                .clone()
-                .into_iter()
-                .filter(|e| {
-                    if let Relation::ForeignKey(f) = e {
-                        if mode == "from" {
-                            f.from == ident
-                        } else if mode == "to" {
-                            f.to == ident
-                        } else if mode == "both" {
-                            f.from == ident || f.to == ident
-                        } else {
-                            unreachable!("Only `to` and `from` are allowed")
-                        }
-                    } else {
-                        false
-                    }
-                })
-                .collect(),
-        }
+    pub fn filter_entity(self, mode: &str, ident: &str) -> Relations {
+        self.0
+            .into_iter()
+            .filter(|f| {
+                if mode == "from" {
+                    f.from == ident
+                } else if mode == "to" {
+                    f.to == ident
+                } else if mode == "both" {
+                    f.from == ident || f.to == ident
+                } else {
+                    unreachable!("Only `to` and `from` are allowed")
+                }
+            })
+            .collect()
     }
 
     /// Returns PathPub of other not contained in self.
@@ -104,9 +93,9 @@ impl Relations {
     }
 
     pub fn validate(&self, sqlo: &Sqlo, sqlos: &Sqlos) -> Result<(), SqloError> {
-        for relation in self.relations.iter() {
-            let Relation::ForeignKey(rel_fk) = relation;
-            rel_fk.validate(sqlo, sqlos)?;
+        for relation in self.0.iter() {
+            let relation = relation;
+            relation.validate(sqlo, sqlos)?;
         }
         Ok(())
     }
@@ -115,26 +104,9 @@ impl Relations {
 // query impl block
 impl Relations {
     pub fn find(&self, to: &IdentString, related: &IdentString) -> Result<&Relation, SqloError> {
-        match self
-            .relations
-            .iter()
-            .find(|Relation::ForeignKey(r)| &r.to == to && &r.related == related)
-        {
+        match self.0.iter().find(|r| &r.to == to && &r.related == related) {
             Some(r) => Ok(r),
             None => Err(SqloError::new("No relation found", related.span())),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Relation {
-    ForeignKey(RelForeignKey),
-}
-
-impl Display for Relation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Relation::ForeignKey(r) => r.fmt(f),
         }
     }
 }
@@ -157,7 +129,7 @@ impl TryFrom<PathBuf> for Relation {
                         .collect::<Vec<_>>();
 
                     if res.len() == 5 {
-                        return Ok(Relation::ForeignKey(RelForeignKey {
+                        return Ok(Relation {
                             from: syn::Ident::new(res[0], Span::call_site()).into(),
                             field: syn::Ident::new(res[1], Span::call_site()).into(),
                             to: syn::Ident::new(res[2], Span::call_site()).into(),
@@ -165,7 +137,7 @@ impl TryFrom<PathBuf> for Relation {
                             ty: syn::parse_str(&res[4].replace('~', ":")).map_err(|_| {
                                 SqloError::new_lost("Could not parse relation type")
                             })?,
-                        }));
+                        });
                     }
                 }
             }
@@ -178,7 +150,7 @@ impl TryFrom<PathBuf> for Relation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RelForeignKey {
+pub struct Relation {
     pub from: IdentString,    // Sqlo struct where fk is defined
     pub field: IdentString,   // in which field
     pub ty: syn::TypePath,    // in which type
@@ -186,7 +158,7 @@ pub struct RelForeignKey {
     pub related: IdentString, // identifier used by `to` to access `from`
 }
 
-impl RelForeignKey {
+impl Relation {
     fn validate(&self, sqlo: &Sqlo, sqlos: &Sqlos) -> Result<(), SqloError> {
         self.validate_existing_fk_struct(sqlo, sqlos)?; // should always be called first (use of unwrap later)
         self.validate_existing_fk_type(sqlo, sqlos)?;
@@ -259,23 +231,17 @@ impl RelForeignKey {
     }
 
     pub fn get_from_column<'a>(&self, sqlos: &'a Sqlos) -> &'a str {
-        let from_sqlo = {
-            let name = &self.from;
-            sqlos
-                .entities
-                .iter()
-                .find(|s| s.ident == name.as_ref())
-                .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
-        }
-        .expect("Error: Entity not found from Relation"); //should never happen except on first pass
-        let from_field = from_sqlo
+        sqlos
+            .get(&self.from)
+            .expect("Error: Entity not found from Relation") //should never happen except on first pass
             .field(self.field.as_ident())
-            .expect("Sqlo Field not Found, please rebuild");
-        from_field.column.as_str()
+            .expect("Sqlo Field not Found, please rebuild")
+            .column
+            .as_str()
     }
 }
 
-impl Display for RelForeignKey {
+impl Display for Relation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ty = darling::util::path_to_string(&self.ty.path).replace("::", "~~");
         write!(
@@ -298,13 +264,13 @@ fn make_field_relations(field: &Field, sqlo: &Sqlo) -> Vec<Relation> {
             ident.set_span(rel.span());
             as_related_name(&IdentString::new(ident))
         };
-        res.push(Relation::ForeignKey(RelForeignKey {
+        res.push(Relation {
             from: sqlo.ident.clone(),
             field: field.ident.clone(),
             ty: field.ty.clone(),
             to: rel.clone(),
             related,
-        }))
+        })
     }
     res
 }
@@ -400,7 +366,7 @@ mod test_relations {
             "Aaa", "f", "Bbb", "g", "Option<i32>"
         ))
         .unwrap();
-        let Relation::ForeignKey(r) = p.try_into().unwrap();
-        assert_eq!(format_path(&r.ty.path), "Option<i32>");
+        let relation: Relation = p.try_into().unwrap();
+        assert_eq!(format_path(&relation.ty.path), "Option<i32>");
     }
 }

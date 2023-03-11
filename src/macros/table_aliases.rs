@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use darling::util::IdentString;
 
-use crate::{error::SqloError, relations::RelForeignKey, sqlos::Sqlos};
+use crate::{error::SqloError, relations::Relation, sqlos::Sqlos};
 
 #[derive(Debug, Default, Clone)]
 // sqlo_or_related_ident:(char alias, Sqlo ident)
@@ -13,7 +13,7 @@ impl TableAliases {
             .insert(sqlo.clone(), (self.get_next_alias(), sqlo.clone()));
     }
 
-    pub fn insert_related(&mut self, rel: &RelForeignKey) {
+    pub fn insert_related(&mut self, rel: &Relation) {
         self.0.insert(
             rel.related.clone(),
             (self.get_next_alias(), rel.from.clone()),

@@ -4,7 +4,7 @@ use darling::util::IdentString;
 
 use crate::{
     error::SqloError,
-    relations::{RelForeignKey, Relation, Relations},
+    relations::{Relation, Relations},
     sqlo::Sqlo,
 };
 
@@ -26,7 +26,7 @@ impl Sqlos {
         to: &IdentString,
         related: &IdentString,
     ) -> Result<&Sqlo, SqloError> {
-        let Relation::ForeignKey(relation) = self.relations.find(to, related)?;
+        let relation = self.relations.find(to, related)?;
         self.get(&relation.from)
     }
 
@@ -34,8 +34,7 @@ impl Sqlos {
         &self,
         to: &IdentString,
         related: &IdentString,
-    ) -> Result<&RelForeignKey, SqloError> {
-        let Relation::ForeignKey(relation) = self.relations.find(to, related)?;
-        Ok(relation)
+    ) -> Result<&Relation, SqloError> {
+        self.relations.find(to, related)
     }
 }

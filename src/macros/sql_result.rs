@@ -7,7 +7,7 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use syn::Expr;
 
-use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{error::SqloError, relations::Relation, sqlo::Sqlo, sqlos::Sqlos};
 
 use super::{ColumnToSql, Context, SqlQuery, SqloSelectParse, TableAliases};
 
@@ -25,7 +25,7 @@ pub struct SqlResult<'a> {
     having: String,
     limit: String,
     arguments: Vec<Expr>,
-    relation: Option<&'a RelForeignKey>,
+    relation: Option<&'a Relation>,
     customs: bool,
     custom_struct: Option<IdentString>,
 }
@@ -277,7 +277,7 @@ impl SqlResult<'_> {
         self.table_aliases.tablename(sqlo_or_related, self.sqlos)
     }
 
-    pub fn insert_related_alias(&mut self, rel: &RelForeignKey) {
+    pub fn insert_related_alias(&mut self, rel: &Relation) {
         if !&self.table_aliases.contains(&rel.related) {
             self.table_aliases.insert_related(rel)
         }
