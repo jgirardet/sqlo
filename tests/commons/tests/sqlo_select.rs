@@ -275,6 +275,12 @@ Test! {select_cutoms_cast, async fn func(p: PPool) {
   let res  = select![ PieceFk lg as p!, la as a?].fetch_all(&p.pool).await.unwrap();
   assert_eq![res[0].p,1 ];
   assert_eq![res[0].a,Some(10) ];
+  // Non nullable without alias
+  let res = select![SelfRelation manager_id! where manager_id != None].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res[0].manager_id, 3);
+  //  nullable without alias
+  let res = select![SelfRelation id?].fetch_all(&p.pool).await.unwrap();
+  assert_eq!(res[0].id, Some(1))
 }}
 
 Test! {select_cutoms_join_conflict, async fn func(p: PPool) {

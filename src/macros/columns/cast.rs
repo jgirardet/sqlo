@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use darling::util::IdentString;
 use syn::{LitStr, Token};
@@ -91,5 +91,16 @@ impl syn::parse::Parse for AliasCast {
                 Err(_) => Err(input.error("as must be followed by identifier or string literal")),
             },
         }
+    }
+}
+
+impl FromStr for AliasCast {
+    type Err = SqloError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(AliasCast::Literal(LitStr::new(
+            s,
+            proc_macro2::Span::call_site(),
+        )))
     }
 }

@@ -16,13 +16,36 @@ pub enum Column {
 impl syn::parse::Parse for Column {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let expr = input.parse::<ColExpr>()?;
-        if input.peek(Token![as]) {
-            input.parse::<Token![as]>()?;
-            let alias = input.parse::<AliasCast>()?;
-            Ok(Column::Cast(ColumnCast { expr, alias }))
+        if let ColExpr::Ident(i) = &expr {
+            // special case of ident to handle ! and ?
+            if input.peek(Token![!]) {
+                input.parse::<Token![!]>()?;
+                Ok(Column::Cast(ColumnCast {
+                    alias: format!("{i}!").parse()?,
+                    expr: i.clone().into(),
+                }))
+            } else if input.peek(Token![?]) {
+                input.parse::<Token![?]>()?;
+                Ok(Column::Cast(ColumnCast {
+                    alias: format!("{i}?").parse()?,
+                    expr: i.clone().into(),
+                }))
+            } else {
+                parse_as(expr, input)
+            }
         } else {
-            Ok(Column::Mono(expr))
+            parse_as(expr, input)
         }
+    }
+}
+
+fn parse_as(expr: ColExpr, input: syn::parse::ParseStream) -> syn::Result<Column> {
+    if input.peek(Token![as]) {
+        input.parse::<Token![as]>()?;
+        let alias = input.parse::<AliasCast>()?;
+        Ok(Column::Cast(ColumnCast { expr, alias }))
+    } else {
+        Ok(Column::Mono(expr))
     }
 }
 
