@@ -29,8 +29,8 @@ impl ColumnToSql for ColExprSubSelect {
         ctx.context.push(Context::SubQuery);
         let parsed =
             syn::parse2::<SqloSelectParse>(self.tokens.clone()).map_err(SqloError::from)?;
-        let result = SqlResult::from_sqlo_parse(parsed, ctx.sqlos, true)?;
-        let mut qr: SqlQuery = result.into();
+        let result = SqlResult::from_sqlo_parse(parsed, ctx.sqlos, true, ctx.table_aliases())?;
+        let mut qr: SqlQuery = result.try_into()?;
         qr.prepend_str("(");
         if let Some(func) = &self.func {
             qr.prepend_str(func.as_str())

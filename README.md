@@ -163,6 +163,7 @@ struct House {
     height: i64
 }
 
+#[derive[Sqlo, Debug, PartialEq]]
 struct Room {
     id: i64,
     #[sqlo(fk = "House")]
@@ -172,6 +173,7 @@ struct Room {
 
 // or
 
+#[derive[Sqlo, Debug, PartialEq]]
 struct Room {
     id: i64,
     #[sqlo(fk = "House", related = "therooms")]
@@ -182,13 +184,25 @@ struct Room {
 
 ```
 
-There is a type check so the `fk` field must have the same type as target struct's primary key.
+There is a type check so the `fk` field must have the same type as target struct's primary key (or an `Option`).
 
 Entities and Relations are kept in a `.sqlo` directory which is created at compile time. Depending the order of compilation,it might fails at first glance if a `Sqlo Entity` is targeted in a relation but not yet parsed . Just rebuild a second time and it will pass.
 
 `.sqlo` may or not be added to VCS. Although it isn't its primary purpose, versionning `.sqlo` appears to add some more security in case of code change. The content is simple json files, which are very easy to read.
 
 The `fk` literal can be identifier (`"MyRoom"`) or a path (`"mycrate::mydir::MyRoom"`).
+
+Use SELF joins declaring `fk` in the same struct:
+
+```rust
+#[derive(Sqlo)]
+struct Employee {
+    id: i64
+    name: String
+    #[sqlo(fk="Employee"), related="manager"]
+    manager_id: Option<i64> // here the type is not i64 but Option<i64> since en employe may be the bosse and have no manager.
+}
+```
 
 ## Methods
 
@@ -668,10 +682,10 @@ Debug all queries vith env variable :
 - SQLO_DEBUG_QUERY: will show you how queries are translated
 - SQLO_DEBUG_QUERY: will show you how queries are translated + the params
 
-
-or 
+or
 
 Debug a single one with `dbg!`.
+
 ```rust
 select![dbg! House where width >30]...
 ```

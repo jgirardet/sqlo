@@ -5,7 +5,7 @@ use syn::{parse::ParseStream, punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
-use super::{Column, GroupBy, Having, Limit, OrderBys, SqlResult, Where};
+use super::{Column, GroupBy, Having, Limit, OrderBys, SqlResult, TableAliases, Where};
 
 pub mod kw {
     syn::custom_keyword!(order_by);
@@ -157,7 +157,7 @@ pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {
     #[cfg(debug_assertions)]
     let debug = input.debug;
     let sqlos = VirtualFile::new().load()?;
-    let sqlr = SqlResult::from_sqlo_parse(input, &sqlos, false)?;
+    let sqlr = SqlResult::from_sqlo_parse(input, &sqlos, false, TableAliases::default())?;
     let result = sqlr.expand();
     #[cfg(debug_assertions)]
     if debug {

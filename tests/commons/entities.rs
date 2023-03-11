@@ -67,3 +67,12 @@ pub struct Lit {
     pub id: i64,
     pub surface: i64,
 }
+
+#[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
+pub struct SelfRelation {
+    id: i64,
+    name: String,
+    salary: i64,
+    #[sqlo(fk = "SelfRelation", related = "manager")]
+    manager_id: Option<i64>,
+}

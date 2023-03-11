@@ -9,13 +9,14 @@ use syn::Expr;
 
 use crate::{error::SqloError, relations::RelForeignKey, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{ColumnToSql, Context, SqlQuery, SqloSelectParse};
+use super::{ColumnToSql, Context, SqlQuery, SqloSelectParse, TableAliases};
 
 pub struct SqlResult<'a> {
     pub main_sqlo: &'a Sqlo,
     pub sqlos: &'a Sqlos,
     pub alias: HashMap<IdentString, String>,
     pub context: Vec<Context>,
+    table_aliases: TableAliases,
     columns: String,
     joins: HashSet<String>,
     wwhere: String,
@@ -34,9 +35,11 @@ impl<'a> SqlResult<'a> {
         parsed: SqloSelectParse,
         sqlos: &'a Sqlos,
         subuqery: bool,
+        table_aliases: TableAliases,
     ) -> Result<SqlResult, SqloError> {
         let main_sqlo = SqlResult::set_main_and_relation(&parsed, sqlos)?;
         let mut sqlr = SqlResult::new(main_sqlo, sqlos);
+        sqlr.table_aliases = table_aliases;
         if subuqery {
             sqlr.context.push(Context::SubQuery);
         }
@@ -48,6 +51,7 @@ impl<'a> SqlResult<'a> {
         SqlResult {
             sqlos,
             main_sqlo,
+            table_aliases: TableAliases::default(),
             alias: HashMap::default(),
             columns: String::default(),
             relation: Option::default(),
@@ -103,6 +107,12 @@ impl<'a> SqlResult<'a> {
         self.joins.extend(qr.joins);
     }
 
+    fn process_from(&mut self) {
+        if !self.table_aliases.contains(&self.main_sqlo.ident) {
+            self.table_aliases.insert_sqlo(&self.main_sqlo.ident)
+        }
+    }
+
     fn set_relation(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if let Some(ref related) = parsed.related {
             self.relation = Some(self.sqlos.get_relation(&parsed.entity, related)?);
@@ -136,7 +146,28 @@ impl<'a> SqlResult<'a> {
 
     fn set_columns(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
         if parsed.customs.is_empty() {
-            self.columns = self.main_sqlo.all_columns_as_query.to_string();
+            let mut res = vec![];
+            for f in self.main_sqlo.fields.iter() {
+                // we write full query if name or type isn't the same between rust struct and database
+                if f.type_override || f.ident != f.column || f.ident == "id" {
+                    let a = format!(
+                        r#"{} as "{}:_""#,
+                        &self
+                            .table_aliases
+                            .column(&self.main_sqlo.ident, &f.ident, self.sqlos)?,
+                        &f.ident
+                    )
+                    .replace('\\', "");
+                    res.push(a);
+                } else {
+                    res.push(self.table_aliases.column(
+                        &self.main_sqlo.ident,
+                        &f.ident,
+                        self.sqlos,
+                    )?)
+                }
+            }
+            self.columns = res.join(", ");
         } else {
             self.customs = true;
             let columns = parsed.customs.iter().fold(
@@ -161,6 +192,7 @@ impl<'a> SqlResult<'a> {
     }
 
     pub fn parse(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+        self.process_from();
         self.set_columns(parsed)?;
         self.set_relation(parsed)?;
         self.process_wwhere(parsed)?;
@@ -173,23 +205,25 @@ impl<'a> SqlResult<'a> {
         Ok(())
     }
 
-    fn query(&self) -> String {
+    fn query(&self) -> Result<String, SqloError> {
         let distinct = self.get_distinct();
         let columns = &self.columns;
-        let tablename = &self.main_sqlo.tablename;
+        let tablename = self
+            .table_aliases
+            .tablename(&self.main_sqlo.ident, self.sqlos)?;
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
         let group_by_query = &self.group_by;
         let having_query = &self.having;
         let order_by_query = &self.order_by;
         let limit_query = &self.limit;
-        format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}")
+        Ok(format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}")
             .trim_end()
-            .into()
+        .into())
     }
 
     pub fn expand(&self) -> Result<TokenStream, SqloError> {
-        let query = self.query();
+        let query = self.query()?;
         if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
             println!("query: {}", &query);
         } else if std::env::var("SQLO_DEBUG_QUERY_ALL").is_ok() {
@@ -216,16 +250,48 @@ impl<'a> SqlResult<'a> {
 
     #[cfg(debug_assertions)]
     pub fn debug(&self) {
-        println!("query: {} \nargs: {:?}", self.query(), &self.arguments);
+        println!(
+            "query: {} \nargs: {:?}",
+            self.query().unwrap_or_else(|e| e.to_string()),
+            &self.arguments
+        );
     }
 }
 
-impl<'a> From<SqlResult<'a>> for SqlQuery {
-    fn from(result: SqlResult) -> Self {
-        SqlQuery {
-            query: result.query(),
-            params: result.arguments,
-            joins: HashSet::default(), //result.joins,
+// interface to table_aliases
+impl SqlResult<'_> {
+    pub fn column(
+        &mut self,
+        sqlo_or_related: &IdentString,
+        field: &IdentString,
+    ) -> Result<String, SqloError> {
+        self.table_aliases
+            .column(sqlo_or_related, field, self.sqlos)
+    }
+
+    pub fn table_aliases(&self) -> TableAliases {
+        self.table_aliases.clone()
+    }
+
+    pub fn tablename_alias(&self, sqlo_or_related: &IdentString) -> Result<String, SqloError> {
+        self.table_aliases.tablename(sqlo_or_related, self.sqlos)
+    }
+
+    pub fn insert_related_alias(&mut self, rel: &RelForeignKey) {
+        if !&self.table_aliases.contains(&rel.related) {
+            self.table_aliases.insert_related(rel)
         }
+    }
+}
+
+impl<'a> TryFrom<SqlResult<'a>> for SqlQuery {
+    type Error = SqloError;
+
+    fn try_from(result: SqlResult<'a>) -> Result<Self, Self::Error> {
+        Ok(SqlQuery {
+            query: result.query()?,
+            params: result.arguments,
+            joins: HashSet::default(),
+        })
     }
 }

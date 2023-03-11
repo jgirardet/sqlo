@@ -29,6 +29,7 @@ impl ColumnToSql for Expr {
 
 impl ColumnToSql for &IdentString {
     fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+        // only the aliases
         if ctx.alias.contains_key(self) {
             if ctx.context.contains(&Context::Call) {
                 Ok(format! {"{self}"}.into()) // no sqlx text alias in call
@@ -36,7 +37,8 @@ impl ColumnToSql for &IdentString {
                 Ok(ctx.alias[self].clone().into())
             }
         } else {
-            Ok(ctx.main_sqlo.column(self.as_ident())?.into())
+            // all ident from main sqlo
+            Ok(ctx.column(&ctx.main_sqlo.ident, self)?.into())
         }
     }
 }

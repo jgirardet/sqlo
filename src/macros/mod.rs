@@ -10,6 +10,7 @@ mod sql_result;
 mod sqlo_select;
 pub mod sqlo_update;
 mod r#where;
+mod table_aliases;
 
 pub use columns::*;
 pub use context::Context;
@@ -22,3 +23,4 @@ pub use r#where::Where;
 pub use sql_query::SqlQuery;
 pub use sql_result::SqlResult;
 pub use sqlo_select::{kw, next_is_not_a_keyword, process_sqlo_select, SqloSelectParse};
+pub use table_aliases::TableAliases;

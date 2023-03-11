@@ -1,7 +1,8 @@
-use darling::util::{path_to_string, IdentString};
+use darling::util::IdentString;
 use proc_macro2::Span;
 use quote::format_ident;
 use regex::Regex;
+use syn::{AngleBracketedGenericArguments, GenericArgument, PathArguments, Type, TypePath};
 
 use std::{
     fmt::Display,
@@ -9,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{error::SqloError, field::Field, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{error::SqloError, field::Field, macros::SqlResult, sqlo::Sqlo, sqlos::Sqlos};
 
 // not const so we can use it in macro
 // patter: struct, field, fk_struct, fk_related_name, type
@@ -103,15 +104,6 @@ impl Relations {
     }
 
     pub fn validate(&self, sqlo: &Sqlo, sqlos: &Sqlos) -> Result<(), SqloError> {
-        // let files = std::fs::read_dir(path).sqlo_err(sqlo.ident.span())?;
-        // let mut sqlos: Vec<Sqlo> = vec![];
-        // for file in files.flatten() {
-        //     let parsed_sqlo: Sqlo = serde_json::from_str(
-        //         &std::fs::read_to_string(file.path()).sqlo_err(sqlo.ident.span())?,
-        //     )
-        //     .sqlo_err(sqlo.ident.span())?;
-        //     sqlos.push(parsed_sqlo)
-        // }
         for relation in self.relations.iter() {
             let Relation::ForeignKey(rel_fk) = relation;
             rel_fk.validate(sqlo, sqlos)?;
@@ -152,7 +144,7 @@ impl TryFrom<PathBuf> for Relation {
 
     fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
         lazy_static::lazy_static! {
-            static ref RE_FK: Regex = Regex::new(r"^fk-(\w+)--(\w+)---(\w+)--(\w+)----([\w~]+)$").unwrap();
+            static ref RE_FK: Regex = Regex::new(r"^fk-(\w+)--(\w+)---(\w+)--(\w+)----([\w~<>]+)$").unwrap();
         }
         if let Some(filename) = value.file_name() {
             if let Some(filestr) = filename.to_str() {
@@ -187,11 +179,11 @@ impl TryFrom<PathBuf> for Relation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelForeignKey {
-    pub from: IdentString,
-    pub field: IdentString,
-    pub ty: syn::TypePath,
-    pub to: IdentString,
-    pub related: IdentString,
+    pub from: IdentString,    // Sqlo struct where fk is defined
+    pub field: IdentString,   // in which field
+    pub ty: syn::TypePath,    // in which type
+    pub to: IdentString,      // Sqlo target struct
+    pub related: IdentString, // identifier used by `to` to access `from`
 }
 
 impl RelForeignKey {
@@ -207,17 +199,16 @@ impl RelForeignKey {
     }
 
     fn validate_existing_fk_type(&self, _sqlo: &Sqlo, sqlos: &Sqlos) -> Result<(), SqloError> {
-        use syn::spanned::Spanned;
         let matching_sqlo = sqlos.get(&self.to)?;
 
-        if matching_sqlo.pk_field.ty.path != self.ty.path {
-            return Err(SqloError::new(
+        if !is_the_same_type_or_option(&matching_sqlo.pk_field.ty, &self.ty) {
+            return Err(SqloError::new_spanned(
+                &self.ty,
                 &format!(
                     "Field type an foreign key field's type don't match. Expected {} found {}",
-                    path_to_string(&matching_sqlo.pk_field.ty.path),
-                    path_to_string(&self.ty.path)
+                    format_path(&matching_sqlo.pk_field.ty.path),
+                    format_path(&self.ty.path)
                 ),
-                self.ty.span(),
             ));
         }
 
@@ -241,37 +232,30 @@ impl RelForeignKey {
         Ok(())
     }
 
-    pub fn to_join(&self, join: Join, sqlos: &Sqlos) -> String {
-        let from_sqlo = {
-            let this = &sqlos;
-            let name = &self.from;
-            this.entities
-                .iter()
-                .find(|s| s.ident == name.as_ref())
-                .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
+    fn is_self_join(&self) -> bool {
+        self.from == self.to
+    }
+
+    pub fn to_join(&self, join: Join, ctx: &mut SqlResult) -> Result<String, SqloError> {
+        let to_sqlo = ctx.sqlos.get(&self.to)?;
+
+        ctx.insert_related_alias(self);
+
+        let tablename_plus_alias = ctx.tablename_alias(&self.related)?;
+        let lhs;
+        let rhs;
+        if !self.is_self_join() {
+            lhs = ctx.column(&self.related, &self.field)?;
+            rhs = ctx.column(&self.to, &to_sqlo.pk_field.ident)?;
+        } else {
+            rhs = ctx.column(&self.related, &to_sqlo.pk_field.ident)?;
+            lhs = ctx.column(&self.to, &self.field)?;
         }
-        .expect("Error: Entity not found from Relation"); //should never happen except on first pass
-        let to_sqlo = {
-            let this = &sqlos;
-            let name = &self.to;
-            this.entities
-                .iter()
-                .find(|s| s.ident == name.as_ref())
-                .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
-        }
-        .expect("Error: Entity not found from Relation"); //should never happen except on first pass
-        let from_field = from_sqlo
-            .field(self.field.as_ident())
-            .expect("Sqlo Field not Found, please rebuild");
-        format!(
-            " {} JOIN {} ON {}.{}={}.{}",
-            join,
-            &from_sqlo.tablename,
-            &to_sqlo.tablename,
-            &to_sqlo.pk_field.column,
-            &from_sqlo.tablename,
-            &from_field.column
-        )
+
+        Ok(format!(
+            " {} JOIN {} ON {}={}",
+            join, tablename_plus_alias, lhs, rhs,
+        ))
     }
 
     pub fn get_from_column<'a>(&self, sqlos: &'a Sqlos) -> &'a str {
@@ -284,9 +268,6 @@ impl RelForeignKey {
                 .ok_or_else(|| SqloError::new_lost(&format!("Can't find Sqlo struct {}", name)))
         }
         .expect("Error: Entity not found from Relation"); //should never happen except on first pass
-                                                          // let to_sqlo = sqlos
-                                                          //     .get(&self.to)
-                                                          //     .expect("Error: Entity not found from Relation"); //should never happen except on first pass
         let from_field = from_sqlo
             .field(self.field.as_ident())
             .expect("Sqlo Field not Found, please rebuild");
@@ -334,6 +315,50 @@ pub fn as_related_name(ident: &IdentString) -> IdentString {
     format_ident!("{}", syn::Ident::new(&name, ident.span())).into()
 }
 
+fn is_the_same_type_or_option(base: &TypePath, target: &TypePath) -> bool {
+    if base.path == target.path {
+        return true;
+    }
+    for seg in &target.path.segments {
+        if seg.ident == "Option" {
+            if let PathArguments::AngleBracketed(AngleBracketedGenericArguments { args, .. }) =
+                &seg.arguments
+            {
+                if let Some(GenericArgument::Type(Type::Path(TypePath { path, .. }))) = args.first()
+                {
+                    return path == &base.path;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn format_path(path: &syn::Path) -> String {
+    if let Some(ident) = path.get_ident() {
+        return ident.to_string();
+    }
+    let mut res: Vec<String> = vec![];
+
+    for seg in &path.segments {
+        let ident = seg.ident.to_string();
+        match &seg.arguments {
+            PathArguments::AngleBracketed(AngleBracketedGenericArguments { args, .. }) => {
+                if let Some(GenericArgument::Type(Type::Path(TypePath { path, .. }))) = args.first()
+                {
+                    res.push(format!("{}<{}>", ident, format_path(&path)))
+                }
+            }
+            PathArguments::None => res.push(ident),
+            _ => unimplemented!("Sqlo: only standard path an option are implemented now"),
+        }
+    }
+    res.iter()
+        .map(|i| i.to_string())
+        .collect::<Vec<String>>()
+        .join("::")
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum Join {
     Inner,
@@ -366,5 +391,16 @@ mod test_relations {
         let p = PathBuf::from_str(&format!(fk_pattern!(), "Aaa", "f", "Bbb", "g", "path~~i32"))
             .unwrap();
         let _: Relation = p.try_into().unwrap();
+    }
+
+    #[test]
+    fn test_try_from_pathbug_for_relation_with_sqare_bracket() {
+        let p = PathBuf::from_str(&format!(
+            fk_pattern!(),
+            "Aaa", "f", "Bbb", "g", "Option<i32>"
+        ))
+        .unwrap();
+        let Relation::ForeignKey(r) = p.try_into().unwrap();
+        assert_eq!(format_path(&r.ty.path), "Option<i32>");
     }
 }

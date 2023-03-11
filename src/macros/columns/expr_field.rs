@@ -42,22 +42,11 @@ impl ColumnToSql for ColExprField {
         let relation = match ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base) {
             Ok(rel) => rel,
             Err(_) => {
-                return Ok(ctx
-                    .sqlos
-                    .get(self.base.as_str())
-                    .map_err(|_| {
-                        SqloError::new_spanned(
-                            &self.base,
-                            "This is neither a ralated or entity name",
-                        )
-                    })?
-                    .column(self.member.as_ident())?
-                    .into());
+                return Ok(ctx.column(&self.base, &self.member)?.into());
             }
         };
-        let related_sqlo = ctx.sqlos.get(&relation.from)?;
-        let join = relation.to_join(self.join, ctx.sqlos);
-        let column = related_sqlo.column(self.member.as_ident())?;
+        let join = relation.to_join(self.join, ctx)?;
+        let column = ctx.column(&self.base, &self.member)?;
         ctx.context.pop();
         Ok((column, join).into())
     }

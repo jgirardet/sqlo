@@ -52,6 +52,7 @@ impl FieldParser {
             for seg in path.segments.iter() {
                 match seg.arguments {
                     syn::PathArguments::None => continue,
+                    syn::PathArguments::AngleBracketed(_) => continue,
                     _ => return Err(syn::Error::new_spanned(self.ty.clone(), msg)),
                 };
             }

@@ -2,11 +2,9 @@ A faire:
 
 # fin de voie de base
 
-self: Maison=.=maison => beaucoup plus compliqué
-
-Forcer les types sur les colonnes en plus des alias: macolonne! au lieu de macolonne as macolonne!
-
-union/intersect/except
+- Forcer les types sur les colonnes en plus des alias: macolonne! au lieu de macolonne as macolonne!
+- refactor relation
+- union/intersect/except
 
 # Bug:
 

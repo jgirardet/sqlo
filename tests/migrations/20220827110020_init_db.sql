@@ -75,3 +75,16 @@ INSERT INTO lit (id, surface) VALUES
   (2, 100),
   (3, 450),
   (4, 234);
+  
+CREATE TABLE IF NOT EXISTS self_relation ( 
+    id INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    salary INTEGER NOT NULL,
+    manager_id INTEGER,
+  FOREIGN KEY(manager_id) REFERENCES self_relation(id)
+    ); 
+
+INSERT INTO self_relation VALUES
+  (1, 'axel', 12, 3),
+  (2, 'margaux', 10, 1),
+  (3, 'papa', 1200, NULL);

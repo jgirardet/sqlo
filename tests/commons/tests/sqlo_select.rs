@@ -239,6 +239,14 @@ Test! {select_cutoms_fields_related_join, async fn func(p: PPool) {
   //left join where with alias
   let res = select![Maison id,  lespieces=.lg as lep where lep == None].fetch_all(&p.pool).await.unwrap();
   assert_eq!(res.len(), 1);
+  // self join
+    let res = select![SelfRelation name, manager.name as manager].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(),2);
+    assert_eq!(res[0].name, "axel");
+    assert_eq!(res[0].manager, "papa");
+    let res = select![SelfRelation name, manager=.name as manager].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(),3);
+
 }}
 
 Test! {select_cutoms_cast, async fn func(p: PPool) {
