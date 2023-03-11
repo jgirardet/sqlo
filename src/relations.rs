@@ -312,7 +312,7 @@ fn format_path(path: &syn::Path) -> String {
             PathArguments::AngleBracketed(AngleBracketedGenericArguments { args, .. }) => {
                 if let Some(GenericArgument::Type(Type::Path(TypePath { path, .. }))) = args.first()
                 {
-                    res.push(format!("{}<{}>", ident, format_path(&path)))
+                    res.push(format!("{}<{}>", ident, format_path(path)))
                 }
             }
             PathArguments::None => res.push(ident),
