@@ -7,16 +7,18 @@ use itertools::Itertools;
 use proc_macro2::TokenStream;
 use syn::Expr;
 
-use crate::macros::{ColumnToSql, SqloSelectParse};
+use crate::macros::ColumnToSql;
 use crate::{error::SqloError, relations::Relation, sqlo::Sqlo, sqlos::Sqlos};
 
-use super::{Context, SqlQuery, TableAliases};
+use super::mode::Mode;
+use super::{Context, SqlQuery, SqloQueryParse, TableAliases};
 
 pub struct SqlResult<'a> {
     pub main_sqlo: &'a Sqlo,
     pub sqlos: &'a Sqlos,
     pub alias: HashMap<IdentString, String>,
     pub context: Vec<Context>,
+    mode: Mode,
     table_aliases: TableAliases,
     columns: String,
     joins: HashSet<String>,
@@ -33,13 +35,14 @@ pub struct SqlResult<'a> {
 
 impl<'a> SqlResult<'a> {
     pub fn from_sqlo_parse(
-        parsed: SqloSelectParse,
+        mode: Mode,
+        parsed: SqloQueryParse,
         sqlos: &'a Sqlos,
         subuqery: bool,
         table_aliases: TableAliases,
     ) -> Result<SqlResult, SqloError> {
         let main_sqlo = SqlResult::set_main_and_relation(&parsed, sqlos)?;
-        let mut sqlr = SqlResult::new(main_sqlo, sqlos);
+        let mut sqlr = SqlResult::new(main_sqlo, sqlos, mode);
         sqlr.table_aliases = table_aliases;
         if subuqery {
             sqlr.context.push(Context::SubQuery);
@@ -48,10 +51,11 @@ impl<'a> SqlResult<'a> {
         Ok(sqlr)
     }
 
-    fn new(main_sqlo: &'a Sqlo, sqlos: &'a Sqlos) -> Self {
+    fn new(main_sqlo: &'a Sqlo, sqlos: &'a Sqlos, mode: Mode) -> Self {
         SqlResult {
             sqlos,
             main_sqlo,
+            mode,
             table_aliases: TableAliases::default(),
             alias: HashMap::default(),
             columns: String::default(),
@@ -70,7 +74,7 @@ impl<'a> SqlResult<'a> {
     }
 
     fn set_main_and_relation(
-        parsed: &SqloSelectParse,
+        parsed: &SqloQueryParse,
         sqlos: &'a Sqlos,
     ) -> Result<&'a Sqlo, SqloError> {
         if let Some(ref related) = parsed.related {
@@ -86,7 +90,7 @@ macro_rules! impl_process_sqlqueries {
         paste::paste! {
             impl<'a> SqlResult<'a> {
                 $(
-                fn [<process_ $clause>](&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+                fn [<process_ $clause>](&mut self, parsed: &SqloQueryParse) -> Result<(), SqloError> {
                     if let Some(case) = &parsed.$clause {
                         let qr = case.column_to_sql(self)?;
                         self.$clause = qr.query.clone();
@@ -114,18 +118,18 @@ impl<'a> SqlResult<'a> {
         }
     }
 
-    fn set_relation(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+    fn set_relation(&mut self, parsed: &SqloQueryParse) -> Result<(), SqloError> {
         if let Some(ref related) = parsed.related {
             self.relation = Some(self.sqlos.get_relation(&parsed.entity, related)?);
         }
         Ok(())
     }
 
-    fn set_custom_struct(&mut self, parsed: &SqloSelectParse) {
+    fn set_custom_struct(&mut self, parsed: &SqloQueryParse) {
         self.custom_struct = parsed.custom_struct.clone();
     }
 
-    fn link_related_in_where(&mut self, parsed: &SqloSelectParse) {
+    fn link_related_in_where(&mut self, parsed: &SqloQueryParse) {
         // add fk for relation à the end of where
         if let Some(relation) = &self.relation {
             let prefix = if self.wwhere.is_empty() {
@@ -145,7 +149,7 @@ impl<'a> SqlResult<'a> {
         }
     }
 
-    fn set_columns(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+    fn set_columns(&mut self, parsed: &SqloQueryParse) -> Result<(), SqloError> {
         if parsed.customs.is_empty() {
             let mut res = vec![];
             for f in self.main_sqlo.fields.iter() {
@@ -192,7 +196,7 @@ impl<'a> SqlResult<'a> {
         }
     }
 
-    pub fn parse(&mut self, parsed: &SqloSelectParse) -> Result<(), SqloError> {
+    pub fn parse(&mut self, parsed: &SqloQueryParse) -> Result<(), SqloError> {
         self.process_from();
         self.set_columns(parsed)?;
         self.set_relation(parsed)?;
@@ -218,9 +222,13 @@ impl<'a> SqlResult<'a> {
         let having_query = &self.having;
         let order_by_query = &self.order_by;
         let limit_query = &self.limit;
-        Ok(format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}")
+        if let Mode::Select = self.mode {
+            Ok(format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}")
             .trim_end()
         .into())
+        } else {
+            Err(SqloError::new_lost("Query Not supported"))
+        }
     }
 
     pub fn expand(&self) -> Result<TokenStream, SqloError> {

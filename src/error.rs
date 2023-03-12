@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 
 #[derive(Debug)]
@@ -26,6 +26,11 @@ impl SqloError {
             msg: msg.to_string(),
             span: Span::call_site(),
         }
+    }
+
+    #[allow(clippy::wrong_self_convention)]
+    pub fn to_compile_error(self) -> TokenStream {
+        syn::Error::from(self).to_compile_error()
     }
 }
 

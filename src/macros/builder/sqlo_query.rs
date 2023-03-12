@@ -1,14 +1,15 @@
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
 
-use syn::{parse::ParseStream, punctuated::Punctuated, Token};
+use syn::{punctuated::Punctuated, Token};
 
-use crate::virtual_file::VirtualFile;
+use crate::{error::SqloError, virtual_file::VirtualFile};
 
-use super::{Column, GroupBy, Having, Limit, OrderBys, SqlResult, TableAliases, Where, kw};
+use super::{kw, next_is_not_a_keyword, Mode};
+use crate::macros::{Column, GroupBy, Having, Limit, OrderBys, SqlResult, TableAliases, Where};
 
 #[derive(Debug)]
-pub struct SqloSelectParse {
+pub struct SqloQueryParse {
     #[cfg(debug_assertions)]
     pub debug: bool,
     pub entity: IdentString,
@@ -23,7 +24,7 @@ pub struct SqloSelectParse {
     pub having: Option<Having>,
 }
 
-impl SqloSelectParse {
+impl SqloQueryParse {
     fn new(ident: syn::Ident) -> Self {
         Self {
             entity: ident.into(),
@@ -43,7 +44,7 @@ impl SqloSelectParse {
 }
 
 // select![Maison where some_binary_ops order_by some,comma_separated,fields limit u32]
-impl syn::parse::Parse for SqloSelectParse {
+impl syn::parse::Parse for SqloQueryParse {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         // check for debug
         #[cfg(debug_assertions)]
@@ -64,7 +65,7 @@ impl syn::parse::Parse for SqloSelectParse {
         let entity: syn::Ident = input
             .parse()
             .map_err(|_| syn::Error::new(input.span(), "Deriving Sqlo struct expected"))?;
-        let mut res = SqloSelectParse::new(entity);
+        let mut res = SqloQueryParse::new(entity);
 
         // reapply some previous things
         res.custom_struct = custom_struct; // reapply custom_struct
@@ -122,15 +123,6 @@ impl syn::parse::Parse for SqloSelectParse {
     }
 }
 
-pub fn next_is_not_a_keyword(input: &ParseStream) -> bool {
-    !input.peek(Token![where])
-        && !input.peek(kw::order_by)
-        && !input.peek(kw::limit)
-        && !input.peek(kw::page)
-        && !input.peek(kw::group_by)
-        && !input.peek(kw::having)
-}
-
 #[cfg(debug_assertions)]
 fn enable_debug(input: syn::parse::ParseStream) -> bool {
     use syn::parse::Parse;
@@ -145,20 +137,27 @@ fn enable_debug(input: syn::parse::ParseStream) -> bool {
     }
 }
 
-pub fn process_sqlo_select(input: SqloSelectParse) -> syn::Result<TokenStream> {
+pub fn process_query(input: proc_macro::TokenStream, mode: Mode) -> Result<TokenStream, SqloError> {
+    let query_parse: SqloQueryParse = syn::parse(input)?; //syn::parse_macro_input!(input as SqloQueryParse);
+
     #[cfg(debug_assertions)]
-    let debug = input.debug;
+    let debug = query_parse.debug;
+
     let sqlos = VirtualFile::new().load()?;
-    let sqlr = SqlResult::from_sqlo_parse(input, &sqlos, false, TableAliases::default())?;
-    let result = sqlr.expand();
+    let sqlr = SqlResult::from_sqlo_parse(
+        Mode::Select,
+        query_parse,
+        &sqlos,
+        false,
+        TableAliases::default(),
+    )?;
+
     #[cfg(debug_assertions)]
     if debug {
         sqlr.debug();
     }
-    match result {
-        Ok(o) => Ok(o),
-        Err(e) => Err(e.into()),
-    }
+
+    sqlr.expand()
 }
 
 #[cfg(test)]
@@ -171,7 +170,7 @@ mod test_sqlo_select_macro {
 
                 #[test]
                 fn [<test_parse_select_syntax_ success_ $case>]() {
-                    syn::parse_str::<SqloSelectParse>($input).unwrap();
+                    syn::parse_str::<SqloQueryParse>($input).unwrap();
                 }
             }
         };
@@ -205,7 +204,7 @@ mod test_sqlo_select_macro {
 
                 #[test]
                 fn [<test_parse_select_syntax_ fail $case>]() {
-                    assert_eq!(syn::parse_str::<SqloSelectParse>($input).err().unwrap().to_string(),$err.to_string())
+                    assert_eq!(syn::parse_str::<SqloQueryParse>($input).err().unwrap().to_string(),$err.to_string())
                 }
             }
         };

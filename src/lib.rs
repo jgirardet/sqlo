@@ -18,7 +18,7 @@ use crate::parse::SqloParse;
 use crate::sqlo::Sqlo;
 use darling::FromDeriveInput;
 use macros::sqlo_update::{process_sqlo_set, SqloSetParse};
-use macros::{process_sqlo_select, SqloSelectParse};
+use macros::{process_query, Mode};
 use proc_macro2::TokenStream;
 use virtual_file::VirtualFile;
 
@@ -54,8 +54,7 @@ pub fn sqlo_set(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 #[proc_macro]
 pub fn select(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let pts: SqloSelectParse = syn::parse_macro_input!(input as SqloSelectParse);
-    match process_sqlo_select(pts) {
+    match process_query(input, Mode::Select) {
         Ok(ts) => ts.into(),
         Err(e) => e.to_compile_error().into(),
     }
