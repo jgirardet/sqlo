@@ -5,15 +5,7 @@ use syn::{parse::ParseStream, punctuated::Punctuated, Token};
 
 use crate::virtual_file::VirtualFile;
 
-use super::{Column, GroupBy, Having, Limit, OrderBys, SqlResult, TableAliases, Where};
-
-pub mod kw {
-    syn::custom_keyword!(order_by);
-    syn::custom_keyword!(limit);
-    syn::custom_keyword!(page);
-    syn::custom_keyword!(group_by);
-    syn::custom_keyword!(having);
-}
+use super::{Column, GroupBy, Having, Limit, OrderBys, SqlResult, TableAliases, Where, kw};
 
 #[derive(Debug)]
 pub struct SqloSelectParse {

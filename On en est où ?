@@ -1,5 +1,11 @@
 A faire:
 
+ 
+CHANGE update macro to mkae it more consitente
+update_MyStruct![instance; field1=value1, field2=value2](&pool).await?
+update_Mystruct![pk = value, field1=value1, field2=value2](&pool).await?
+- update![MyStruct[pk] field1=::value1 where]
+- update![MyStruct(instance) field1=::value1 where]
 
 # Bug:
 
