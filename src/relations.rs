@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{error::SqloError, field::Field, macros::SqlResult, sqlo::Sqlo, sqlos::Sqlos};
+use crate::{error::SqloError, field::Field, macros::Generator, sqlo::Sqlo, sqlos::Sqlos};
 
 // not const so we can use it in macro
 // patter: struct, field, fk_struct, fk_related_name, type
@@ -208,7 +208,7 @@ impl Relation {
         self.from == self.to
     }
 
-    pub fn to_join(&self, join: Join, ctx: &mut SqlResult) -> Result<String, SqloError> {
+    pub fn to_join(&self, join: Join, ctx: &mut Generator) -> Result<String, SqloError> {
         let to_sqlo = ctx.sqlos.get(&self.to)?;
 
         ctx.insert_related_alias(self);
