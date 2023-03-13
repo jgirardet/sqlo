@@ -5,7 +5,7 @@ use crate::{error::SqloError, macros::{Context, ColumnToSql}};
 use super::ColExprParen;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColExprCall {
     pub base: IdentString,
     pub args: ColExprParen,

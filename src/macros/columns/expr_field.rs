@@ -8,7 +8,7 @@ use crate::{
 };
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColExprField {
     base: IdentString,
     member: IdentString,

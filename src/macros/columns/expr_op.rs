@@ -1,12 +1,11 @@
 use crate::{
     error::SqloError,
-    macros::{Context, Generator, Operator, ColumnToSql},
+    macros::{ColumnToSql, Context, Generator, Operator},
 };
 
 use super::ColExpr;
 
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColExprOp {
     pub lhs: Box<ColExpr>,
     pub op: Operator,

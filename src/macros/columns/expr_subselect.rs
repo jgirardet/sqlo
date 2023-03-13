@@ -7,7 +7,7 @@ use proc_macro2::TokenStream;
 use syn::braced;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColExprSubSelect {
     tokens: TokenStream,
     func: Option<IdentString>,

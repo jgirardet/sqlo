@@ -11,7 +11,7 @@ use crate::{
 use super::ColExpr;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColumnCast {
     pub expr: ColExpr,
     pub alias: AliasCast,
@@ -27,7 +27,7 @@ impl ColumnToSql for ColumnCast {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AliasCast {
     Ident(IdentString),
     Literal(LitStr),

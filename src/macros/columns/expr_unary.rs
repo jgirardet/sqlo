@@ -4,7 +4,7 @@ use crate::macros::{Context, ColumnToSql};
 
 use super::ColExpr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ColExprUnary {
     Minus(Box<ColExpr>),
     Not(Box<ColExpr>),

@@ -8,7 +8,7 @@ use crate::macros::ColumnToSql;
 use super::ColExpr;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColExprCase {
     case: Option<Box<ColExpr>>,
     arms: ArmSeq,
@@ -58,7 +58,7 @@ impl ColumnToSql for ColExprCase {
 
 type ArmSeq = Punctuated<Arm, Token![,]>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Arm {
     lhs: ColExpr,
     rhs: ColExpr,

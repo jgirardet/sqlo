@@ -14,7 +14,7 @@ use super::{
     ColExprCall, ColExprCase, ColExprField, ColExprOp, ColExprParen, ColExprSubSelect, ColExprUnary,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ColExpr {
     Ident(IdentString),
     Call(ColExprCall),

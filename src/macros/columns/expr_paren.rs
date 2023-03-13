@@ -8,7 +8,7 @@ use crate::{
 use super::ColExpr;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColExprParen(Punctuated<ColExpr, Token![,]>);
 
 impl ColumnToSql for ColExprParen {
