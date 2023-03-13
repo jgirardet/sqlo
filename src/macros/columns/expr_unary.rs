@@ -1,8 +1,8 @@
 use syn::Token;
 
-use crate::macros::Context;
+use crate::macros::{Context, ColumnToSql};
 
-use super::{ColExpr, ColumnToSql};
+use super::ColExpr;
 
 #[derive(Debug)]
 pub enum ColExprUnary {
@@ -28,8 +28,8 @@ impl quote::ToTokens for ColExprUnary {
 impl ColumnToSql for ColExprUnary {
     fn column_to_sql(
         &self,
-        ctx: &mut crate::macros::SqlResult,
-    ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+        ctx: &mut crate::macros::Generator,
+    ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         ctx.context.push(Context::Unary);
         let res = match self {
             Self::Minus(m) => {

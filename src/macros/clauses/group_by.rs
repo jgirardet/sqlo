@@ -2,7 +2,7 @@ use syn::{punctuated::Punctuated, Token};
 
 use crate::{
     error::SqloError,
-    macros::{kw, ColExpr, ColumnToSql, SqlQuery, SqlResult},
+    macros::{kw, ColExpr, ColumnToSql, Fragment, Generator},
 };
 
 #[derive(Debug)]
@@ -22,10 +22,10 @@ impl syn::parse::Parse for GroupBy {
 }
 
 impl ColumnToSql for GroupBy {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, crate::error::SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, crate::error::SqloError> {
         let mut qr = self.0.iter().fold(
-            Ok(SqlQuery::default()),
-            |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?),
+            Ok(Fragment::default()),
+            |acc: Result<Fragment, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?),
         )?;
         qr.prepend_str(" GROUP BY ");
         Ok(qr)

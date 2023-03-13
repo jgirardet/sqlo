@@ -1,4 +1,4 @@
-use crate::macros::{kw, ColExpr, ColumnToSql, SqlQuery, SqlResult};
+use crate::macros::{kw, ColExpr, ColumnToSql, Fragment, Generator};
 
 #[derive(Debug)]
 pub struct Having(ColExpr);
@@ -11,7 +11,7 @@ impl syn::parse::Parse for Having {
 }
 
 impl ColumnToSql for Having {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, crate::error::SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, crate::error::SqloError> {
         let mut res = self.0.column_to_sql(ctx)?;
         res.prepend_str(" HAVING ");
         Ok(res)

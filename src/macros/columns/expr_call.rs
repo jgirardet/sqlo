@@ -1,8 +1,9 @@
 use darling::util::IdentString;
 
-use crate::{error::SqloError, macros::Context};
+use crate::{error::SqloError, macros::{Context, ColumnToSql}};
 
-use super::{ColExprParen, ColumnToSql};
+use super::ColExprParen;
+
 
 #[derive(Debug)]
 pub struct ColExprCall {
@@ -20,8 +21,8 @@ impl quote::ToTokens for ColExprCall {
 impl ColumnToSql for ColExprCall {
     fn column_to_sql(
         &self,
-        ctx: &mut crate::macros::SqlResult,
-    ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+        ctx: &mut crate::macros::Generator,
+    ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         if ctx.context.is_empty() {
             // cas in column at begginning of select but not in subquery
             return Err(SqloError::new_spanned(

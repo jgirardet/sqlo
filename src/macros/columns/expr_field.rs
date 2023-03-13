@@ -3,11 +3,10 @@ use proc_macro2::{Punct, Spacing};
 
 use crate::{
     error::SqloError,
-    macros::{SqlQuery, SqlResult, Context},
+    macros::{Context, Fragment, Generator, ColumnToSql},
     relations::Join,
 };
 
-use super::ColumnToSql;
 
 #[derive(Debug)]
 pub struct ColExprField {
@@ -36,7 +35,7 @@ impl quote::ToTokens for ColExprField {
 }
 
 impl ColumnToSql for ColExprField {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         ctx.context.push(Context::Field);
         let relation = match ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base) {
             Ok(rel) => rel,

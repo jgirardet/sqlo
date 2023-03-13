@@ -3,7 +3,10 @@ use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{punctuated::Punctuated, Token};
 
-use super::{ColExpr, ColumnToSql};
+use crate::macros::ColumnToSql;
+
+use super::ColExpr;
+
 
 #[derive(Debug)]
 pub struct ColExprCase {
@@ -37,8 +40,8 @@ impl syn::parse::Parse for ColExprCase {
 impl ColumnToSql for ColExprCase {
     fn column_to_sql(
         &self,
-        ctx: &mut crate::macros::SqlResult,
-    ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+        ctx: &mut crate::macros::Generator,
+    ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         let mut res = if let Some(ref case) = self.case {
             (*case).column_to_sql(ctx)?
         } else {
@@ -86,8 +89,8 @@ impl ToTokens for Arm {
 impl ColumnToSql for Arm {
     fn column_to_sql(
         &self,
-        ctx: &mut crate::macros::SqlResult,
-    ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+        ctx: &mut crate::macros::Generator,
+    ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         if let ColExpr::Ident(ref i) = self.lhs {
             if i.as_str() == "_" {
                 let mut res = self.rhs.column_to_sql(ctx)?;

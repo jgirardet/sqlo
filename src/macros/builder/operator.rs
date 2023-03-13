@@ -46,8 +46,8 @@ macro_rules! impl_columnto_sql_for_operator {
     impl ColumnToSql for Operator {
         fn column_to_sql(
             &self,
-            _ctx: &mut crate::macros::SqlResult,
-        ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+            _ctx: &mut crate::macros::Generator,
+        ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
             match self {
                 $(Self::$nom => Ok($op.into())),+
             }

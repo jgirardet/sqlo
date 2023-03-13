@@ -1,7 +1,6 @@
 use syn::Token;
 
-use crate::macros::{ColExpr, kw, ColumnToSql, SqlResult, SqlQuery};
-
+use crate::macros::{kw, ColExpr, ColumnToSql, Fragment, Generator};
 
 #[derive(Debug)]
 pub struct Limit {
@@ -53,10 +52,7 @@ impl Limit {
 }
 
 impl ColumnToSql for Limit {
-    fn column_to_sql(
-        &self,
-        ctx: &mut SqlResult,
-    ) -> Result<SqlQuery, crate::error::SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, crate::error::SqloError> {
         let mut limit = self.limit.column_to_sql(ctx)?;
         limit.prepend_str(" LIMIT ");
         if let Some(offset) = &self.offset {

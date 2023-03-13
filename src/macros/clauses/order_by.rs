@@ -1,4 +1,7 @@
-use crate::{error::SqloError, macros::{SqlQuery, SqlResult, ColExpr, ColumnToSql, kw, Context}};
+use crate::{
+    error::SqloError,
+    macros::{kw, ColExpr, ColumnToSql, Context, Fragment, Generator},
+};
 
 use syn::{punctuated::Punctuated, Token};
 
@@ -42,10 +45,7 @@ impl quote::ToTokens for OrderBy {
 }
 
 impl ColumnToSql for OrderBy {
-    fn column_to_sql(
-        &self,
-        ctx: &mut SqlResult,
-    ) -> Result<SqlQuery, crate::error::SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, crate::error::SqloError> {
         let sens = if self.sens { "" } else { " DESC" };
         let mut res = self.column.column_to_sql(ctx)?;
         res.append_str(sens);
@@ -66,14 +66,11 @@ impl syn::parse::Parse for OrderBys {
 }
 
 impl ColumnToSql for OrderBys {
-    fn column_to_sql(
-        &self,
-        ctx: &mut SqlResult,
-    ) -> Result<SqlQuery, crate::error::SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, crate::error::SqloError> {
         ctx.context.push(Context::OrderBy);
         let mut res = self.0.iter().fold(
-            Ok(SqlQuery::default()),
-            |acc: Result<SqlQuery, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?), //unwrap ok can't be None
+            Ok(Fragment::default()),
+            |acc: Result<Fragment, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?), //unwrap ok can't be None
         )?;
         res.prepend_str(" ORDER BY ");
         ctx.context.pop();

@@ -2,10 +2,10 @@ use syn::Token;
 
 use crate::{
     error::SqloError,
-    macros::{SqlQuery, SqlResult},
+    macros::{Fragment, Generator, ColumnToSql},
 };
 
-use super::{AliasCast, ColExpr, ColumnCast, ColumnToSql};
+use super::{AliasCast, ColExpr, ColumnCast};
 
 #[derive(Debug)]
 pub enum Column {
@@ -50,7 +50,7 @@ fn parse_as(expr: ColExpr, input: syn::parse::ParseStream) -> syn::Result<Column
 }
 
 impl ColumnToSql for Column {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         match self {
             Column::Mono(colexpr) => colexpr.column_to_sql(ctx),
             Column::Cast(colcast) => colcast.column_to_sql(ctx),

@@ -3,16 +3,16 @@ use std::{collections::HashSet, ops::Add};
 use syn::Expr;
 
 #[derive(Debug, Default)]
-pub struct SqlQuery {
+pub struct Fragment {
     pub query: String,
     pub params: Vec<syn::Expr>,
     pub joins: HashSet<String>,
 }
 
 // Take  a string query
-impl From<String> for SqlQuery {
+impl From<String> for Fragment {
     fn from(s: String) -> Self {
-        SqlQuery {
+        Fragment {
             query: s,
             params: vec![],
             joins: HashSet::default(),
@@ -21,9 +21,9 @@ impl From<String> for SqlQuery {
 }
 
 // Take  a string query
-impl From<&str> for SqlQuery {
+impl From<&str> for Fragment {
     fn from(s: &str) -> Self {
-        SqlQuery {
+        Fragment {
             query: s.to_string(),
             params: vec![],
             joins: HashSet::default(),
@@ -32,11 +32,11 @@ impl From<&str> for SqlQuery {
 }
 
 // Take to tupple string (query, join)
-impl From<(String, String)> for SqlQuery {
+impl From<(String, String)> for Fragment {
     fn from(s: (String, String)) -> Self {
         let mut h = HashSet::default();
         h.insert(s.1);
-        SqlQuery {
+        Fragment {
             query: s.0,
             params: vec![],
             joins: h,
@@ -45,9 +45,9 @@ impl From<(String, String)> for SqlQuery {
 }
 
 // take an Expr so its a argument
-impl From<Expr> for SqlQuery {
+impl From<Expr> for Fragment {
     fn from(expr: Expr) -> Self {
-        SqlQuery {
+        Fragment {
             query: "?".to_string(),
             params: vec![expr],
             joins: HashSet::default(),
@@ -55,16 +55,16 @@ impl From<Expr> for SqlQuery {
     }
 }
 
-impl Add<SqlQuery> for SqlQuery {
-    type Output = SqlQuery;
+impl Add<Fragment> for Fragment {
+    type Output = Fragment;
 
-    fn add(self, rhs: SqlQuery) -> Self::Output {
+    fn add(self, rhs: Fragment) -> Self::Output {
         let base_query = if self.query.is_empty() {
             "".to_string()
         } else {
             format!("{}, ", self.query)
         };
-        SqlQuery {
+        Fragment {
             query: format!["{}{}", base_query, rhs.query],
             params: [self.params, rhs.params].concat(),
             joins: HashSet::from_iter(self.joins.into_iter().chain(rhs.joins)),
@@ -72,9 +72,9 @@ impl Add<SqlQuery> for SqlQuery {
     }
 }
 
-impl SqlQuery {
-    pub fn add_no_comma(self, rhs: SqlQuery) -> Self {
-        SqlQuery {
+impl Fragment {
+    pub fn add_no_comma(self, rhs: Fragment) -> Self {
+        Fragment {
             query: format!["{} {}", self.query, rhs.query],
             params: [self.params, rhs.params].concat(),
             joins: HashSet::from_iter(self.joins.into_iter().chain(rhs.joins)),

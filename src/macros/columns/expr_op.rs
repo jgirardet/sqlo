@@ -1,9 +1,10 @@
 use crate::{
     error::SqloError,
-    macros::{Context, Operator, SqlResult},
+    macros::{Context, Generator, Operator, ColumnToSql},
 };
 
-use super::{ColExpr, ColumnToSql};
+use super::ColExpr;
+
 
 #[derive(Debug)]
 pub struct ColExprOp {
@@ -23,8 +24,8 @@ impl quote::ToTokens for ColExprOp {
 impl ColumnToSql for ColExprOp {
     fn column_to_sql(
         &self,
-        ctx: &mut SqlResult,
-    ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+        ctx: &mut Generator,
+    ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         ctx.context.push(Context::Operation);
         let lhs = self.lhs.column_to_sql(ctx)?;
         if let ColExpr::Ident(i) = self.rhs.as_ref() {

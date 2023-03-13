@@ -6,7 +6,7 @@ use syn::{punctuated::Punctuated, Token};
 use crate::{error::SqloError, virtual_file::VirtualFile};
 
 use super::{kw, next_is_not_a_keyword, Mode};
-use crate::macros::{Column, GroupBy, Having, Limit, OrderBys, SqlResult, TableAliases, Where};
+use crate::macros::{Column, Generator, GroupBy, Having, Limit, OrderBys, TableAliases, Where};
 
 #[derive(Debug)]
 pub struct SqloQueryParse {
@@ -144,8 +144,8 @@ pub fn process_query(input: proc_macro::TokenStream, mode: Mode) -> Result<Token
     let debug = query_parse.debug;
 
     let sqlos = VirtualFile::new().load()?;
-    let sqlr = SqlResult::from_sqlo_parse(
-        Mode::Select,
+    let sqlr = Generator::from_sqlo_query_parse(
+        mode,
         query_parse,
         &sqlos,
         false,

@@ -3,15 +3,15 @@ use syn::{Expr, ExprLit, Lit};
 
 use crate::{
     error::SqloError,
-    macros::{Context, SqlQuery, SqlResult},
+    macros::{Context, Fragment, Generator},
 };
 
 pub trait ColumnToSql {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError>;
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError>;
 }
 
 impl ColumnToSql for Lit {
-    fn column_to_sql(&self, _ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, _ctx: &mut Generator) -> Result<Fragment, SqloError> {
         let expr: Expr = ExprLit {
             attrs: vec![],
             lit: self.clone(),
@@ -22,19 +22,19 @@ impl ColumnToSql for Lit {
 }
 
 impl ColumnToSql for Expr {
-    fn column_to_sql(&self, _ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, _ctx: &mut Generator) -> Result<Fragment, SqloError> {
         Ok(self.clone().into())
     }
 }
 
 impl ColumnToSql for &IdentString {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         // only the aliases
-        if ctx.alias.contains_key(self) {
+        if ctx.aliases.contains_key(self) {
             if ctx.context.contains(&Context::Call) {
                 Ok(format! {"{self}"}.into()) // no sqlx text alias in call
             } else {
-                Ok(ctx.alias[self].clone().into())
+                Ok(ctx.aliases[self].clone().into())
             }
         } else {
             // all ident from main sqlo

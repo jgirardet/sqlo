@@ -1,12 +1,11 @@
 use crate::{
     error::SqloError,
-    macros::{Context, Mode, SqlQuery, SqlResult, SqloQueryParse},
+    macros::{Context, Fragment, Generator, Mode, SqloQueryParse, ColumnToSql},
 };
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
 use syn::braced;
 
-use super::ColumnToSql;
 
 #[derive(Debug)]
 pub struct ColExprSubSelect {
@@ -24,13 +23,18 @@ impl quote::ToTokens for ColExprSubSelect {
 impl ColumnToSql for ColExprSubSelect {
     fn column_to_sql(
         &self,
-        ctx: &mut SqlResult,
-    ) -> Result<crate::macros::SqlQuery, crate::error::SqloError> {
+        ctx: &mut Generator,
+    ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         ctx.context.push(Context::SubQuery);
         let parsed = syn::parse2::<SqloQueryParse>(self.tokens.clone()).map_err(SqloError::from)?;
-        let result =
-            SqlResult::from_sqlo_parse(Mode::Select, parsed, ctx.sqlos, true, ctx.table_aliases())?;
-        let mut qr: SqlQuery = result.try_into()?;
+        let result = Generator::from_sqlo_query_parse(
+            Mode::Select,
+            parsed,
+            ctx.sqlos,
+            true,
+            ctx.table_aliases(),
+        )?;
+        let mut qr: Fragment = result.try_into()?;
         qr.prepend_str("(");
         if let Some(func) = &self.func {
             qr.prepend_str(func.as_str())

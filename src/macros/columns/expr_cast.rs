@@ -5,10 +5,11 @@ use syn::{LitStr, Token};
 
 use crate::{
     error::SqloError,
-    macros::{Context, SqlQuery, SqlResult},
+    macros::{Context, Fragment, Generator, ColumnToSql},
 };
 
-use super::{ColExpr, ColumnToSql};
+use super::ColExpr;
+
 
 #[derive(Debug)]
 pub struct ColumnCast {
@@ -17,7 +18,7 @@ pub struct ColumnCast {
 }
 
 impl ColumnToSql for ColumnCast {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         ctx.context.push(Context::Cast);
         let expr = self.expr.column_to_sql(ctx)?;
         let res = expr.add_no_comma(self.alias.column_to_sql(ctx)?);
@@ -33,11 +34,11 @@ pub enum AliasCast {
 }
 
 impl ColumnToSql for AliasCast {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         match self {
             Self::Ident(ident) => {
-                ctx.alias.insert(ident.clone(), ident.to_string());
-                Ok(SqlQuery::from(format!(" as {ident}")))
+                ctx.aliases.insert(ident.clone(), ident.to_string());
+                Ok(Fragment::from(format!(" as {ident}")))
             }
             Self::Literal(litstr) => {
                 let re = regex_macro::regex!(r#"^(\w+)[?!]?(?::\w+(?:::\w+)*)?$"#);
@@ -47,7 +48,7 @@ impl ColumnToSql for AliasCast {
                         let ident: IdentString =
                             syn::Ident::new(alias.as_str(), litstr.span()).into();
                         let formated_alias_string = format!("\"{alias_str}\"");
-                        ctx.alias.insert(ident, formated_alias_string.clone());
+                        ctx.aliases.insert(ident, formated_alias_string.clone());
                         return Ok(format!(" as {formated_alias_string}").into());
                     }
                 }

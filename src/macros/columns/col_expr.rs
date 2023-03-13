@@ -6,13 +6,12 @@ use syn::{
 
 use crate::{
     error::SqloError,
-    macros::{unarize, Operator, SqlQuery, SqlResult},
+    macros::{unarize, ColumnToSql, Fragment, Generator, Operator},
     relations::Join,
 };
 
 use super::{
-    ColExprCall, ColExprCase, ColExprField, ColExprOp, ColExprParen, ColExprSubSelect,
-    ColExprUnary, ColumnToSql,
+    ColExprCall, ColExprCase, ColExprField, ColExprOp, ColExprParen, ColExprSubSelect, ColExprUnary,
 };
 
 #[derive(Debug)]
@@ -123,7 +122,7 @@ fn parse_operation(input: syn::parse::ParseStream, lhs: ColExpr) -> syn::Result<
 }
 
 impl ColumnToSql for ColExpr {
-    fn column_to_sql(&self, ctx: &mut SqlResult) -> Result<SqlQuery, SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         match self {
             Self::Ident(ident) => ident.column_to_sql(ctx),
             Self::Call(col_expr_call) => col_expr_call.column_to_sql(ctx),
