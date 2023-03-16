@@ -5,13 +5,13 @@ use crate::{
 
 use syn::{punctuated::Punctuated, Token};
 
-#[derive(Debug)]
-pub struct OrderBy {
+#[derive(Debug, Clone)]
+pub struct OrderElem {
     column: ColExpr,
     sens: bool,
 }
 
-impl syn::parse::Parse for OrderBy {
+impl syn::parse::Parse for OrderElem {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let sens = if input.peek(Token![-]) {
             input.parse::<Token![-]>()?;
@@ -22,7 +22,7 @@ impl syn::parse::Parse for OrderBy {
         let column = input.parse::<ColExpr>()?;
         match column {
             ColExpr::Call(_) | ColExpr::Field(_) | ColExpr::Ident(_) => {
-                Ok(OrderBy { column, sens })
+                Ok(OrderElem { column, sens })
             }
             _ => Err(syn::Error::new_spanned(
                 column,
@@ -32,7 +32,7 @@ impl syn::parse::Parse for OrderBy {
     }
 }
 
-impl quote::ToTokens for OrderBy {
+impl quote::ToTokens for OrderElem {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let colexpr = &self.column;
         if self.sens {
@@ -44,7 +44,7 @@ impl quote::ToTokens for OrderBy {
     }
 }
 
-impl ColumnToSql for OrderBy {
+impl ColumnToSql for OrderElem {
     fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, crate::error::SqloError> {
         let sens = if self.sens { "" } else { " DESC" };
         let mut res = self.column.column_to_sql(ctx)?;
@@ -53,19 +53,19 @@ impl ColumnToSql for OrderBy {
     }
 }
 
-#[derive(Debug)]
-pub struct OrderBys(Punctuated<OrderBy, Token![,]>);
+#[derive(Debug, Clone)]
+pub struct OrderBy(Punctuated<OrderElem, Token![,]>);
 
-impl syn::parse::Parse for OrderBys {
+impl syn::parse::Parse for OrderBy {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         input.parse::<kw::order_by>()?;
         let reste;
         parse_possible_bracketed!(input, reste);
-        Ok(OrderBys(Punctuated::parse_separated_nonempty(reste)?))
+        Ok(OrderBy(Punctuated::parse_separated_nonempty(reste)?))
     }
 }
 
-impl ColumnToSql for OrderBys {
+impl ColumnToSql for OrderBy {
     fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, crate::error::SqloError> {
         ctx.context.push(Context::OrderBy);
         let mut res = self.0.iter().fold(

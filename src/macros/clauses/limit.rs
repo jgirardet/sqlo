@@ -2,7 +2,7 @@ use syn::Token;
 
 use crate::macros::{kw, ColExpr, ColumnToSql, Fragment, Generator};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Limit {
     limit: ColExpr,
     offset: Option<ColExpr>,

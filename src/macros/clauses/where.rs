@@ -1,10 +1,13 @@
+use syn::Token;
+
 use crate::macros::{ColExpr, ColumnToSql, Context, Fragment, Generator};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Where(ColExpr);
 
 impl syn::parse::Parse for Where {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        input.parse::<Token![where]>()?;
         Ok(Where(input.parse()?))
     }
 }

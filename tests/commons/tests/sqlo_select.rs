@@ -163,7 +163,8 @@ Test! {select_test_where_foreign_key, async fn func(p: PPool) {
     let a = A { a: 2 };
     let array = [0, 1, 2, 3];
     // ForeignKey
-    nb_result!(p,Maison[1].lespieces, 4);
+    let res = select![Maison[1].lespieces].fetch_all(&p.pool).await.unwrap();
+    assert_eq!(res.len(), 4);
     let res: Vec<PieceFk> = select!(Maison[1].lespieces)
         .fetch_all(&p.pool)
         .await

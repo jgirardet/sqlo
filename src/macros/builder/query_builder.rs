@@ -4,8 +4,11 @@ use std::fmt::Write;
 use itertools::Itertools;
 use syn::Expr;
 
-use super::{Fragment, Generator, Mode, SqloQueryParse};
-use crate::{error::SqloError, macros::ColumnToSql};
+use super::{Fragment, Generator, Mode, QueryParser};
+use crate::{
+    macros::{Clause, ColumnToSql},
+    SqloError,
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct QueryBuilder {
@@ -20,34 +23,13 @@ pub struct QueryBuilder {
     pub customs: bool,
 }
 
-macro_rules! impl_process_sqlqueries {
-    ($($clause:ident)+) => {
-        paste::paste! {
-            impl QueryBuilder {
-                $(
-                fn [<process_ $clause>](&mut self, parsed: &SqloQueryParse, ctx: &mut Generator) -> Result<(), SqloError> {
-                    if let Some(case) = &parsed.$clause {
-                        let qr = case.column_to_sql(ctx)?;
-                        self.$clause = qr.query.clone();
-                        self.extend(qr);
-                    }
-                    Ok(())
-                }
-            )+
-            }
-        }
-    };
-}
-
-impl_process_sqlqueries!(wwhere group_by order_by limit having);
-
 impl QueryBuilder {
     pub fn extend(&mut self, qr: Fragment) {
         self.arguments.extend(qr.params);
         self.joins.extend(qr.joins);
     }
 
-    fn link_related_in_where(&mut self, parsed: &SqloQueryParse, ctx: &Generator) {
+    fn link_related_in_where<T: QueryParser>(&mut self, parsed: &T, ctx: &Generator) {
         // add fk for relation à the end of where
         if let Some(relation) = &ctx.related {
             let prefix = if self.wwhere.is_empty() {
@@ -63,16 +45,16 @@ impl QueryBuilder {
                 relation.get_from_column(ctx.sqlos)
             )
             .expect("Error formatting where related  query");
-            self.arguments.push(parsed.pk_value.clone().unwrap()); // ok since related exists only if pk_value is parsed.
+            self.arguments.push(parsed.pk_value().clone().unwrap()); // ok since related exists only if pk_value is parsed.
         }
     }
 
-    pub fn set_columns(
+    pub fn set_columns<T: QueryParser>(
         &mut self,
-        parsed: &SqloQueryParse,
+        parsed: &T,
         ctx: &mut Generator,
     ) -> Result<(), SqloError> {
-        if parsed.customs.is_empty() {
+        if parsed.columns().is_empty() {
             let mut res = vec![];
             for f in ctx.main_sqlo.fields.iter() {
                 // we write full query if name or type isn't the same between rust struct and database
@@ -91,7 +73,7 @@ impl QueryBuilder {
             self.columns = res.join(", ");
         } else {
             self.customs = true;
-            let columns = parsed.customs.iter().fold(
+            let columns = parsed.columns().iter().fold(
                 Ok(Fragment::default()),
                 |acc: Result<Fragment, SqloError>, nex| Ok(acc? + nex.column_to_sql(ctx)?),
             )?;
@@ -112,15 +94,43 @@ impl QueryBuilder {
         }
     }
 
-    pub fn parse(&mut self, parsed: &SqloQueryParse, ctx: &mut Generator) -> Result<(), SqloError> {
+    pub fn parse<T: QueryParser>(
+        &mut self,
+        parsed: &T,
+        ctx: &mut Generator,
+    ) -> Result<(), SqloError> {
         self.set_columns(parsed, ctx)?;
-        self.process_wwhere(parsed, ctx)?;
+        for clause in parsed.clauses().iter() {
+            match clause {
+                // order matters
+                Clause::Where(x) => {
+                    let qr = x.column_to_sql(ctx)?;
+                    self.wwhere = qr.query.clone();
+                    self.extend(qr);
+                }
+                Clause::GroupBy(x) => {
+                    let qr = x.column_to_sql(ctx)?;
+                    self.group_by = qr.query.clone();
+                    self.extend(qr);
+                }
+                Clause::Having(x) => {
+                    let qr = x.column_to_sql(ctx)?;
+                    self.having = qr.query.clone();
+                    self.extend(qr);
+                }
+                Clause::OrderBy(x) => {
+                    let qr = x.column_to_sql(ctx)?;
+                    self.order_by = qr.query.clone();
+                    self.extend(qr);
+                }
+                Clause::Limit(x) => {
+                    let qr = x.column_to_sql(ctx)?;
+                    self.limit = qr.query.clone();
+                    self.extend(qr);
+                }
+            }
+        }
         self.link_related_in_where(parsed, ctx);
-        self.process_group_by(parsed, ctx)?;
-        self.process_having(parsed, ctx)?;
-        self.process_order_by(parsed, ctx)?;
-        self.process_limit(parsed, ctx)?;
-        // self.set_custom_struct(parsed, ctx);
         Ok(())
     }
 
@@ -128,7 +138,6 @@ impl QueryBuilder {
         let distinct = self.get_distinct(ctx);
         let columns = &self.columns;
         let tablename = ctx
-            // .table_aliases
             .tablename_alias(&ctx.main_sqlo.ident)?;
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;

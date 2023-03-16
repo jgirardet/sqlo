@@ -9,7 +9,8 @@ use crate::{error::SqloError, relations::Relation, sqlo::Sqlo, sqlos::Sqlos};
 
 use super::mode::Mode;
 use super::query_builder::QueryBuilder;
-use super::{Context, Fragment, SqloQueryParse, TableAliases};
+use super::QueryParser;
+use super::{Context, Fragment, TableAliases};
 
 pub struct Generator<'a> {
     pub main_sqlo: &'a Sqlo,
@@ -24,13 +25,16 @@ pub struct Generator<'a> {
 }
 
 impl<'a> Generator<'a> {
-    pub fn from_sqlo_query_parse(
+    pub fn from_sqlo_query_parse<T>(
         mode: Mode,
-        parsed: SqloQueryParse,
+        parsed: T,
         sqlos: &'a Sqlos,
         subquery: bool,
         table_aliases: TableAliases,
-    ) -> Result<Generator, SqloError> {
+    ) -> Result<Generator, SqloError>
+    where
+        T: QueryParser,
+    {
         let main_sqlo = Generator::get_main_sqlo(&parsed, sqlos)?;
         let mut sqlr = Generator::new(main_sqlo, sqlos, mode);
         sqlr.table_aliases = table_aliases;
@@ -55,11 +59,11 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn get_main_sqlo(parsed: &SqloQueryParse, sqlos: &'a Sqlos) -> Result<&'a Sqlo, SqloError> {
-        if let Some(ref related) = parsed.related {
-            sqlos.get_by_relation(&parsed.entity, related)
+    fn get_main_sqlo<T: QueryParser>(parsed: &T, sqlos: &'a Sqlos) -> Result<&'a Sqlo, SqloError> {
+        if let Some(related) = parsed.related() {
+            sqlos.get_by_relation(parsed.entity(), related)
         } else {
-            sqlos.get(&parsed.entity)
+            sqlos.get(parsed.entity())
         }
     }
 }
@@ -71,14 +75,14 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn set_relation_if_related(&mut self, parsed: &SqloQueryParse) -> Result<(), SqloError> {
-        if let Some(ref related) = parsed.related {
-            self.related = Some(self.sqlos.get_relation(&parsed.entity, related)?);
+    fn set_relation_if_related<T:QueryParser>(&mut self, parsed: &T) -> Result<(), SqloError> {
+        if let Some(related) = parsed.related() {
+            self.related = Some(self.sqlos.get_relation(parsed.entity(), related)?);
         }
         Ok(())
     }
 
-    fn parse(&mut self, parsed: SqloQueryParse) -> Result<(), SqloError> {
+    fn parse<T: QueryParser>(&mut self, parsed: T) -> Result<(), SqloError> {
         // preleminary
         self.process_from();
         self.set_relation_if_related(&parsed)?;
@@ -87,7 +91,7 @@ impl<'a> Generator<'a> {
         qp.parse(&parsed, self)?;
         self.query_parts = qp;
         // custom_struct
-        self.custom_struct = parsed.custom_struct;
+        self.custom_struct = parsed.custom_struct().clone();
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 use crate::macros::{kw, ColExpr, ColumnToSql, Fragment, Generator};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Having(ColExpr);
 
 impl syn::parse::Parse for Having {

@@ -1,11 +1,10 @@
 use crate::{
     error::SqloError,
-    macros::{Context, Fragment, Generator, Mode, SqloQueryParse, ColumnToSql},
+    macros::{ColumnToSql, Context, Fragment, Generator, Mode, SelectQueryParse},
 };
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
 use syn::braced;
-
 
 #[derive(Debug, Clone)]
 pub struct ColExprSubSelect {
@@ -26,7 +25,8 @@ impl ColumnToSql for ColExprSubSelect {
         ctx: &mut Generator,
     ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         ctx.context.push(Context::SubQuery);
-        let parsed = syn::parse2::<SqloQueryParse>(self.tokens.clone()).map_err(SqloError::from)?;
+        let parsed =
+            syn::parse2::<SelectQueryParse>(self.tokens.clone()).map_err(SqloError::from)?;
         let result = Generator::from_sqlo_query_parse(
             Mode::Select,
             parsed,

@@ -5,7 +5,7 @@ use crate::{
     macros::{kw, ColExpr, ColumnToSql, Fragment, Generator},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GroupBy(Vec<ColExpr>);
 
 impl syn::parse::Parse for GroupBy {
