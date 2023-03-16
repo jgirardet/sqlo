@@ -2,18 +2,18 @@ use darling::util::IdentString;
 
 #[cfg(debug_assertions)]
 use super::parse_dbg_symbol;
+use super::QueryParser;
 
-use super::{
+use crate::macros::{
     parse_field_member, parse_optional_bracketed, parse_optional_columns, parse_optional_group_by,
     parse_optional_having, parse_optional_ident_with_comma, parse_optional_limit_page,
     parse_optional_order_by, parse_optional_where, parse_sqlo_struct_ident,
-    query_parser::QueryParser,
 };
 
 use crate::macros::{Clauses, Column};
 
 #[derive(Debug)]
-pub struct SelectQueryParse {
+pub struct SelectParser {
     #[cfg(debug_assertions)]
     debug: bool,
     entity: IdentString,
@@ -24,7 +24,7 @@ pub struct SelectQueryParse {
     clauses: Clauses,
 }
 
-impl syn::parse::Parse for SelectQueryParse {
+impl syn::parse::Parse for SelectParser {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         #[cfg(debug_assertions)]
         let debug = input.call(parse_dbg_symbol)?;
@@ -55,7 +55,7 @@ impl syn::parse::Parse for SelectQueryParse {
         clauses.try_push(input, parse_optional_order_by)?;
         clauses.try_push(input, parse_optional_limit_page)?;
 
-        Ok(SelectQueryParse {
+        Ok(SelectParser {
             debug,
             entity,
             related,
@@ -67,7 +67,7 @@ impl syn::parse::Parse for SelectQueryParse {
     }
 }
 
-impl QueryParser for SelectQueryParse {
+impl QueryParser for SelectParser {
     fn debug(&self) -> bool {
         self.debug
     }
@@ -107,7 +107,7 @@ mod test_sqlo_select_macro {
 
                 #[test]
                 fn [<test_parse_select_syntax_ success_ $case>]() {
-                    syn::parse_str::<SelectQueryParse>($input).unwrap();
+                    syn::parse_str::<SelectParser>($input).unwrap();
                 }
             }
         };
@@ -137,7 +137,7 @@ mod test_sqlo_select_macro {
 
                 #[test]
                 fn [<test_parse_select_syntax_ fail $case>]() {
-                    assert_eq!(syn::parse_str::<SelectQueryParse>($input).err().unwrap().to_string(),$err.to_string())
+                    assert_eq!(syn::parse_str::<SelectParser>($input).err().unwrap().to_string(),$err.to_string())
                 }
             }
         };

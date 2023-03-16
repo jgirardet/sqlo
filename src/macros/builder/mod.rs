@@ -8,7 +8,6 @@ mod operator;
 mod parsers;
 mod query_builder;
 mod query_parser;
-mod select_query_parse;
 mod table_aliases;
 
 pub use column_to_sql::ColumnToSql;
@@ -20,5 +19,4 @@ pub use mode::Mode;
 pub use operator::Operator;
 pub use parsers::*;
 pub use query_parser::QueryParser;
-pub use select_query_parse::SelectQueryParse;
 pub use table_aliases::TableAliases;

@@ -1,4 +1,6 @@
-use super::{QueryParser, SelectQueryParse};
+use crate::macros::SelectParser;
+
+use super::QueryParser;
 #[derive(Debug)]
 pub enum Mode {
     Select,
@@ -12,7 +14,7 @@ impl Mode {
         input: proc_macro::TokenStream,
     ) -> Result<proc_macro2::TokenStream, crate::SqloError> {
         match self {
-            Self::Select => self.expand(syn::parse::<SelectQueryParse>(input)?),
+            Self::Select => self.expand(syn::parse::<SelectParser>(input)?),
             _ => unimplemented!(),
         }
     }
