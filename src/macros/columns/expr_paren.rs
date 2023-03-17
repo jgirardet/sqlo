@@ -1,12 +1,8 @@
 use syn::{parenthesized, punctuated::Punctuated, Token};
 
-use crate::{
-    error::SqloError,
-    macros::{Context, Fragment, ColumnToSql},
-};
+use crate::macros::{ColumnToSql, Context, Fragment};
 
 use super::ColExpr;
-
 
 #[derive(Debug, Clone)]
 pub struct ColExprParen(Punctuated<ColExpr, Token![,]>);
@@ -17,10 +13,7 @@ impl ColumnToSql for ColExprParen {
         ctx: &mut crate::macros::Generator,
     ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         ctx.context.push(Context::Paren);
-        let mut res = self.0.iter().fold(
-            Ok(Fragment::default()),
-            |acc: Result<Fragment, SqloError>, nex| Ok(acc.unwrap() + nex.column_to_sql(ctx)?),
-        )?;
+        let mut res = Fragment::from_iterator(&self.0, ctx)?;
         res.prepend_str("(");
         res.append_str(")");
         ctx.context.pop();

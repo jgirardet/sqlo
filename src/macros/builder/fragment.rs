@@ -2,6 +2,8 @@ use std::{collections::HashSet, ops::Add};
 
 use syn::Expr;
 
+use super::{ColumnToSql, Generator};
+
 #[derive(Debug, Default)]
 pub struct Fragment {
     pub query: String,
@@ -87,5 +89,22 @@ impl Fragment {
 
     pub fn append_str(&mut self, text: &str) {
         self.query = format!("{}{}", self.query, text);
+    }
+}
+
+impl Fragment {
+    pub fn from_iterator<'a, T>(
+        slice: T,
+        ctx: &mut Generator,
+    ) -> Result<Fragment, crate::error::SqloError>
+    where
+        T: std::iter::IntoIterator + 'a,
+        T::Item: ColumnToSql + 'a,
+    {
+        let mut res = Fragment::default();
+        for f in slice.into_iter() {
+            res = res + f.column_to_sql(ctx)?
+        }
+        Ok(res)
     }
 }
