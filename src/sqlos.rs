@@ -8,6 +8,7 @@ use crate::{
     sqlo::Sqlo,
 };
 
+#[derive(Debug)]
 pub struct Sqlos {
     pub(crate) entities: Vec<Sqlo>,
     pub(crate) relations: Relations,
