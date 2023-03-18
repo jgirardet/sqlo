@@ -26,13 +26,8 @@ impl ColumnToSql for ColExprSubSelect {
     ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
         ctx.context.push(Context::SubQuery);
         let parsed = syn::parse2::<SelectParser>(self.tokens.clone()).map_err(SqloError::from)?;
-        let result = Generator::from_sqlo_query_parse(
-            Mode::Select,
-            parsed,
-            ctx.sqlos,
-            true,
-            ctx.table_aliases(),
-        )?;
+        let result =
+            Generator::from_sqlo_query_parse(Mode::Select, parsed, ctx.sqlos, true, ctx.tables.clone())?;
         let mut qr: Fragment = result.try_into()?;
         qr.prepend_str("(");
         if let Some(func) = &self.func {

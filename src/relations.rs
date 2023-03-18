@@ -211,17 +211,21 @@ impl Relation {
     pub fn to_join(&self, join: Join, ctx: &mut Generator) -> Result<String, SqloError> {
         let to_sqlo = ctx.sqlos.get(&self.to)?;
 
-        ctx.insert_related_alias(self);
+        ctx.tables.insert_related_alias(self);
 
-        let tablename_plus_alias = ctx.tablename_alias(&self.related)?;
+        let tablename_plus_alias = ctx.tables.tablename_with_alias(&self.related)?;
         let lhs;
         let rhs;
         if !self.is_self_join() {
-            lhs = ctx.column(&self.related, &self.field)?;
-            rhs = ctx.column(&self.to, &to_sqlo.pk_field.ident)?;
+            lhs = ctx.tables.alias_dot_column(&self.related, &self.field)?;
+            rhs = ctx
+                .tables
+                .alias_dot_column(&self.to, &to_sqlo.pk_field.ident)?;
         } else {
-            rhs = ctx.column(&self.related, &to_sqlo.pk_field.ident)?;
-            lhs = ctx.column(&self.to, &self.field)?;
+            rhs = ctx
+                .tables
+                .alias_dot_column(&self.related, &to_sqlo.pk_field.ident)?;
+            lhs = ctx.tables.alias_dot_column(&self.to, &self.field)?;
         }
 
         Ok(format!(

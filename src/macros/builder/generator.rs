@@ -20,37 +20,17 @@ pub struct Generator<'a> {
     pub mode: Mode,
     pub related: Option<&'a Relation>,
     pub custom_struct: Option<IdentString>,
-    table_aliases: TableAliases,
+    pub tables: TableAliases<'a>,
     query_parts: QueryBuilder,
 }
 
 impl<'a> Generator<'a> {
-    pub fn from_sqlo_query_parse<T>(
-        mode: Mode,
-        parsed: T,
-        sqlos: &'a Sqlos,
-        subquery: bool,
-        table_aliases: TableAliases,
-    ) -> Result<Generator, SqloError>
-    where
-        T: QueryParser,
-    {
-        let main_sqlo = Generator::get_main_sqlo(&parsed, sqlos)?;
-        let mut sqlr = Generator::new(main_sqlo, sqlos, mode);
-        sqlr.table_aliases = table_aliases;
-        if subquery {
-            sqlr.context.push(Context::SubQuery);
-        }
-        sqlr.parse(parsed)?;
-        Ok(sqlr)
-    }
-
-    fn new(main_sqlo: &'a Sqlo, sqlos: &'a Sqlos, mode: Mode) -> Self {
+    fn new(main_sqlo: &'a Sqlo, sqlos: &'a Sqlos, mode: Mode, tables: TableAliases<'a>) -> Self {
         Generator {
             sqlos,
             main_sqlo,
             mode,
-            table_aliases: TableAliases::default(),
+            tables,
             aliases: HashMap::default(),
             related: Option::default(),
             query_parts: QueryBuilder::default(),
@@ -70,12 +50,12 @@ impl<'a> Generator<'a> {
 
 impl<'a> Generator<'a> {
     fn process_from(&mut self) {
-        if !self.table_aliases.contains(&self.main_sqlo.ident) {
-            self.table_aliases.insert_sqlo(&self.main_sqlo.ident)
+        if !self.tables.contains(&self.main_sqlo.ident) {
+            self.tables.insert_sqlo(&self.main_sqlo.ident)
         }
     }
 
-    fn set_relation_if_related<T:QueryParser>(&mut self, parsed: &T) -> Result<(), SqloError> {
+    fn set_relation_if_related<T: QueryParser>(&mut self, parsed: &T) -> Result<(), SqloError> {
         if let Some(related) = parsed.related() {
             self.related = Some(self.sqlos.get_relation(parsed.entity(), related)?);
         }
@@ -93,6 +73,28 @@ impl<'a> Generator<'a> {
         // custom_struct
         self.custom_struct = parsed.custom_struct().clone();
         Ok(())
+    }
+}
+
+// publique interface
+impl<'a> Generator<'_> {
+    pub fn from_sqlo_query_parse<T>(
+        mode: Mode,
+        parsed: T,
+        sqlos: &'a Sqlos,
+        subquery: bool,
+        table_aliases: TableAliases<'a>,
+    ) -> Result<Generator<'a>, SqloError>
+    where
+        T: QueryParser,
+    {
+        let main_sqlo = Generator::get_main_sqlo(&parsed, sqlos)?;
+        let mut generator = Generator::new(main_sqlo, sqlos, mode, table_aliases);
+        if subquery {
+            generator.context.push(Context::SubQuery);
+        }
+        generator.parse(parsed)?;
+        Ok(generator)
     }
 
     pub fn expand(&self) -> Result<TokenStream, SqloError> {
@@ -123,7 +125,6 @@ impl<'a> Generator<'a> {
             })
         }
     }
-
     #[cfg(debug_assertions)]
     pub fn debug(&self) {
         println!(
@@ -131,32 +132,6 @@ impl<'a> Generator<'a> {
             self.query().unwrap_or_else(|e| e.to_string()),
             self.arguments()
         );
-    }
-}
-
-// interface to table_aliases and query_params
-impl Generator<'_> {
-    pub fn column(
-        &mut self,
-        sqlo_or_related: &IdentString,
-        field: &IdentString,
-    ) -> Result<String, SqloError> {
-        self.table_aliases
-            .column(sqlo_or_related, field, self.sqlos)
-    }
-
-    pub fn table_aliases(&self) -> TableAliases {
-        self.table_aliases.clone()
-    }
-
-    pub fn tablename_alias(&self, sqlo_or_related: &IdentString) -> Result<String, SqloError> {
-        self.table_aliases.tablename(sqlo_or_related, self.sqlos)
-    }
-
-    pub fn insert_related_alias(&mut self, rel: &Relation) {
-        if !&self.table_aliases.contains(&rel.related) {
-            self.table_aliases.insert_related(rel)
-        }
     }
 
     pub fn arguments(&self) -> &[syn::Expr] {

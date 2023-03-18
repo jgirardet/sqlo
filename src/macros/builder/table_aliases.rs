@@ -4,30 +4,45 @@ use darling::util::IdentString;
 
 use crate::{error::SqloError, relations::Relation, sqlos::Sqlos};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 // sqlo_or_related_ident:(char alias, Sqlo ident)
-pub struct TableAliases(HashMap<IdentString, (char, IdentString)>);
-impl TableAliases {
+pub struct TableAliases<'a> {
+    tables: HashMap<IdentString, (char, IdentString)>,
+    sqlos: &'a Sqlos,
+}
+impl<'a> TableAliases<'a> {
+    pub fn new(sqlos: &'a Sqlos) -> Self {
+        Self {
+            tables: HashMap::default(),
+            sqlos,
+        }
+    }
+
     pub fn insert_sqlo(&mut self, sqlo: &IdentString) {
-        self.0
+        self.tables
             .insert(sqlo.clone(), (self.get_next_alias(), sqlo.clone()));
     }
 
     pub fn insert_related(&mut self, rel: &Relation) {
-        self.0.insert(
+        self.tables.insert(
             rel.related.clone(),
             (self.get_next_alias(), rel.from.clone()),
         );
     }
+    pub fn insert_related_alias(&mut self, rel: &Relation) {
+        if !&self.contains(&rel.related) {
+            self.insert_related(rel)
+        }
+    }
 
-    pub fn column(
+    pub fn alias_dot_column(
         &mut self,
         sqlo_or_related: &IdentString,
         field: &IdentString,
-        sqlos: &Sqlos,
     ) -> Result<String, SqloError> {
-        if let Some((c, sqlo_ident)) = self.0.get(sqlo_or_related) {
-            let column_name = sqlos
+        if let Some((c, sqlo_ident)) = self.tables.get(sqlo_or_related) {
+            let column_name = self
+                .sqlos
                 .get(sqlo_ident)?
                 .field(field.as_ident())
                 .ok_or_else(|| {
@@ -42,18 +57,34 @@ impl TableAliases {
     }
 
     pub fn contains(&self, sqlo_or_related: &IdentString) -> bool {
-        self.0.contains_key(sqlo_or_related)
+        self.tables.contains_key(sqlo_or_related)
+    }
+    pub fn column(
+        &mut self,
+        sqlo_or_related: &IdentString,
+        field: &IdentString,
+    ) -> Result<String, SqloError> {
+        if let Some((_, sqlo_ident)) = self.tables.get(sqlo_or_related) {
+            let column_name = self
+                .sqlos
+                .get(sqlo_ident)?
+                .field(field.as_ident())
+                .ok_or_else(|| {
+                    SqloError::new_spanned(field, format!("No field {} in {}", &field, &sqlo_ident))
+                })?
+                .column
+                .to_string();
+            Ok(column_name)
+        } else {
+            Err(SqloError::new_spanned(sqlo_or_related, "Not Found"))
+        }
     }
 
-    pub fn tablename(
-        &self,
-        sqlo_or_related: &IdentString,
-        sqlos: &Sqlos,
-    ) -> Result<String, SqloError> {
-        if let Some((c, sqlo_ident)) = self.0.get(sqlo_or_related) {
+    pub fn tablename_with_alias(&self, sqlo_or_related: &IdentString) -> Result<String, SqloError> {
+        if let Some((c, sqlo_ident)) = self.tables.get(sqlo_or_related) {
             Ok(format!(
                 "{} {}",
-                &sqlos.get(sqlo_ident).unwrap().tablename,
+                &self.sqlos.get(sqlo_ident).unwrap().tablename,
                 c
             ))
         } else {
@@ -61,11 +92,19 @@ impl TableAliases {
         }
     }
 
+    pub fn tablename(&self, sqlo_or_related: &IdentString) -> Result<String, SqloError> {
+        if let Some((_, sqlo_ident)) = self.tables.get(sqlo_or_related) {
+            Ok(self.sqlos.get(sqlo_ident).unwrap().tablename.to_string())
+        } else {
+            Err(SqloError::new_spanned(sqlo_or_related, "Not Found"))
+        }
+    }
+
     fn get_next_alias(&self) -> char {
-        if self.0.is_empty() {
+        if self.tables.is_empty() {
             'a'
         } else {
-            let last_alias = self.0.values().fold('a', |c, (n, _)| c.max(*n));
+            let last_alias = self.tables.values().fold('a', |c, (n, _)| c.max(*n));
             (last_alias as u8 + 1u8).into()
         }
     }
