@@ -95,6 +95,10 @@ impl QueryParser for SelectParser {
     fn clauses(&self) -> &Clauses {
         &self.clauses
     }
+
+    fn assigns(&self) -> &super::Assigns {
+        panic!("Assign must not be used with Select")
+    }
 }
 
 #[cfg(test)]
