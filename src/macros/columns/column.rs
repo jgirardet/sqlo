@@ -2,12 +2,12 @@ use syn::Token;
 
 use crate::{
     error::SqloError,
-    macros::{Fragment, Generator, ColumnToSql},
+    macros::{ColumnToSql, Fragment, Generator},
 };
 
 use super::{AliasCast, ColExpr, ColumnCast};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Column {
     Mono(ColExpr),
     Cast(ColumnCast),

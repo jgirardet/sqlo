@@ -139,6 +139,24 @@ impl ColumnToSql for ColExpr {
     }
 }
 
+impl ColumnToSql for &ColExpr {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
+        match *self {
+            ColExpr::Ident(ident) => ident.column_to_sql(ctx),
+            ColExpr::Call(col_expr_call) => col_expr_call.column_to_sql(ctx),
+            ColExpr::Case(c) => c.column_to_sql(ctx),
+            ColExpr::Field(col_expr_field) => col_expr_field.column_to_sql(ctx),
+            ColExpr::Literal(l) => l.column_to_sql(ctx),
+            ColExpr::Value(expr_value) => expr_value.column_to_sql(ctx),
+            ColExpr::Operation(expr_op) => expr_op.column_to_sql(ctx),
+            ColExpr::Asterisk => Ok("*".to_string().into()),
+            ColExpr::Paren(p) => p.column_to_sql(ctx),
+            ColExpr::SubSelect(p) => p.column_to_sql(ctx),
+            ColExpr::Unary(p) => p.column_to_sql(ctx),
+        }
+    }
+}
+
 macro_rules! impl_from_variant_for_colexpr {
     ($($variant:ident $target:ident),+) => {
         $(
