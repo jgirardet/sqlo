@@ -1,3 +1,4 @@
+mod assignment;
 mod col_expr;
 mod column;
 mod expr_call;
@@ -9,6 +10,7 @@ mod expr_paren;
 mod expr_subselect;
 mod expr_unary;
 
+pub use assignment::{Assign, Assigns};
 pub use col_expr::ColExpr;
 pub use column::Column;
 pub use expr_call::ColExprCall;

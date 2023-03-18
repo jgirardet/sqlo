@@ -12,13 +12,14 @@ use crate::{
 
 #[derive(Debug, Default, Clone)]
 pub struct QueryBuilder {
-    columns: String,
+    subjects: String,
     joins: HashSet<String>,
     wwhere: String,
     group_by: String,
     order_by: String,
     having: String,
     limit: String,
+    tablename: String,
     pub arguments: Vec<Expr>,
     pub customs: bool,
 }
@@ -29,23 +30,20 @@ impl QueryBuilder {
         self.joins.extend(qr.joins);
     }
 
-    fn link_related_in_where<T: QueryParser>(&mut self, parsed: &T, ctx: &Generator) {
-        // add fk for relation à the end of where
-        if let Some(relation) = &ctx.related {
+    fn link_related_entity<T: QueryParser>(&mut self, parsed: &T, ctx: &Generator) {
+        if let Some(pk) = parsed.pk_value() {
             let prefix = if self.wwhere.is_empty() {
                 " WHERE "
             } else {
                 " AND "
             };
-
-            write!(
-                self.wwhere,
-                "{}{}=?",
-                prefix,
+            let ident = if let Some(relation) = &ctx.related {
                 relation.get_from_column(ctx.sqlos)
-            )
-            .expect("Error formatting where related  query");
-            self.arguments.push(parsed.pk_value().clone().unwrap()); // ok since related exists only if pk_value is parsed.
+            } else {
+                &ctx.main_sqlo.pk_field.column
+            };
+            write!(self.wwhere, "{}{}=?", prefix, ident).expect("Error formatting update query");
+            self.arguments.push(pk.clone())
         }
     }
 
@@ -61,25 +59,48 @@ impl QueryBuilder {
                 if f.type_override || f.ident != f.column || f.ident == "id" {
                     let a = format!(
                         r#"{} as "{}:_""#,
-                        &ctx.column(&ctx.main_sqlo.ident, &f.ident)?,
+                        &ctx.tables
+                            .alias_dot_column(&ctx.main_sqlo.ident, &f.ident)?,
                         &f.ident
                     )
                     .replace('\\', "");
                     res.push(a);
                 } else {
-                    res.push(ctx.column(&ctx.main_sqlo.ident, &f.ident)?)
+                    res.push(
+                        ctx.tables
+                            .alias_dot_column(&ctx.main_sqlo.ident, &f.ident)?,
+                    )
                 }
             }
-            self.columns = res.join(", ");
+            self.subjects = res.join(", ");
         } else {
             self.customs = true;
             let columns = parsed.columns().iter().fold(
                 Ok(Fragment::default()),
                 |acc: Result<Fragment, SqloError>, nex| Ok(acc? + nex.column_to_sql(ctx)?),
             )?;
-            self.columns = columns.query.clone();
+            self.subjects = columns.query.clone();
             self.extend(columns);
         }
+        Ok(())
+    }
+
+    pub fn set_assigns<T: QueryParser>(
+        &mut self,
+        parsed: &T,
+        ctx: &mut Generator,
+    ) -> Result<(), SqloError> {
+        let qr = parsed.assigns().column_to_sql(ctx)?;
+        self.subjects = qr.query.clone();
+        self.extend(qr);
+        Ok(())
+    }
+
+    fn set_tablename(&mut self, ctx: &Generator) -> Result<(), SqloError> {
+        self.tablename = match ctx.mode {
+            Mode::Select => ctx.tables.tablename_with_alias(&ctx.main_sqlo.ident)?,
+            Mode::Update => ctx.tables.tablename(&ctx.main_sqlo.ident)?,
+        };
         Ok(())
     }
 
@@ -99,7 +120,11 @@ impl QueryBuilder {
         parsed: &T,
         ctx: &mut Generator,
     ) -> Result<(), SqloError> {
-        self.set_columns(parsed, ctx)?;
+        self.set_tablename(ctx)?;
+        match ctx.mode {
+            Mode::Select => self.set_columns(parsed, ctx)?,
+            Mode::Update => self.set_assigns(parsed, ctx)?,
+        };
         for clause in parsed.clauses().iter() {
             match clause {
                 // order matters
@@ -130,27 +155,27 @@ impl QueryBuilder {
                 }
             }
         }
-        self.link_related_in_where(parsed, ctx);
+
+        // self.link_related_in_where(parsed, ctx);
+        self.link_related_entity(parsed, ctx);
         Ok(())
     }
 
     pub fn query(&self, ctx: &Generator) -> Result<String, SqloError> {
         let distinct = self.get_distinct(ctx);
-        let columns = &self.columns;
-        let tablename = ctx
-            .tablename_alias(&ctx.main_sqlo.ident)?;
+        let subjects = &self.subjects;
+        let tablename = &self.tablename;
         let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
         let group_by_query = &self.group_by;
         let having_query = &self.having;
         let order_by_query = &self.order_by;
         let limit_query = &self.limit;
-        if let Mode::Select = ctx.mode {
-            Ok(format!("SELECT{distinct} {columns} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}")
-            .trim_end()
-        .into())
-        } else {
-            Err(SqloError::new_lost("Query Not supported"))
-        }
+
+        let query = match ctx.mode {
+            Mode::Select=>format!("SELECT{distinct} {subjects} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}"),
+            Mode::Update=>format!("UPDATE {tablename} SET {subjects}{where_query}")
+        };
+        Ok(query.trim().into())
     }
 }

@@ -71,7 +71,9 @@ impl<'a> Generator<'a> {
         qp.parse(&parsed, self)?;
         self.query_parts = qp;
         // custom_struct
-        self.custom_struct = parsed.custom_struct().clone();
+        if let Mode::Select = self.mode {
+            self.custom_struct = parsed.custom_struct().clone();
+        }
         Ok(())
     }
 }

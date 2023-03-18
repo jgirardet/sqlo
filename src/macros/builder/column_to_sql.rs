@@ -6,6 +6,8 @@ use crate::{
     macros::{Context, Fragment, Generator},
 };
 
+use super::Mode;
+
 pub trait ColumnToSql {
     fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError>;
 }
@@ -38,7 +40,13 @@ impl ColumnToSql for &IdentString {
             }
         } else {
             // all ident from main sqlo
-            Ok(ctx.column(&ctx.main_sqlo.ident, self)?.into())
+            match ctx.mode {
+                Mode::Select => Ok(ctx
+                    .tables
+                    .alias_dot_column(&ctx.main_sqlo.ident, self)?
+                    .into()),
+                Mode::Update => Ok(ctx.tables.column(&ctx.main_sqlo.ident, self)?.into()),
+            }
         }
     }
 }
