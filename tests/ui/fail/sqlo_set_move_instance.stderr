@@ -1,12 +1,12 @@
 error[E0382]: use of moved value: `m`
   --> tests/ui/fail/sqlo_set_move_instance.rs:17:5
    |
-1  | #[derive(sqlo::Sqlo)]
-   |          ---------- value moved into closure here
-...
 15 |     let m = Maison::get(&pool, 1).await.unwrap();
    |         - move occurs because `m` has type `Maison`, which does not implement the `Copy` trait
-16 |     update_Maison![m; taille = 3](&pool).await.unwrap();
-   |                    - variable moved due to use in closure
+16 |     sqlo::update![Maison(m) taille = 3](&pool).await.unwrap();
+   |     -----------------------------------
+   |     |                    |
+   |     |                    variable moved due to use in closure
+   |     value moved into closure here
 17 |     m;
    |     ^ value used here after move

@@ -13,6 +13,6 @@ async fn main() {
         .unwrap();
 
     let m = Maison::get(&pool, 1).await.unwrap();
-    update_Maison![m; taille = 3](&pool).await.unwrap();
+    sqlo::update![Maison(m) taille = 3](&pool).await.unwrap();
     m;
 }
