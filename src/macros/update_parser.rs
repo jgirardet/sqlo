@@ -1,19 +1,20 @@
 use darling::util::IdentString;
-use syn::Expr;
 
 use super::{
-    parse_dbg_symbol, parse_optional_bracketed, parse_optional_field_member, parse_optional_where,
-    parse_sqlo_struct_ident, Assigns, Clauses, Column, QueryParser,
+    parse_bracketed, parse_dbg_symbol, parse_optional_field_member, parse_optional_where,
+    parse_parenthezide, parse_sqlo_struct_ident, Assigns, Clauses, Column, Fetch, PkValue,
+    QueryParser,
 };
 
 pub struct UpdateParser {
     #[cfg(debug_assertions)]
     debug: bool,
     entity: IdentString,
-    pk_value: Option<Expr>,
+    pk_value: PkValue,
     related: Option<IdentString>,
     clauses: Clauses,
     assignments: Assigns,
+    fetch: Fetch,
 }
 
 impl QueryParser for UpdateParser {
@@ -33,12 +34,12 @@ impl QueryParser for UpdateParser {
         &self.assignments
     }
 
-    fn custom_struct(&self) -> &Option<IdentString> {
-        unimplemented!("No custom_struct with update")
+    fn custom_struct(&self) -> Option<IdentString> {
+        None
     }
 
-    fn pk_value(&self) -> &Option<syn::Expr> {
-        &self.pk_value
+    fn pk_value(&self) -> PkValue {
+        self.pk_value.clone()
     }
 
     fn clauses(&self) -> &Clauses {
@@ -48,6 +49,10 @@ impl QueryParser for UpdateParser {
     fn columns(&self) -> &[Column] {
         panic!("Must not be used with Update")
     }
+
+    fn fetch(&self) -> Fetch {
+        self.fetch
+    }
 }
 
 impl syn::parse::Parse for UpdateParser {
@@ -55,10 +60,16 @@ impl syn::parse::Parse for UpdateParser {
         #[cfg(debug_assertions)]
         let debug = input.call(parse_dbg_symbol)?;
 
+        // parse fetch mode
+        let fetch: Fetch = input.parse()?;
+
         // parse sqlo ident
         let entity = input.call(parse_sqlo_struct_ident)?;
         // or ident[pk] or  ident[pk].related or ident(instance) or ...
-        let pk_value = input.call(parse_optional_bracketed)?;
+        let mut pk_value = input.call(parse_bracketed)?;
+        if let PkValue::None = pk_value {
+            pk_value = input.call(parse_parenthezide)?;
+        }
         let related = input.call(parse_optional_field_member)?;
 
         // parse assignments
@@ -75,6 +86,7 @@ impl syn::parse::Parse for UpdateParser {
             assignments,
             pk_value,
             clauses,
+            fetch,
         })
     }
 }

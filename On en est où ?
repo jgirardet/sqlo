@@ -1,11 +1,39 @@
 A faire:
 
- 
-CHANGE update macro to mkae it more consitente
-update_MyStruct![instance; field1=value1, field2=value2](&pool).await?
-update_Mystruct![pk = value, field1=value1, field2=value2](&pool).await?
-- update![MyStruct[pk] field1=::value1 where]
-- update![MyStruct(instance) field1=::value1 where]
+## en cours
+
+- refactor SELECT
+  - d'abord caler le parser vec +,\*, ...
+  - changer dans generator
+  - fixer tous les tests
+
+## situations possibles
+
+1 select[Entity] => one, many, fetch, optional
+2 select[Entity[pk_id]]=> one ou optional
+3 select[Entitu[pk_id]].relations => one many fetch optional
+
+4 update[Entity] => execute
+5 update[Entity[pk_id]] => execute
+6 update[Entity( pk_id )] => execute
+
+7 update[ Entity] => one, many, fetch, optional
+8 update[<< Entity[pk_id]] => one
+9update[<< Entity(pk_id)] => one  
+10 update[<< Entity[pk_id].relations] => one, many, fetch
+11 update[<< Entity(pk_id).relations] => one , many, fetch
+
+## propositions : pard défault entre parenthèse
+
+1-3-7 : expressoins régulières : .,\*,+,? => fetch[(one), many, optional,fetch]
+2: ? => rien,? fetch[(one), optional]
+4,5,6: rien => execute
+10, 11: rien,\*,+ => fetch[(one), many, fetch]
+8, 9 : rien => fetch_one
+
+# avant de passe à la suite
+
+- fixer create pour ne plus utilsier des sqlos as option
 
 # Bug:
 

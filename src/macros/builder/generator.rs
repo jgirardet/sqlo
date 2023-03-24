@@ -4,11 +4,15 @@ use std::collections::HashSet;
 
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
+use quote::quote;
+use syn::Expr;
 
 use crate::{error::SqloError, relations::Relation, sqlo::Sqlo, sqlos::Sqlos};
 
 use super::mode::Mode;
 use super::query_builder::QueryBuilder;
+use super::Fetch;
+use super::PkValue;
 use super::QueryParser;
 use super::{Context, Fragment, TableAliases};
 
@@ -21,6 +25,8 @@ pub struct Generator<'a> {
     pub related: Option<&'a Relation>,
     pub custom_struct: Option<IdentString>,
     pub tables: TableAliases<'a>,
+    pub fetch: Fetch,
+    pk_value: PkValue,
     query_parts: QueryBuilder,
 }
 
@@ -36,6 +42,8 @@ impl<'a> Generator<'a> {
             query_parts: QueryBuilder::default(),
             custom_struct: None,
             context: Vec::default(),
+            fetch: Fetch::default(),
+            pk_value: PkValue::None,
         }
     }
 
@@ -62,18 +70,25 @@ impl<'a> Generator<'a> {
         Ok(())
     }
 
+    fn process_fetch<T: QueryParser>(&mut self, parsed: &T) {
+        self.fetch = parsed.fetch()
+    }
+
+    fn process_pk_value<T: QueryParser>(&mut self, parsed: &T) {
+        self.pk_value = parsed.pk_value();
+    }
+
     fn parse<T: QueryParser>(&mut self, parsed: T) -> Result<(), SqloError> {
         // preleminary
         self.process_from();
         self.set_relation_if_related(&parsed)?;
+        self.process_fetch(&parsed);
+        self.custom_struct = parsed.custom_struct();
+        self.process_pk_value(&parsed);
         // query_parts
         let mut qp = QueryBuilder::default();
         qp.parse(&parsed, self)?;
         self.query_parts = qp;
-        // custom_struct
-        if let Mode::Select = self.mode {
-            self.custom_struct = parsed.custom_struct().clone();
-        }
         Ok(())
     }
 }
@@ -116,17 +131,38 @@ impl<'a> Generator<'_> {
             &self.main_sqlo.ident
         };
         let arguments = self.arguments();
-
-        if self.query_parts.customs && self.custom_struct.is_none() {
-            Ok(quote::quote! {
-                sqlx::query!(#query, #(#arguments),*)
-            })
+        let fetch = self.fetch;
+        let move_instance = if let PkValue::Parenthezide(instance) = &self.pk_value {
+            quote! {let #instance = #instance;}
         } else {
-            Ok(quote::quote! {
-                sqlx::query_as!(#ident,#query, #(#arguments),*)
-            })
+            TokenStream::new()
+        };
+
+        match self.mode {
+            Mode::Select => {
+                if self.query_parts.customs && self.custom_struct.is_none() {
+                    Ok(quote::quote! {
+                        sqlx::query!(#query, #(#arguments),*)
+                    })
+                } else {
+                    Ok(quote::quote! {
+                        sqlx::query_as!(#ident,#query, #(#arguments),*)
+                    })
+                }
+            }
+            // {
+            //     Ok(expand_select(
+            //         fetch,
+            //         ident,
+            //         query,
+            //         arguments,
+            //         WichMacro::for_select(self),
+            //     ))
+            // }
+            Mode::Update => Ok(expand_update(fetch, ident, query, arguments, move_instance)),
         }
     }
+
     #[cfg(debug_assertions)]
     pub fn debug(&self) {
         println!(
@@ -145,6 +181,85 @@ impl<'a> Generator<'_> {
     }
 }
 
+fn expand_select(
+    fetch: Fetch,
+    ident: &IdentString,
+    query: String,
+    arguments: &[Expr],
+    wich_macro: WichMacro,
+) -> TokenStream {
+    let sqlx_macro = match wich_macro {
+        WichMacro::Query => quote! {query!},
+        WichMacro::QueryAs => quote! {query_as!},
+    };
+
+    match fetch {
+        Fetch::Stream => {
+            quote! {
+                |pool|{
+                    sqlx::query_as!(#ident,#query, #(#arguments),*).#fetch(pool)
+                }
+            }
+        }
+        _ => {
+            if let WichMacro::Query = wich_macro {
+                quote::quote! {
+                    |pool|
+                        {
+                            sqlx::query!(#query, #(#arguments),*).#fetch(pool)
+                        }
+                }
+            } else {
+                quote::quote! {
+                    |pool|
+                         {
+                        sqlx::query_as!(#ident, #query, #(#arguments),*).#fetch(pool)
+                        }
+
+                }
+            }
+        }
+    }
+}
+fn expand_update(
+    fetch: Fetch,
+    ident: &IdentString,
+    query: String,
+    arguments: &[Expr],
+    move_instance: TokenStream,
+) -> TokenStream {
+    match fetch {
+        Fetch::Stream => {
+            quote! {
+                |pool|{
+                    sqlx::query_as!(#ident,#query, #(#arguments),*).#fetch(pool)
+                }
+            }
+        }
+        Fetch::None => {
+            quote::quote! {
+
+                |pool|{
+                    async move {
+                    #move_instance
+                    sqlx::query!(#query, #(#arguments),*).#fetch(pool).await
+                    }
+                }
+            }
+        }
+        _ => {
+            quote::quote! {
+                |pool|{
+                    async move {
+                    #move_instance
+                    sqlx::query_as!(#ident, #query, #(#arguments),*).#fetch(pool).await
+                    }
+                }
+            }
+        }
+    }
+}
+
 impl<'a> TryFrom<Generator<'a>> for Fragment {
     type Error = SqloError;
 
@@ -154,5 +269,21 @@ impl<'a> TryFrom<Generator<'a>> for Fragment {
             params: result.arguments().into(),
             joins: HashSet::default(),
         })
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum WichMacro {
+    Query,
+    QueryAs,
+}
+
+impl WichMacro {
+    pub fn for_select(gen: &Generator) -> Self {
+        if gen.query_parts.customs && gen.custom_struct.is_none() {
+            Self::Query
+        } else {
+            Self::QueryAs
+        }
     }
 }

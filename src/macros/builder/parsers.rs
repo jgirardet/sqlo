@@ -2,10 +2,10 @@ use darling::util::IdentString;
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    Expr, Token,
+    Token,
 };
 
-use crate::macros::Column;
+use crate::macros::{Column, PkValue};
 
 use super::next_is_not_a_keyword;
 
@@ -29,17 +29,22 @@ pub fn parse_optional_ident_with_comma(input: ParseStream) -> syn::Result<Option
     }
 }
 
-pub fn parse_bracketed(input: ParseStream) -> syn::Result<Expr> {
-    let content;
-    syn::bracketed!(content in input);
-    content.parse::<syn::Expr>()
-}
-
-pub fn parse_optional_bracketed(input: ParseStream) -> syn::Result<Option<Expr>> {
+pub fn parse_bracketed(input: ParseStream) -> syn::Result<PkValue> {
     if input.peek(syn::token::Bracket) {
-        input.call(parse_bracketed).map(|x| x.into())
+        let content;
+        syn::bracketed!(content in input);
+        Ok(PkValue::Bracketed(content.parse::<syn::Expr>()?))
     } else {
-        Ok(None)
+        Ok(PkValue::None)
+    }
+}
+pub fn parse_parenthezide(input: ParseStream) -> syn::Result<PkValue> {
+    if input.peek(syn::token::Paren) {
+        let content;
+        syn::parenthesized!(content in input);
+        Ok(PkValue::Parenthezide(content.parse::<syn::Expr>()?))
+    } else {
+        Ok(PkValue::None)
     }
 }
 
@@ -112,12 +117,13 @@ impl_parse_optional_clauses! {# where Where}
 #[cfg(debug_assertions)]
 pub fn parse_dbg_symbol(input: ParseStream) -> syn::Result<bool> {
     let fork = input.fork();
-    let ident = syn::Ident::parse(&fork).unwrap_or_else(|_| syn::Ident::new(".", input.span()));
-    if &ident.to_string() == "dbg" && fork.peek(Token![!]) {
-        syn::Ident::parse(input).unwrap();
-        input.parse::<Token!(!)>().unwrap();
-        Ok(true)
-    } else {
-        Ok(false)
+    if fork.peek(syn::Ident) {
+        let ident = syn::Ident::parse(&fork).unwrap_or_else(|_| syn::Ident::new(".", input.span()));
+        if &ident.to_string() == "dbg" && fork.peek(Token![!]) {
+            syn::Ident::parse(input).unwrap();
+            input.parse::<Token!(!)>().unwrap();
+            return Ok(true);
+        }
     }
+    Ok(false)
 }

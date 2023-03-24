@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use sqlo::Sqlo;
+use sqlo::{update, Sqlo};
 use syn::Token;
 
 // #[derive(Sqlo)]
@@ -77,11 +77,17 @@ async fn main() {
     //     .fetch_one(&pool)
     //     .await
     //     .unwrap();
-    #[derive(Debug)]
-    struct Res {
-        bla: String,
-        taille: i64,
-    }
+    let r = ExpandMaison::get(&pool, 1).await.unwrap();
+
+    let  stream = update![ExpandMaison(r) taille=92](&pool).await;
+    // stream.try_next().unwrap().unwrap();
+
+    //     // test update with update like instance syntax
+    // let t = update![ExpandMaison(r) taille = 23]
+    //     .execute(&pool)
+    //     .await
+    //     .unwrap();
+    // let c = r;
     // let res = sqlx::query!["select 'hello' as x from maison"]
     // // let res = select_as![Res, taille, a.adr AS bla  FROM ExpandMaison a, ExpandPiece b ]
     // //     .fetch_all(&pool)

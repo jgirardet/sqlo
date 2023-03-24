@@ -72,6 +72,18 @@ impl Sqlo {
         )
     }
 
+    pub fn to_non_null_columns(&self) -> String {
+        let mut res = vec![];
+        for field in &self.fields {
+            if !is_type_option(&field.ty) {
+                res.push(format!("{} as \"{}!:_\"", &field.column, &field.ident))
+            } else {
+                res.push(field.column.clone())
+            }
+        }
+        res.join(",")
+    }
+
     // Check for null values on Option_struct when using  `RETURNING`
     // and return the corresponding strut
     // called as tuple to not forget sqlx_null_checks.

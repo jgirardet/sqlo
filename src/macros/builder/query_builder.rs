@@ -4,7 +4,8 @@ use std::fmt::Write;
 use itertools::Itertools;
 use syn::Expr;
 
-use super::{Fragment, Generator, Mode, QueryParser};
+use super::{Fragment, Generator, Mode, PkValue, QueryParser};
+
 use crate::{
     macros::{Clause, ColumnToSql},
     SqloError,
@@ -31,19 +32,43 @@ impl QueryBuilder {
     }
 
     fn link_related_entity<T: QueryParser>(&mut self, parsed: &T, ctx: &Generator) {
-        if let Some(pk) = parsed.pk_value() {
-            let prefix = if self.wwhere.is_empty() {
-                " WHERE "
-            } else {
-                " AND "
-            };
-            let ident = if let Some(relation) = &ctx.related {
-                relation.get_from_column(ctx.sqlos)
-            } else {
-                &ctx.main_sqlo.pk_field.column
-            };
-            write!(self.wwhere, "{}{}=?", prefix, ident).expect("Error formatting update query");
-            self.arguments.push(pk.clone())
+        match parsed.pk_value() {
+            PkValue::Bracketed(pk) => {
+                let prefix = if self.wwhere.is_empty() {
+                    " WHERE "
+                } else {
+                    " AND "
+                };
+                let ident = if let Some(relation) = &ctx.related {
+                    relation.get_from_column(ctx.sqlos)
+                } else {
+                    &ctx.main_sqlo.pk_field.column
+                };
+                write!(self.wwhere, "{}{}=?", prefix, ident)
+                    .expect("Error formatting update query");
+
+                self.arguments.push(pk);
+            }
+            PkValue::Parenthezide(pk) => {
+                let prefix = if self.wwhere.is_empty() {
+                    " WHERE "
+                } else {
+                    " AND "
+                };
+                let ident = if let Some(relation) = &ctx.related {
+                    relation.get_from_column(ctx.sqlos)
+                } else {
+                    &ctx.main_sqlo.pk_field.column
+                };
+                write!(self.wwhere, "{}{}=?", prefix, ident)
+                    .expect("Error formatting update query");
+                if let Expr::Path(p) = pk {
+                    let pk_field = &ctx.main_sqlo.pk_field.ident;
+                    let with_pk: Expr = syn::parse_quote! {#p.#pk_field};
+                    self.arguments.push(with_pk)
+                }
+            }
+            PkValue::None => {} // nothing to be seen here
         }
     }
 
@@ -162,6 +187,13 @@ impl QueryBuilder {
     }
 
     pub fn query(&self, ctx: &Generator) -> Result<String, SqloError> {
+        let query = match ctx.mode {
+            Mode::Select => self.query_select(ctx)?,
+            Mode::Update => self.query_update(ctx)?,
+        };
+        Ok(query.trim().into())
+    }
+    pub fn query_select(&self, ctx: &Generator) -> Result<String, SqloError> {
         let distinct = self.get_distinct(ctx);
         let subjects = &self.subjects;
         let tablename = &self.tablename;
@@ -172,10 +204,24 @@ impl QueryBuilder {
         let order_by_query = &self.order_by;
         let limit_query = &self.limit;
 
-        let query = match ctx.mode {
-            Mode::Select=>format!("SELECT{distinct} {subjects} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}"),
-            Mode::Update=>format!("UPDATE {tablename} SET {subjects}{where_query}")
+        Ok(format!("SELECT{distinct} {subjects} FROM {tablename}{joins}{where_query}{group_by_query}{having_query}{order_by_query}{limit_query}"))
+    }
+
+    fn query_update(&self, ctx: &Generator) -> Result<String, SqloError> {
+        let subjects = &self.subjects;
+        let tablename = &self.tablename;
+        // let joins = self.joins.iter().join(" ");
+        let where_query = &self.wwhere;
+        let returning_columns = ctx.main_sqlo.to_non_null_columns();
+
+        let returning = if ctx.fetch.is_returning() {
+            format!(" RETURNING {}", returning_columns)
+        } else {
+            "".to_string()
         };
-        Ok(query.trim().into())
+
+        Ok(format!(
+            "UPDATE {tablename} SET {subjects}{where_query}{returning}"
+        ))
     }
 }

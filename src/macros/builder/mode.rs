@@ -1,7 +1,7 @@
 use crate::macros::{SelectParser, UpdateParser};
 
 use super::{QueryParser, TableAliases};
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Mode {
     Select,
     Update,
