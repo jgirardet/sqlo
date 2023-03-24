@@ -18,7 +18,6 @@ use crate::parse::SqloParse;
 use crate::sqlo::Sqlo;
 use darling::FromDeriveInput;
 use error::SqloError;
-use macros::sqlo_update::{process_sqlo_set, SqloSetParse};
 use macros::Mode;
 use proc_macro2::TokenStream;
 use virtual_file::VirtualFile;
@@ -39,15 +38,6 @@ pub fn macro_derive_sqlo(input: proc_macro::TokenStream) -> proc_macro::TokenStr
     let deriveinput = syn::parse_macro_input!(input as syn::DeriveInput);
 
     match process_all(deriveinput) {
-        Ok(ts) => ts.into(),
-        Err(e) => e.to_compile_error().into(),
-    }
-}
-
-#[proc_macro]
-pub fn sqlo_set(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let pts: SqloSetParse = syn::parse_macro_input!(input as SqloSetParse);
-    match process_sqlo_set(pts) {
         Ok(ts) => ts.into(),
         Err(e) => e.to_compile_error().into(),
     }

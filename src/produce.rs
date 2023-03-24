@@ -1,5 +1,4 @@
 use crate::{
-    macros::sqlo_update::impl_update_macro,
     methods::{create::impl_create, delete::impl_delete, get::impl_get, save::impl_save},
     sqlo::Sqlo,
 };
@@ -11,12 +10,8 @@ pub fn produce(sqlo: &Sqlo) -> TokenStream {
     let ident = sqlo.ident.clone();
     let additional_utils = impl_additional_utils(sqlo);
     let crud_queries = impl_crud_queries(sqlo);
-    let set_macro = impl_update_macro(sqlo);
 
     quote! {
-
-        #set_macro
-
         impl <'c>#ident {
             #additional_utils
             #crud_queries

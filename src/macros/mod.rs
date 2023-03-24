@@ -2,7 +2,6 @@ mod builder;
 mod clauses;
 mod columns;
 mod select_parser;
-pub mod sqlo_update;
 mod update_parser;
 
 pub use builder::*;
