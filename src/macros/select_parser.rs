@@ -2,12 +2,12 @@ use darling::util::IdentString;
 
 #[cfg(debug_assertions)]
 use super::parse_dbg_symbol;
-use super::QueryParser;
+use super::{parse_bracketed, Fetch, PkValue, QueryParser};
 
 use crate::macros::{
-    parse_field_member, parse_optional_bracketed, parse_optional_columns, parse_optional_group_by,
-    parse_optional_having, parse_optional_ident_with_comma, parse_optional_limit_page,
-    parse_optional_order_by, parse_optional_where, parse_sqlo_struct_ident,
+    parse_field_member, parse_optional_columns, parse_optional_group_by, parse_optional_having,
+    parse_optional_ident_with_comma, parse_optional_limit_page, parse_optional_order_by,
+    parse_optional_where, parse_sqlo_struct_ident,
 };
 
 use crate::macros::{Clauses, Column};
@@ -20,8 +20,9 @@ pub struct SelectParser {
     related: Option<IdentString>,
     customs: Vec<Column>,
     custom_struct: Option<IdentString>,
-    pk_value: Option<syn::Expr>,
+    pk_value: PkValue,
     clauses: Clauses,
+    fetch: Fetch,
 }
 
 impl syn::parse::Parse for SelectParser {
@@ -29,16 +30,19 @@ impl syn::parse::Parse for SelectParser {
         #[cfg(debug_assertions)]
         let debug = input.call(parse_dbg_symbol)?;
 
+        // parse fetch type
+        let fetch = input.parse()?;
+
         // First: parse cust struct
         let custom_struct = input.call(parse_optional_ident_with_comma)?;
 
         // then parse sqlo ident
         let entity = input.call(parse_sqlo_struct_ident)?;
         // or  ident[pk].related
-        let pk_value = input.call(parse_optional_bracketed)?;
-        let related = match pk_value.is_some() {
-            true => Some(input.call(parse_field_member)?),
-            false => None,
+        let pk_value = input.call(parse_bracketed)?;
+        let related = match pk_value {
+            PkValue::None => None,
+            _ => Some(input.call(parse_field_member)?),
         };
 
         // parse optional custom colums
@@ -63,6 +67,7 @@ impl syn::parse::Parse for SelectParser {
             custom_struct,
             pk_value,
             clauses,
+            fetch,
         })
     }
 }
@@ -84,12 +89,12 @@ impl QueryParser for SelectParser {
         &self.customs
     }
 
-    fn custom_struct(&self) -> &Option<IdentString> {
-        &self.custom_struct
+    fn custom_struct(&self) -> Option<IdentString> {
+        self.custom_struct.clone()
     }
 
-    fn pk_value(&self) -> &Option<syn::Expr> {
-        &self.pk_value
+    fn pk_value(&self) -> PkValue {
+        self.pk_value.clone()
     }
 
     fn clauses(&self) -> &Clauses {
@@ -98,6 +103,10 @@ impl QueryParser for SelectParser {
 
     fn assigns(&self) -> &super::Assigns {
         panic!("Assign must not be used with Select")
+    }
+
+    fn fetch(&self) -> Fetch {
+        self.fetch
     }
 }
 

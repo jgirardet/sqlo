@@ -2,10 +2,12 @@ A faire:
 
 ## en cours
 
-- refactor SELECT
-  - d'abord caler le parser vec +,\*, ...
-  - changer dans generator
-  - fixer tous les tests
+- test select avec: stream et optional
+- README
+  - syntax update
+  - la fin de fetch_all ... partout
+  - expliquer l'opinion de la syntax
+  - pas returning systématique
 
 ## situations possibles
 
@@ -32,7 +34,7 @@ A faire:
 8, 9 : rien => fetch_one
 
 # avant de passe à la suite
-
+- update avec where
 - fixer create pour ne plus utilsier des sqlos as option
 
 # Bug:

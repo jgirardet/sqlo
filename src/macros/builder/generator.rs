@@ -132,34 +132,23 @@ impl<'a> Generator<'_> {
         };
         let arguments = self.arguments();
         let fetch = self.fetch;
-        let move_instance = if let PkValue::Parenthezide(instance) = &self.pk_value {
-            quote! {let #instance = #instance;}
-        } else {
-            TokenStream::new()
-        };
 
         match self.mode {
-            Mode::Select => {
-                if self.query_parts.customs && self.custom_struct.is_none() {
-                    Ok(quote::quote! {
-                        sqlx::query!(#query, #(#arguments),*)
-                    })
+            Mode::Select => Ok(expand_select(
+                fetch,
+                ident,
+                query,
+                arguments,
+                WichMacro::for_select(self),
+            )),
+            Mode::Update => {
+                let move_instance = if let PkValue::Parenthezide(instance) = &self.pk_value {
+                    quote! {let #instance = #instance;}
                 } else {
-                    Ok(quote::quote! {
-                        sqlx::query_as!(#ident,#query, #(#arguments),*)
-                    })
-                }
+                    TokenStream::new()
+                };
+                Ok(expand_update(fetch, ident, query, arguments, move_instance))
             }
-            // {
-            //     Ok(expand_select(
-            //         fetch,
-            //         ident,
-            //         query,
-            //         arguments,
-            //         WichMacro::for_select(self),
-            //     ))
-            // }
-            Mode::Update => Ok(expand_update(fetch, ident, query, arguments, move_instance)),
         }
     }
 
@@ -188,11 +177,6 @@ fn expand_select(
     arguments: &[Expr],
     wich_macro: WichMacro,
 ) -> TokenStream {
-    let sqlx_macro = match wich_macro {
-        WichMacro::Query => quote! {query!},
-        WichMacro::QueryAs => quote! {query_as!},
-    };
-
     match fetch {
         Fetch::Stream => {
             quote! {

@@ -4,7 +4,7 @@ use sqlo::{select, update};
 Test! {update_all_rows, async fn func(p: PPool) {
     // simple all rows
     update![Maison adresse = "all"](&p.pool).await.unwrap();
-    let res = select![Maison].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison](&p.pool).await.unwrap();
     assert_eq!(res[0].adresse, "all");
     assert_eq!(res[1].adresse, "all");
     assert_eq!(res[2].adresse, "all");

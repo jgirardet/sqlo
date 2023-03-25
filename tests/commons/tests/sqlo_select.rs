@@ -5,8 +5,7 @@ Test! {select_with_pk, async fn func(p: PPool) {
     // --------------------- select easy -----------------------//
 
     // pk
-    let res = select!(Maison where id == 1)
-        .fetch_one(&p.pool)
+    let res = select![.Maison where id == 1](&p.pool)
         .await
         .unwrap();
     assert_eq!(res.id, 1);
@@ -16,8 +15,8 @@ Test! {select_with_pk, async fn func(p: PPool) {
 
 Test! {select_with_attribute, async fn func(p: PPool) {
     // one attribute
-    let res = select!(Maison where taille > 101)
-        .fetch_all(&p.pool)
+    let res = select![*Maison where taille > 101]
+        (&p.pool)
         .await
         .unwrap();
     assert_eq!(res.len(), 3);
@@ -28,8 +27,8 @@ Test! {select_with_attribute, async fn func(p: PPool) {
 macro_rules! nb_result {
         ($p:ident, $ident:expr, $res:literal) => {
             assert_eq!(
-                select!($ident)
-                    .fetch_all(&$p.pool)
+                select![* $ident]
+                    (&$p.pool)
                     .await
                     .unwrap()
                     .len(),
@@ -38,8 +37,8 @@ macro_rules! nb_result {
         };
         ($p:ident, $ident:expr, $exp:expr, $res:literal) => {
             assert_eq!(
-                select!($ident where $exp)
-                    .fetch_all(&$p.pool)
+                select![* $ident where $exp]
+                    (&$p.pool)
                     .await
                     .unwrap()
                     .len(),
@@ -66,18 +65,18 @@ Test! {select_test_where_binary, async fn func(p: PPool) {
 }}
 Test! {select_test_where_unary, async fn func(p: PPool) {
     // minus
-    let res = select![Maison where id == -1 + 2].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where id == -1 + 2](&p.pool).await.unwrap();
     assert_eq!(res[0].id, 1);
-    let res = select![Maison where id == 1 - -1].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where id == 1 - -1](&p.pool).await.unwrap();
     assert_eq!(res[0].id, 2);
-    let res = select![Maison where id == -1 * (-2 - -1)].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where id == -1 * (-2 - -1)](&p.pool).await.unwrap();
     assert_eq!(res[0].id, 1);
     // not
-    let res = select![Maison where !(id == 1)].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where !(id == 1)](&p.pool).await.unwrap();
     assert_eq!(res.len(), 3);
     assert_eq!(res[0].id, 2);
     assert_eq!(res[2].id, 4);
-    let res = select![Maison  where !(id!=1) && !(1==1 && 0==1)].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison  where !(id!=1) && !(1==1 && 0==1)](&p.pool).await.unwrap();
     assert_eq!(res[0].id, 1);
 }}
 
@@ -99,11 +98,11 @@ struct A {
 Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
     // ident/variable as arg
     let la = 34;
-    let res = select![PieceFk where la > ::la].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk where la > ::la](&p.pool).await.unwrap();
     assert_eq!(res.len(), 6);
     // index as arg
     let array = [0, 1, 2, 3];
-    let res = select![PieceFk where lg == ::array[1]].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk where lg == ::array[1]](&p.pool).await.unwrap();
     assert_eq!(res.len(), 1);
     nb_result!(p,PieceFk, lg == ::array[1], 1);
     nb_result!(p,PieceFk, lg > ::array[1], 8);
@@ -127,35 +126,35 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
 }}
 
 Test! {select_test_where_parethesis, async fn func(p: PPool) {
-    let res = select![PieceFk where (la > 100 || la < 60) && maison_id == 1].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk where (la > 100 || la < 60) && maison_id == 1](&p.pool).await.unwrap();
     assert_eq!(res.len(), 2);
-    let res = select![PieceFk where (la < 100)].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk where (la < 100)](&p.pool).await.unwrap();
     assert_eq!(res.len(), 9);
 }}
 
 Test! {select_test_wherein, async fn func(p: PPool) {
-    let res = select![PieceFk where maison_id in (1,3)].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk where maison_id in (1,3)](&p.pool).await.unwrap();
     assert_eq!(res.len(), 6);
     let [d, e, f] = [1, 2, 4];
-    let res = select!(PieceFk where maison_id in (::d, ::e, ::f)).fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk where maison_id in (::d, ::e, ::f)](&p.pool).await.unwrap();
     assert_eq!(res.len(), 7);
 }}
 
 Test! {select_test_where_like, async fn func(p: PPool) {
-    let res = select![Maison where adresse # "adr%"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where adresse # "adr%"](&p.pool).await.unwrap();
     assert_eq!(res.len(), 4);
-    let res = select![Maison where adresse # "%dress%"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where adresse # "%dress%"](&p.pool).await.unwrap();
     assert_eq!(res.len(), 4);
-    let res = select![Maison where adresse # "%dresse1%"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where adresse # "%dresse1%"](&p.pool).await.unwrap();
     assert_eq!(res.len(), 1);
-    let res = select![Maison where adresse # "%dresse1"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where adresse # "%dresse1"](&p.pool).await.unwrap();
     assert_eq!(res.len(), 1);
-    let res = select![Maison where adresse # "a%se1"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where adresse # "a%se1"](&p.pool).await.unwrap();
     assert_eq!(res.len(), 1);
-    let res = select![Maison where adresse # "a%se1"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where adresse # "a%se1"](&p.pool).await.unwrap();
     assert_eq!(res.len(), 1);
     // // with fk
-    let res = select![Maison where adres.rue # "a%se1"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where adres.rue # "a%se1"](&p.pool).await.unwrap();
     assert_eq!(res.len(), 1);
 }}
 
@@ -163,10 +162,10 @@ Test! {select_test_where_foreign_key, async fn func(p: PPool) {
     let a = A { a: 2 };
     let array = [0, 1, 2, 3];
     // ForeignKey
-    let res = select![Maison[1].lespieces].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison[1].lespieces](&p.pool).await.unwrap();
     assert_eq!(res.len(), 4);
-    let res: Vec<PieceFk> = select!(Maison[1].lespieces)
-        .fetch_all(&p.pool)
+    let res: Vec<PieceFk> = select![*Maison[1].lespieces]
+        (&p.pool)
         .await
         .unwrap();
     assert_eq!(res[3].la, 90);
@@ -189,277 +188,277 @@ Test! {select_test_where_foreign_key, async fn func(p: PPool) {
 
 Test! {select_test_where_call, async fn func(p:PPool){
     // simple
-    let res = select![Maison where trim(adresse, "adr") == "esse2"].fetch_one(&p.pool).await.unwrap();
+    let res = select![.Maison where trim(adresse, "adr") == "esse2"](&p.pool).await.unwrap();
     assert_eq!(res.adresse, "adresse2");
     // call n column and where, use of context::Call
-    let res = select![Maison replace(adresse, "2", "XX") as "adresse?:String" where upper(adresse) == "ADRESSE2"].fetch_one(&p.pool).await.unwrap();
+    let res = select![.Maison replace(adresse, "2", "XX") as "adresse?:String" where upper(adresse) == "ADRESSE2"](&p.pool).await.unwrap();
     assert_eq!(res.adresse, Some("adresseXX".into()));
     // with fk
-    let res = select![Maison where trim(adres.rue, "adr") == "esse2"].fetch_one(&p.pool).await.unwrap();
+    let res = select![.Maison where trim(adres.rue, "adr") == "esse2"](&p.pool).await.unwrap();
     assert_eq!(res.adresse, "adresse2");
 }}
 
 Test! {select_cutoms_fields, async fn func(p: PPool) {
   // field
-  let res = select![Maison id].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id](&p.pool).await.unwrap();
   assert_eq!(res.len(), 4);
   assert_eq!(res[0].id, 1);
   assert_eq!(res[3].id, 4);
-  let res = select![PieceFk lg].fetch_all(&p.pool).await.unwrap();
+  let res = select![*PieceFk lg](&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
   // two fields
-  let res = select![PieceFk lg, la].fetch_all(&p.pool).await.unwrap();
+  let res = select![*PieceFk lg, la](&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
   // with where close
-  let res = select![PieceFk lg where lg >=6].fetch_all(&p.pool).await.unwrap();
+  let res = select![*PieceFk lg where lg >=6](&p.pool).await.unwrap();
   assert_eq!(res.len(), 4);
 }}
 
 Test! {select_cutoms_fields_related_join, async fn func(p: PPool) {
   // with related
-  let res = select![Maison[1].lespieces lg].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison[1].lespieces lg](&p.pool).await.unwrap();
   assert_eq!(res.len(), 4);
   // with related and where
-  let res = select![Maison[1].lespieces lg where lg> 2].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison[1].lespieces lg where lg> 2](&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
   // with join alone
-  let res = select![Maison lespieces.lg].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison lespieces.lg](&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
   // with join and where
-  let res = select![Maison lespieces.lg where lespieces.lg > 2].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison lespieces.lg where lespieces.lg > 2](&p.pool).await.unwrap();
   assert_eq!(res.len(), 7);
   // left join field
-  let res = select![Maison id, lespieces.lg].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id, lespieces.lg](&p.pool).await.unwrap();
   assert_eq!(res.len(),9);
-  let res = select![Maison id, lespieces=.lg].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id, lespieces=.lg](&p.pool).await.unwrap();
   assert_eq!(res.len(),10);
   assert_eq!(res[9].lg, None);
   //left join where
-  let res = select![Maison id,  lespieces=.lg where lespieces=.lg == None].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id,  lespieces=.lg where lespieces=.lg == None](&p.pool).await.unwrap();
   assert_eq!(res.len(), 1);
   //left join where with alias
-  let res = select![Maison id,  lespieces=.lg as lep where lep == None].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id,  lespieces=.lg as lep where lep == None](&p.pool).await.unwrap();
   assert_eq!(res.len(), 1);
   // self join
-    let res = select![SelfRelation name, manager.name as manager].fetch_all(&p.pool).await.unwrap();
+    let res = select![*SelfRelation name, manager.name as manager](&p.pool).await.unwrap();
     assert_eq!(res.len(),2);
     assert_eq!(res[0].name, "axel");
     assert_eq!(res[0].manager, "papa");
-    let res = select![SelfRelation name, manager=.name as manager].fetch_all(&p.pool).await.unwrap();
+    let res = select![*SelfRelation name, manager=.name as manager](&p.pool).await.unwrap();
     assert_eq!(res.len(),3);
 
 }}
 
 Test! {select_cutoms_cast, async fn func(p: PPool) {
   //with cast
-  let res = select![Maison adresse as lid].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison adresse as lid](&p.pool).await.unwrap();
   assert_eq!(res[2].lid, "adresse3");
   // with join in cast
-  let res = select![Maison lespieces.lg as lll].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison lespieces.lg as lll](&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
   // alias string
   use uuid::Uuid;
-  select![PieceFk nb as "nb:Uuid"].fetch_all(&p.pool).await.unwrap();
+  select![*PieceFk nb as "nb:Uuid"](&p.pool).await.unwrap();
   // alias force non null
-  select![PieceFk nb as "nb!"].fetch_all(&p.pool).await.unwrap();
+  select![*PieceFk nb as "nb!"](&p.pool).await.unwrap();
   // alias force nullable
-  select![PieceFk nb as "nb?"].fetch_all(&p.pool).await.unwrap();
+  select![*PieceFk nb as "nb?"](&p.pool).await.unwrap();
   // alias force cast nullable
-  select![PieceFk lg as "nb?:i16"].fetch_all(&p.pool).await.unwrap();
+  select![*PieceFk lg as "nb?:i16"](&p.pool).await.unwrap();
   // alias force cast non  nullable
-  select![PieceFk lg as "nb!:i16"].fetch_all(&p.pool).await.unwrap();
+  select![*PieceFk lg as "nb!:i16"](&p.pool).await.unwrap();
   // long path
-  let res = select![PieceFk nb as "nb:Uuid"].fetch_all(&p.pool).await.unwrap();
-  let res2 = select![PieceFk nb as "nb:uuid::Uuid"].fetch_all(&p.pool).await.unwrap();
+  let res = select![*PieceFk nb as "nb:Uuid"](&p.pool).await.unwrap();
+  let res2 = select![*PieceFk nb as "nb:uuid::Uuid"](&p.pool).await.unwrap();
   assert_eq!(res[0].nb, res2[0].nb);
   // Non nullable without string
-  let res  = select![ PieceFk lg as p!, la as a?].fetch_all(&p.pool).await.unwrap();
+  let res  = select![*PieceFk lg as p!, la as a?](&p.pool).await.unwrap();
   assert_eq![res[0].p,1 ];
   assert_eq![res[0].a,Some(10) ];
   // Non nullable without alias
-  let res = select![SelfRelation manager_id! where manager_id != None].fetch_all(&p.pool).await.unwrap();
+  let res = select![*SelfRelation manager_id! where manager_id != None](&p.pool).await.unwrap();
   assert_eq!(res[0].manager_id, 3);
   //  nullable without alias
-  let res = select![SelfRelation id?].fetch_all(&p.pool).await.unwrap();
+  let res = select![*SelfRelation id?](&p.pool).await.unwrap();
   assert_eq!(res[0].id, Some(1))
 }}
 
 Test! {select_cutoms_join_conflict, async fn func(p: PPool) {
   // with join conflict column
-  let res = select![Maison id as idm, adres.id where adres.id>1].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id as idm, adres.id where adres.id>1](&p.pool).await.unwrap();
   assert_eq!(res[0].idm, 2);
   assert_eq!(res[1].idm, 3);
   assert_eq!(res[0].id, "2");
   assert_eq!(res[1].id, "3");
   // with join conflict column, the reverse with id
-  let res = select![Maison id, adres.id as ll where adres.id>1].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id, adres.id as ll where adres.id>1](&p.pool).await.unwrap();
   assert_eq!(res.len(), 2);
 }}
 
 Test! {select_cutoms_call, async fn func(p: PPool) {
-  let res = select![Maison count(id) as total].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison count(id) as total](&p.pool).await.unwrap();
   assert_eq!(res.total, 4);
   // call with literal
-  let res = select![Maison replace(adresse, "1", "345") as "adr!:String" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison replace(adresse, "1", "345") as "adr!:String" where id==1](&p.pool).await.unwrap();
   assert_eq!(res.adr, "adresse345");
   // call with literal int
-  let res = select![Maison min(id, 2, 45) as "lemin!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison min(id, 2, 45) as "lemin!:u16" where id==1](&p.pool).await.unwrap();
   assert_eq!(res.lemin, 1);
   // call with rust variable
   let a = 345;
-  let res = select![Maison max(id, 2, ::a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison max(id, 2, ::a) as "lemax!:u16" where id==1](&p.pool).await.unwrap();
   assert_eq!(res.lemax, 345);
   // call with rust index
   let a = [5,6,8];
-  let res = select![Maison max(id, 2, ::a[1]) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison max(id, 2, ::a[1]) as "lemax!:u16" where id==1](&p.pool).await.unwrap();
   assert_eq!(res.lemax, 6);
   // call with rust field
   struct A{a:u16}
   let a = A{a:99};
-  let res = select![Maison max(id, 2, ::a.a) as "lemax!:u16" where id==1].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison max(id, 2, ::a.a) as "lemax!:u16" where id==1](&p.pool).await.unwrap();
   assert_eq!(res.lemax, 99);
   // call with rusdt variable outside function
   let a = 1;
-  let res = select![Maison ::a as "bla!:u16"].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison ::a as "bla!:u16"](&p.pool).await.unwrap();
   assert_eq!(res.bla, a);
 }}
 
 Test! {select_cutoms_binary_operation, async fn func(p: PPool) {
     // binary
-  let res = select![Maison id + 3 as id_plus_3].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id + 3 as id_plus_3](&p.pool).await.unwrap();
   assert_eq!(res[1].id_plus_3, Some(5));
   // complex binary
   let a = 22;
-  let res = select![Maison ::a + id - max(3,4,5)  as "total:i16"].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison ::a + id - max(3,4,5)  as "total:i16"](&p.pool).await.unwrap();
   assert_eq!(res[1].total, Some(19)); //2 + 22  -5
   // test all arythmetique ops
-  let res = select![Maison 1 / 1 * 1 + 1 - 1 as "total!:i16" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison 1 / 1 * 1 + 1 - 1 as "total!:i16" ](&p.pool).await.unwrap();
   assert_eq!(res.total, 1);
   // test all equlity ops
-  let res = select![Maison 1<2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison 1<2 as "total!:bool" ](&p.pool).await.unwrap();
   assert!(res.total);
-  let res = select![Maison 1<=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison 1<=2 as "total!:bool" ](&p.pool).await.unwrap();
   assert!(res.total);
-  let res = select![Maison 2>1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison 2>1 as "total!:bool" ](&p.pool).await.unwrap();
   assert!(res.total);
-  let res = select![Maison 2>=1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison 2>=1 as "total!:bool" ](&p.pool).await.unwrap();
   assert!(res.total);
-  let res = select![Maison 1==1 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison 1==1 as "total!:bool" ](&p.pool).await.unwrap();
   assert!(res.total);
-  let res = select![Maison 1!=2 as "total!:bool" ].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison 1!=2 as "total!:bool" ](&p.pool).await.unwrap();
   assert!(res.total);
   // op inside call
-  let res = select![Maison max(count(id), 5) as "c!:u16"].fetch_one(&p.pool).await.unwrap();
+  let res = select![.Maison max(count(id), 5) as "c!:u16"](&p.pool).await.unwrap();
   assert_eq!(res.c, 5);
   // binary asterisk
-  let res = select![Maison id * 3 as id_plus_3].fetch_all(&p.pool).await.unwrap();
+  let res = select![*Maison id * 3 as id_plus_3](&p.pool).await.unwrap();
   assert_eq!(res[1].id_plus_3, Some(6));
 }}
 
 Test! {select_cutoms_asterisk, async fn func(p: PPool) {
-    let res = select![Maison count(*) as total].fetch_one(&p.pool).await.unwrap();
+    let res = select![.Maison count(*) as total](&p.pool).await.unwrap();
     assert_eq!(res.total, 4);
 }}
 
 Test! {select_cutoms__struct_custom_with_query_as, async fn func(p: PPool) {
-    let res = select![A, Maison count(*) as a].fetch_one(&p.pool).await.unwrap();
+    let res = select![. A, Maison count(*) as a](&p.pool).await.unwrap();
     assert_eq!(res.a, 4);
-    let res = select![A, Maison count(*) as "a:i32"].fetch_one(&p.pool).await.unwrap();
+    let res = select![. A, Maison count(*) as "a:i32"](&p.pool).await.unwrap();
     assert_eq!(res.a, 4);
 }}
 
 Test! {select_order_by, async fn func(p:PPool) {
     //simpl asc
-   let res  = select![Lit order_by surface].fetch_all(&p.pool).await.unwrap();
+   let res  = select![*Lit order_by surface](&p.pool).await.unwrap();
    assert_eq!(res[0].id,2 );
    assert_eq!(res[3].id,3 );
    //smpl desc
-   let res  = select![Lit order_by -surface].fetch_all(&p.pool).await.unwrap();
+   let res  = select![*Lit order_by -surface](&p.pool).await.unwrap();
    assert_eq!(res[0].id,3 );
    assert_eq!(res[3].id,2 );
    // two order by
-   let res = select![Lit order_by surface, -id].fetch_all(&p.pool).await.unwrap();
+   let res = select![*Lit order_by surface, -id](&p.pool).await.unwrap();
    assert_eq!(res[0].id, 2);
    assert_eq!(res[1].id, 4);
    assert_eq!(res[2].id, 1);
    assert_eq!(res[3].id, 3);
    // two asc
-   let res = select![Lit order_by surface, id].fetch_all(&p.pool).await.unwrap();
+   let res = select![*Lit order_by surface, id](&p.pool).await.unwrap();
    assert_eq!(res[1].id, 1);
    assert_eq!(res[2].id, 4);
    // two desc
-   let res = select![Lit order_by -surface, -id].fetch_all(&p.pool).await.unwrap();
+   let res = select![*Lit order_by -surface, -id](&p.pool).await.unwrap();
    assert_eq!(res[0].id, 3);
    assert_eq!(res[1].id, 4);
    assert_eq!(res[2].id, 1);
    assert_eq!(res[3].id, 2);
    // fk simple
-   let res = select![Maison[1].lespieces order_by -lg].fetch_all(&p.pool).await.unwrap();
+   let res = select![*Maison[1].lespieces order_by -lg](&p.pool).await.unwrap();
    assert_eq!(res[0].lg, 9);
    // fk custom
-   let res = select!(Maison count(lespieces.lg) as total order_by -total).fetch_one(&p.pool).await.unwrap();
+   let res = select![.Maison count(lespieces.lg) as total order_by -total](&p.pool).await.unwrap();
    assert_eq!(res.total, 9);
    // with where + fk
-   let res = select!(Maison where lespieces.lg > 7  order_by -taille).fetch_all(&p.pool).await.unwrap();
+   let res = select![*Maison where lespieces.lg > 7  order_by -taille](&p.pool).await.unwrap();
    assert_eq!(res.len(), 2);
    assert_eq!(res[0].id, 2);
    assert_eq!(res[1].id, 1);
    // square_bracket_syntax
-   let res = select![Lit order_by[surface, id]].fetch_all(&p.pool).await.unwrap();
+   let res = select![*Lit order_by[surface, id]](&p.pool).await.unwrap();
    assert_eq!(res[1].id, 1);
    assert_eq!(res[2].id, 4);
    // with string alias and non string alias used
-   let res = select![Lit surface as "ss!" order_by ss].fetch_all(&p.pool).await.unwrap();
+   let res = select![*Lit surface as "ss!" order_by ss](&p.pool).await.unwrap();
    assert_eq!(res[0].ss, 100);
 }}
 
 Test! {select_limit, async fn func(p:PPool) {
     // simple
-    let res = select![PieceFk  limit 2,3].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk  limit 2,3](&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].lg, 4];
     assert_eq![res[1].lg, 5];
     // with order by : force class types
     use uuid::Uuid;
-    let res = select![ PieceFk,PieceFk nb as "nb!:Uuid", lg as "lg!:i32", la as "la!", maison_id as "maison_id!" order_by -lg limit 2,3].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk,PieceFk nb as "nb!:Uuid", lg as "lg!:i32", la as "la!", maison_id as "maison_id!" order_by -lg limit 2,3](&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].lg, 6];
     assert_eq![res[1].lg, 5];
     // with order by, force class  type, bracket
-    let res = select![Maison, Maison id as "id!", taille as "taille!", adresse as "adresse!", piscine as "piscine"
-    order_by[-taille] limit[2,1]].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison, Maison id as "id!", taille as "taille!", adresse as "adresse!", piscine as "piscine"
+    order_by[-taille] limit[2,1]](&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].id, 3];
     assert_eq![res[1].id, 2];
     // page simple
-    let res = select![PieceFk limit 2,4].fetch_all(&p.pool).await.unwrap(); //4;5
-    let res2 = select![PieceFk page 3,2].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk limit 2,4](&p.pool).await.unwrap(); //4;5
+    let res2 = select![*PieceFk page 3,2](&p.pool).await.unwrap();
     assert_eq!(res, res2);
 }}
 
 Test! {select_group_by, async fn func(p:PPool) {
     // simple
-    let res = select![PieceFk maison_id, count(*) as "total!" group_by maison_id].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk maison_id, count(*) as "total!" group_by maison_id](&p.pool).await.unwrap();
     assert_eq!(res[0].maison_id, 1);
     assert_eq!(res[0].total, 4);
     // with fk
-    let res = select![Maison lespieces.maison_id, count(*) as "total!" group_by lespieces.maison_id].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison lespieces.maison_id, count(*) as "total!" group_by lespieces.maison_id](&p.pool).await.unwrap();
     assert_eq!(res[0].maison_id, 1);
     assert_eq!(res[0].total, 4);
     // with order by with "full qualified aggregate"
-    let res = select![PieceFk maison_id, count(*) as "total!" group_by maison_id order_by count(*)].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk maison_id, count(*) as "total!" group_by maison_id order_by count(*)](&p.pool).await.unwrap();
     assert_eq!(res[0].maison_id, 3);
     assert_eq!(res[0].total, 2);
     // with order by with "with alias"
-    let res = select![PieceFk maison_id, count(*) as total group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk maison_id, count(*) as total group_by maison_id order_by total](&p.pool).await.unwrap();
     assert_eq!(res[0].maison_id, 3);
     assert_eq!(res[0].total, Some(2));
     // with order by with string alias
-    let res = select![PieceFk maison_id, count(*) as "total!:i32" group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk maison_id, count(*) as "total!:i32" group_by maison_id order_by total](&p.pool).await.unwrap();
     assert_eq!(res[0].maison_id, 3);
     assert_eq!(res[0].total, 2);
     // with order by with string alias
-    let res = select![PieceFk maison_id, count(*) as "total!:i32" group_by maison_id order_by total].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk maison_id, count(*) as "total!:i32" group_by maison_id order_by total](&p.pool).await.unwrap();
     assert_eq!(res[0].maison_id, 3);
     assert_eq!(res[0].total, 2);
 }}
@@ -471,20 +470,21 @@ Test! {select_having, async fn func(p:PPool){
         total: i32
     }
     // standard
-    let res = select![Hav,PieceFk maison_id, sum(lg) as "total!:_" group_by maison_id having total>11].fetch_all(&p.pool).await.unwrap();
+    let res = select![* Hav,PieceFk maison_id, sum(lg) as "total!:_" group_by maison_id having total>11](&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].maison_id, 1];
     assert_eq![res[0].total, 18];
     assert_eq![res[1].maison_id, 2];
     assert_eq![res[1].total, 16];
     // fk
-    let res2 = sqlo::select![Hav,Maison id as maison_id, sum(lespieces.lg) as "total!:_" group_by id having total>11].fetch_all(&p.pool).await.unwrap();
+    let res2 = sqlo::select![*Hav,Maison id as maison_id, sum(lespieces.lg) as "total!:_" group_by id having total>11](&p.pool).await.unwrap();
     let res3 = sqlx::query_as!(Hav, r#"SELECT DISTINCT maison.id  as maison_id, sum(piece.lg)  as "total!:_" FROM maison INNER JOIN piece ON maison.id=piece.maison_id GROUP BY maison.id HAVING "total!:_" > ?"#, 11)
+
     .fetch_all(&p.pool).await.unwrap();
     assert_eq![res, res2];
     assert_eq![res, res3];
     // two conditions
-    let res = select![Hav,PieceFk maison_id, sum(lg) as "total!:_" group_by maison_id having total>11 && total <18].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Hav,PieceFk maison_id, sum(lg) as "total!:_" group_by maison_id having total>11 && total <18](&p.pool).await.unwrap();
     assert_eq![res.len(), 1];
     assert_eq![res[0].maison_id, 2];
     assert_eq![res[0].total, 16];
@@ -492,22 +492,22 @@ Test! {select_having, async fn func(p:PPool){
 
 Test! {select_sub_select, async fn func(p:PPool){
     // simple
-    let res = select![Maison where id == {PieceFk 1 limit 1}].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where id == {PieceFk 1 limit 1}](&p.pool).await.unwrap();
     assert_eq![res.len(), 1];
     assert_eq![res[0].id, 1];
     // use comparator
-    let res = select![PieceFk where maison_id == {Maison id where taille == 101 limit 1}].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk where maison_id == {Maison id where taille == 101 limit 1}](&p.pool).await.unwrap();
     assert_eq![res.len(), 4];
     // use in
-    let res = select![PieceFk where maison_id in {Maison id where taille > 101}].fetch_all(&p.pool).await.unwrap();
+    let res = select![*PieceFk where maison_id in {Maison id where taille > 101}](&p.pool).await.unwrap();
     assert_eq![res.len(), 5];
     // use fk
-    let res = select![Lit where id in {Maison lespieces.maison_id where lespieces.lg>=8}].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Lit where id in {Maison lespieces.maison_id where lespieces.lg>=8}](&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].id, 1];
     assert_eq![res[1].id, 2];
     // in column
-    let res = select![Lit id, surface, {PieceFk count(*)  where maison_id==Lit.id} as p].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Lit id, surface, {PieceFk count(*)  where maison_id==Lit.id} as p](&p.pool).await.unwrap();
     assert_eq![res.len(),4];
     assert_eq![res[0].id,1];
     assert_eq![res[0].p,4];
@@ -517,25 +517,25 @@ Test! {select_sub_select, async fn func(p:PPool){
 
 Test! {select_sub_select_exists, async fn func(p:PPool){
     // exists
-    let res = select![Maison where exists {PieceFk lg where maison_id==4}].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where exists {PieceFk lg where maison_id==4}](&p.pool).await.unwrap();
     assert_eq!(res.len(), 0);
-    let res = select![Maison where exists {PieceFk lg where lg == Maison.id}].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison where exists {PieceFk lg where lg == Maison.id}](&p.pool).await.unwrap();
     assert_eq!(res.len(), 4);
 }}
 
 Test! {select_case, async fn func(p:PPool){
     //simple with case
-    let res = select![ Maison match id 1=>"un" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison match id 1=>"un" as "a!:String"](&p.pool).await.unwrap();
     assert_eq!(res[0].a, "un");
     //simple with case and _
-    let res = select![ Maison id, match id 1=>"un",_=>"lol" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison id, match id 1=>"un",_=>"lol" as "a!:String"](&p.pool).await.unwrap();
     assert_eq!(res[0].a, "un");
     assert_eq!(res[0].id, 1);
     assert_eq!(res[1].a, "lol");
     assert_eq!(res[1].id, 2);
     assert_eq!(res[2].a, "lol");
     // more
-    let res = select![ Maison id, match id 1=>"un",2=>"deux",_=>"lol" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison id, match id 1=>"un",2=>"deux",_=>"lol" as "a!:String"](&p.pool).await.unwrap();
     assert_eq!(res[0].a, "un");
     assert_eq!(res[0].id, 1);
     assert_eq!(res[1].a, "deux");
@@ -543,10 +543,10 @@ Test! {select_case, async fn func(p:PPool){
     assert_eq!(res[2].a, "lol");
 
     //simple no case
-    let res = select![ Maison match id<2=>"un" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison match id<2=>"un" as "a!:String"](&p.pool).await.unwrap();
     assert_eq!(res[0].a, "un");
     //simple with case and _
-    let res = select![ Maison id, match id<2=>"un",_=>"lol" as "a!:String"].fetch_all(&p.pool).await.unwrap();
+    let res = select![*Maison id, match id<2=>"un",_=>"lol" as "a!:String"](&p.pool).await.unwrap();
     assert_eq!(res[0].a, "un");
     assert_eq!(res[0].id, 1);
     assert_eq!(res[1].a, "lol");
