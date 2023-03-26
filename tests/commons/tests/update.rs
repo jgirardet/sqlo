@@ -125,7 +125,7 @@ Test! {update_pk_various_types, async fn func(p: PPool) {
 
 }}
 
-Test! {update_pk_fetch_mode, async fn func(p: PPool) {
+Test! {update_stream_many_optional_mode, async fn func(p: PPool) {
    // fetch
    use futures_lite::stream::StreamExt;
    let mut stream = update![+ Maison taille=22](&p.pool);

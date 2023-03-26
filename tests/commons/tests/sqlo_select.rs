@@ -553,3 +553,16 @@ Test! {select_case, async fn func(p:PPool){
     assert_eq!(res[1].id, 2);
     assert_eq!(res[2].a, "lol");
 }}
+
+Test! {select_optional_and_stream, async fn func(p:PPool){
+   use futures_lite::stream::StreamExt;
+   let mut stream = select![+ Maison](&p.pool);
+   for i in 1..=4 {
+       assert_eq!(stream.try_next().await.unwrap().unwrap().id,i )
+   }
+   assert!(stream.try_next().await.unwrap().is_none());
+
+   // optional
+   let res = select![? Maison where id==99999](&p.pool).await.unwrap();
+   assert_eq![res, None];
+}}
