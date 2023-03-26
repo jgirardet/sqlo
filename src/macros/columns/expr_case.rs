@@ -7,7 +7,6 @@ use crate::macros::ColumnToSql;
 
 use super::ColExpr;
 
-
 #[derive(Debug, Clone)]
 pub struct ColExprCase {
     case: Option<Box<ColExpr>>,

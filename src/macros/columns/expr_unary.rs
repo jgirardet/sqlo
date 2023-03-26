@@ -1,6 +1,6 @@
 use syn::Token;
 
-use crate::macros::{Context, ColumnToSql};
+use crate::macros::{ColumnToSql, Context};
 
 use super::ColExpr;
 

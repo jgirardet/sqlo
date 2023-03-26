@@ -4,12 +4,11 @@ use darling::util::IdentString;
 use syn::{LitStr, Token};
 
 use crate::{
-    error::SqloError,
-    macros::{Context, Fragment, Generator, ColumnToSql},
+    macros::{ColumnToSql, Context, Fragment, Generator},
+    SqloError,
 };
 
 use super::ColExpr;
-
 
 #[derive(Debug, Clone)]
 pub struct ColumnCast {

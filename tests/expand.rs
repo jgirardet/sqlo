@@ -79,7 +79,7 @@ async fn main() {
     //     .unwrap();
     let r = ExpandMaison::get(&pool, 1).await.unwrap();
 
-    let  stream = update![ExpandMaison(r) taille=92](&pool).await;
+    let stream = update![ExpandMaison(r) taille=92](&pool).await;
     // stream.try_next().unwrap().unwrap();
 
     //     // test update with update like instance syntax

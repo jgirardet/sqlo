@@ -39,7 +39,10 @@ impl ColumnToSql for ColExprField {
         let relation = match ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base) {
             Ok(rel) => rel,
             Err(_) => {
-                return Ok(ctx.tables.alias_dot_column(&self.base, &self.member)?.into());
+                return Ok(ctx
+                    .tables
+                    .alias_dot_column(&self.base, &self.member)?
+                    .into());
             }
         };
         let join = relation.to_join(self.join, ctx)?;
