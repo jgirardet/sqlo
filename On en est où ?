@@ -2,11 +2,7 @@ A faire:
 
 ## en cours
 
-- README
-  - syntax update
-  - la fin de fetch_all ... partout
-  - expliquer l'opinion de la syntax
-  - pas returning systématique
+- ForeignKey pour update
 
 ## situations possibles
 
@@ -33,6 +29,7 @@ A faire:
 8, 9 : rien => fetch_one
 
 # avant de passe à la suite
+
 - update avec where
 - fixer create pour ne plus utilsier des sqlos as option
 

@@ -43,12 +43,19 @@ assert_eq!(a,b);
 b.text = "bye".to_string();
 b.save(&pool).await?;
 
+// select: where order limit
+let items : Vec<Maison> = select![* Maison where text=="bla" order_by -id limit 50](&pool).await?;
+
+// select: sql function, group_by, force non null alias.
+let items = select![*PieceFk maison_id, count(*) as total! group_by maison_id order_by total](&p.pool).await?;
+
+
 // update selected fields only
-let b = update_MyTable![b, text="I'm Back", maybe=Some(12)](&pool).await?;
+let b = update[. MyTable(b) text="I'm Back", maybe=Some(12)](&pool).await?;
 
 // or the same by primary_key
 let pk = b.id;
-let c = update_MyTable![pk = pk, text="I'm reBack", maybe=None](&pool).await?;
+let c = update![. MyTable[pk], text="I'm reBack", maybe=None](&pool).await?;
 
 // remove by instance
 c.remove(&pool).await?
@@ -310,26 +317,51 @@ myrow.remove(&pool).await?;
 myrow.some_field = 1; // compile_error
 ```
 
-## The `update_Table!` macro
+## Macros: Introduction
 
-Rust handles variable number of argument with macro (like vec!, ...), but it can't put as method.
-So `Sqlo` generates an update macro which is named as follow : `update_MyStruct`.
+Sqlo supports `select!` and `update!` macro.
+We try keep API consistent to make it easy to remember and use.
+In this chapter we'll explain the core principles of using those macros, next chapter will explain each one.
 
-`sqlx::query_as!` witch `fetch_one` is used under the hood.
+- Macros only act as syntactic sugar to sqlx macros `sqlx::query! and sqlx:query_as!`.
+  Sqlo macro content is translated to sqlx content :
 
-Return: `Fn(&DBPool) -> Future<sqlx::Result<T>>`
+```rust
+select![. House where room >23](&pool)
+// is replaced with
+sqlx::query_as!(House, "select house h where h.room > ?", 23).fetch_one(&pool)
+```
 
-**The output of the macros has to be called with a database pool. It won't work with a simple database connection.**
+It means, after sqlo's checks, sqlx's checks will occur as usual.
+
+- Every literal, variable arguments, ... are passed as argument to sqlx macros.
+
+- sqlx method call's choice is donc using punctuations sign like in regular at the beggining of the query. It follows welle known regular expressions syntax:
+  - nothing -> execute (returns nothing)
+  - **\.** -> fetch_one (one)
+  - **\*** -> fetch_all (zero or more)
+  - **\?** -> fetch_optional (one or zero)
+  - **\+** -> fetch (one or more.)
+
+Please refer to [sqlx doc](https://docs.rs/sqlx/latest/sqlx/macro.query.html) for more about it.
+
+- It's rust syntax not sql: that's why we use `==` instead of `=`.
+
+## The `update!` macro
 
 It supports the followings formats:
 
 ```rust
-update_MyStruct![instance; field1=value1, field2=value2](&pool).await?
-// this format takes ownership of instance
+update![TableStruct[instance_id] field1=value1, field2=value2](&pool).await?
+// with square bracket instance id is a u32, string, &str, Uuid, ....
 
-// or
+update![TableStruct(instance) field1=value1, field2=value2](&pool).await?
+// use an instance of TableStruct, primary_key is deduced.
+// this format takes ownership of instance sor you can't use instance after.
 
-update_Mystruct![pk = value, field1=value1, field2=value2](&pool).await?
+// To reuse instance you have to specify a return (fetch_one, fetch_all, fetch)
+let instance = update![. TableStruct(instance) field1=value1, field2=value2](&pool).await?
+//  not the dot `.` meaning fetch_one
 ```
 
 ```rust
@@ -342,8 +374,8 @@ struct House {
 }
 //...
 let house = House::get(&pool, 2);
-let house = update_House![house; name= "bla", width=34](&pool).await?;
-let other_update = update_House!(pk=2, height=345)(&pool).await?;
+let house = update![. House(house) name= "bla", width=34](&pool).await?;
+update_House!(House[2] height=345)(&pool).await?;
 
 ```
 
@@ -353,12 +385,12 @@ Select queries are performed with the `select!` macro.
 
 ```rust
 // query returning a derived sqlo struct
-let res: Vec<MyStruct> select![MyStruct where myfield > 1].fetch_all(&pool).await.unwrap();
+let res: Vec<MyStruct> select![* MyStruct where myfield > 1](&pool).await.unwrap();
 // select * from mystruct_table where mystruct_table.myfield >1
 
 
 // query some specific values/column
-let res = select![MyStruct max(some_field) as bla where something == 23].fetch_one(&pool).await.unwrap();
+let res = select![. MyStruct max(some_field) as bla where something == 23](&pool).await.unwrap();
 assert_eq!(res.bla, 99)
 ```
 
@@ -389,11 +421,11 @@ struct Room {
 Basically for plain struct query, it uses `sqlx::query_as!` under the hood and just translate the query or `sqlx::query!` for field/column querys:
 
 ```rust
-select![House where id == 1].fetch_one(&pool).await
+select![* House where bed == true].await
 //roughly is translated into
-query_as![House, "SELECT DISTINCT id, name, width, height FROM house where id=?", 1].fetch_one(&pool).await;
+query_as![House, "SELECT DISTINCT id, name, width, height FROM house where bed=?", true].fetch_all(&p.pool).await;
 
-select![House  max(width) as width_max where height > 1].fetch_one(&pool).await;
+select![. House  max(width) as width_max where height > 1](&pool).await;
 //roughly is translated into
 query!["SELECT DISTINCT max(width) AS width_max FROM house where height > ?", 1].fetch_one(&pool).await
 ```
@@ -402,7 +434,6 @@ Please keep in mind that is assumes a **main** sqlo struct (`House` here) from w
 
 Some generals rules :
 
-- It's rust syntax not sql: that's why we use `==` instead of `=`.
 - Sqlo tries to avoid duplicates automatically by adding`DISTINCT` when it's necessary since the need of duplicates is very rare. So keep in mind that every `select!` query won't have duplicated result.
 
 ### Query column
@@ -410,7 +441,7 @@ Some generals rules :
 By default `select!` query all the fields of a main struct. But you can query only some column if you want:
 
 ```rust
-select![House  max(width) as my_max where height > 1].fetch_one(&pool).await;
+select![. House  max(width) as my_max where height > 1](&pool).await;
 ```
 
 - It will use `sqlx::query!` not `sqlx::query_as!`.
@@ -421,7 +452,7 @@ select![House  max(width) as my_max where height > 1].fetch_one(&pool).await;
 struct Total {
     all: i32
 }
-let total = select![Total, House count(id) as all].fetch_one(&pool).await.unwrap();
+let total = select![. Total, House count(id) as all](&pool).await.unwrap();
 assert_eq!(total.all, 5);
 ```
 
@@ -441,14 +472,14 @@ Sql function'a parameters can bien identifier field, field access, literal (`"te
 ```rust
 let myvar = "bla".to_string();
 let myarray = ["bli", "ble", "blo"];
-select![House replace(name, ::myvar, ::myarray[1]) as new_name].fetch_all(&pool).await.unwrap();
-//sqlx::query!["SELECT REPLACE(name, ?, ?) as new_name FROM house", myvar, myarray[1]]
+select![* House replace(name, ::myvar, ::myarray[1]) as new_name](&pool).await.unwrap();
+//sqlx::query!["SELECT REPLACE(name, ?, ?) as new_name FROM house", myvar, myarray[1]].fetch_all(&pool)
 ```
 
 - [Sqlx's overrides](https://docs.rs/sqlx/latest/sqlx/macro.query.html#overrides-cheatsheet) can be used exactly in the same way:
 
 ```rust
-select![House replace(name, ::myvar, ::myarray[1]) as "new_name!:String"].fetch_all(&pool).await.unwrap();
+select![* House replace(name, ::myvar, ::myarray[1]) as "new_name!:String"](&pool).await.unwrap();
 ```
 
 but unlike `sqlx` you don't have to repeat the same complex alias for further use :
@@ -456,21 +487,21 @@ but unlike `sqlx` you don't have to repeat the same complex alias for further us
 ```rust
 sqlx::query![r#"SELECT id, count(width) as "total!:i32" group by "total!:i32" "#]
 //instead with sqlo, just repeat the alias name without type indication
-select![House id, count(width) as "total!:i32" group_by total]
+select![. House id, count(width) as "total!:i32" group_by total]
 ```
 
 as a convenience shortcut `!` and `?` can be used without quotes on alias or directly on field:
 
 ```rust
-select![House id as id!, count(width) as total?]
+select![. House id as id!, count(width) as total?]
 //or
-select![House id!, count(width) as total?]
+select![. House id!, count(width) as total?]
 ```
 
 - `*` can also be used:
 
 ```rust
-select![House count(*)]
+select![.House count(*)]
 ```
 
 ### The WHERE clause
@@ -511,8 +542,8 @@ You can access related row/collections via a "virtual field", the specified with
 ```rust
 // select all related rooms of house where there is a bed
 let a = 1;
-let romms: Vec<Room> = select![House[a].therooms where bed == true].fetch_all(&pool).await.unwrap();
-//sqlx::query_as![Room, r#"SELECT * FROM room where id=? AND bed=?"#, a, true].fetch....
+let romms: Vec<Room> = select![* House[a].therooms where bed == true](&pool).await.unwrap();
+//sqlx::query_as![Room, r#"SELECT * FROM room where id=? AND bed=?"#, a, true].fetch_all...
 ```
 
 #### Using JOIN
@@ -525,19 +556,19 @@ Select JOIN type with the following:
     - LEFT JOIN with `=.` (think about the inclusie `=` in rust range) ex: `therooms=.bed`
 
 ```rust
-select![House where therooms.bed == true]
-// sqlx::query_as![House, "SELECT * FROM house INNER JOIN room ON house.id=room.maison_id WHERE room.bed == ?", true]
-select![House where width>3 && therooms=.bed == true]
-// sqlx::query_as![House, "SELECT * FROM house LEFT JOIN room ON house.id=room.maison_id WHERE house.width> ? AND room.bed == ?", 3, true]
-select![House id, count(therooms.id) as total]
-// sqlx::query_as![House, "SELECT maison.id, count(room.id) as total FROM house JOIN room ON house.id=room.maison_id"]
+select![* House where therooms.bed == true]
+// sqlx::query_as![House, "SELECT * FROM house INNER JOIN room ON house.id=room.maison_id WHERE room.bed == ?", true].fetch_all
+select![ * House where width>3 && therooms=.bed == true]
+// sqlx::query_as![House, "SELECT * FROM house LEFT JOIN room ON house.id=room.maison_id WHERE house.width> ? AND room.bed == ?", 3, true].fetch_all
+select![. House id, count(therooms.id) as total]
+// sqlx::query_as![House, "SELECT maison.id, count(room.id) as total FROM house JOIN room ON house.id=room.maison_id"].fetch_one
 ```
 
 Since JOIN type needs to stick the same please pay attention to it.
 
 ```rust
-select![House id, therooms.id where therooms=.bed == true] // BAD you use to different joins INNER and LEFT (sqlx will fail)
-select![House id, therooms=.id where therooms=.bed == true] // GOOD
+select![* House id, therooms.id where therooms=.bed == true] // BAD you use to different joins INNER and LEFT (sqlx will fail)
+select![* House id, therooms=.id where therooms=.bed == true] // GOOD : the join is expressed in the same way
 
 ```
 
@@ -548,24 +579,24 @@ To pass local rust item, use leading `::`.
 ```rust
 // Variables
 let width = 1;
-select![House where height == ::width] // Right hand part of the expression will refere to the variable width not the field of house
-select![House where width == ::width] //
+select![* House where height == ::width] // Right hand part of the expression will refere to the variable width not the field of house
+select![* House where width == ::width] //
 
 // Indexing
 let array = [1 , 2, 3]
-select![House where width == ::array[0]]
+select![. House where width == ::array[0]]
 
 // struct field
 struct A {b:i32}
 let a = A{b:2}
-select![House where width == ::a.b]
+select![. House where width == ::a.b]
 ```
 
 ```rust
 let width = 34;
-select![House where id == ::width] // variable width is used
+select![.House where id == ::width] // variable width is used
 // sql : select * from house where id=? (? will be 34 as parameter)
-select![House where id == width] // variable width is ignored, column name wil be used in sql
+select![.House where id == width] // variable width is ignored, column name wil be used in sql
 // sql : select * from house where id=width
 ```
 
@@ -576,8 +607,8 @@ Group your result with `group_by` keyword followed be column or alias names.
 A brackted syntax is available with `[]`.
 
 ```rust
-select![House width, count(id) as "total!:i32" group_by width order_by total]
-select![House name, count(therooms.house_id) as total group_by name] // follows foreign keys
+select![.House width, count(id) as "total!:i32" group_by width order_by total]
+select![.House name, count(therooms.house_id) as total group_by name] // follows foreign keys
 ```
 
 ### The Having clause
@@ -585,10 +616,10 @@ select![House name, count(therooms.house_id) as total group_by name] // follows 
 Use the having clause just like in sql. A bracketed syntax is also availabble with `[]`
 
 ```rust
-select![House id, sum(width) as total having total > 350]
+select![.House id, sum(width) as total having total > 350]
 
 // with foreign keys
-select![House id, count(therooms.id) as total having total > 4]
+select![.House id, count(therooms.id) as total having total > 4]
 
 ```
 
@@ -599,9 +630,9 @@ Order result with the `order_by` keyword. Descending order is specified with a `
 A brackted syntax is available with `[]`.
 
 ```rust
-select![House order_by -width, height]
-select![House order_by[-width, height]]
-select![House id, width as "bla:i32" order_by bla]
+select![*House order_by -width, height]
+select![*House order_by[-width, height]]
+select![*House id, width as "bla:i32" order_by bla]
 ```
 
 ### Limit/Offset and Pagination
@@ -613,9 +644,9 @@ Use `limit` clause with optional `offset` separated by **comma**.
 A brackted syntax is available with `[]`.
 
 ```rust
-select![House limit 5] // SELECT * FROM house LIMIT 5
-select![House limit 5,8] // SELECT * FROM house LIMIT 5 OFFSET 8
-select![House limit[5,8]] // SELECT * FROM house LIMIT 5 OFFSET 8
+select![*House limit 5] // SELECT * FROM house LIMIT 5
+select![*House limit 5,8] // SELECT * FROM house LIMIT 5 OFFSET 8
+select![*House limit[5,8]] // SELECT * FROM house LIMIT 5 OFFSET 8
 ```
 
 There is [a bug in sqlx](https://github.com/launchbadge/sqlx/issues/1126#issuecomment-1450905220) when using `order by`
@@ -623,7 +654,7 @@ and `limit` togther: Every field is expected to be nullable which is wrong. Righ
 to force non nullabilty for each column (except Option<T> fields).
 
 ```rust
-select![House, House id as "id!", width as "width!", height as "height!", name as "name!" order_by name limit 4]
+select![*House, House id as "id!", width as "width!", height as "height!", name as "name!" order_by name limit 4]
 // when using fields `select!` uses query_as! behind the back so reinforce using query_as! with House
 ```
 
@@ -634,8 +665,8 @@ We support a custom `page` to query by _page_ with a mandatory _page_size_ separ
 A brackted syntax is available with `[]`.
 
 ```rust
-let limit = select![House limit 2,4].fetch_all(&p.pool).await.unwrap();
-let page = select![House page 3,2].fetch_all(&p.pool).await.unwrap(); //means page 3 with page size of 2.
+let limit = select![*House limit 2,4].fetch_all(&p.pool).await.unwrap();
+let page = select![*House page 3,2].fetch_all(&p.pool).await.unwrap(); //means page 3 with page size of 2.
 // will both select 5th et 6th entries.
 assert_eq!(limit, page);
 ```
@@ -645,7 +676,7 @@ assert_eq!(limit, page);
 Subqueries are done using braces `{}`.
 
 ```rust
-select![House where zipcode in {ZipCodeTable zip where zip > 260}].fetch_all...
+select![*House where zipcode in {ZipCodeTable zip where zip > 260}].fetch_all...
 // transltates to
 // sqlx::query_as!(House, "select * from house where zipcode in (select distinct zip from zip_table where zip > ?)", 260 ).fetch_all...
 ```
@@ -653,7 +684,7 @@ select![House where zipcode in {ZipCodeTable zip where zip > 260}].fetch_all...
 Can be used as well in the returned value.
 
 ```rust
-select![House id, {HouseKind count(*) where width == House.width} as kind_total ]
+select![*House id, {HouseKind count(*) where width == House.width} as kind_total ]
 // a few notes here :
 // - it needs an alias since it's returned
 // - use the struct name to leverage ambigous fields (here width)
@@ -663,7 +694,7 @@ select![House id, {HouseKind count(*) where width == House.width} as kind_total 
 It supports `exists` keyword:
 
 ```rust
-select![House where zipcode where exists {ZipCodeTable zip where zip > 260}].fetch_all...
+select![*House where zipcode where exists {ZipCodeTable zip where zip > 260}].fetch_all...
 ```
 
 ### Case When Then
@@ -671,9 +702,9 @@ select![House where zipcode where exists {ZipCodeTable zip where zip > 260}].fet
 We use rust `match` expression but without braces and `_` as else collector.
 
 ```rust
-select[House id, match width 33=>"small", 100=>"big", _=>"don't know" as "how_big:String"]
+select[.House id, match width 33=>"small", 100=>"big", _=>"don't know" as "how_big:String"]
 //sqlx::query![r#"SELECT id, CASE width WHEN ? THEN ? WHEN ? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "dont know"]
-select[House id, match width<33=>"small", width<100=>"big", _=>"very big" as "how_big:String"]
+select[.House id, match width<33=>"small", width<100=>"big", _=>"very big" as "how_big:String"]
 //sqlx::query![r#"SELECT id, CASE WHEN house.width<? THEN ? WHEN house.width<? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "very big"]
 ```
 
@@ -689,5 +720,5 @@ or
 Debug a single one with `dbg!`.
 
 ```rust
-select![dbg! House where width >30]...
+select![dbg! * House where width >30]...
 ```
