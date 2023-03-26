@@ -1,4 +1,4 @@
-use crate::{Adresse, Maison, PPool, WithAttrs};
+use crate::{Adresse, Maison, PPool, PieceFk, WithAttrs};
 use sqlo::{select, update};
 
 Test! {update_all_rows, async fn func(p: PPool) {
@@ -147,4 +147,24 @@ Test! {update_stream_many_optional_mode, async fn func(p: PPool) {
 
 
    // fetch_one, execute already tested higher
+}}
+
+Test! {update_foreign_key, async fn func(p: PPool) {
+    // relations only
+    update!(Maison[1].lespieces lg=99)(&p.pool).await.unwrap();
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(1)).await.unwrap().lg, 99);
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(2)).await.unwrap().lg, 99);
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(6)).await.unwrap().lg, 99);
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(9)).await.unwrap().lg, 99);
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(3)).await.unwrap().lg, 3);
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(8)).await.unwrap().lg, 8);
+
+}}
+
+Test! {update_where, async fn func(p: PPool) {
+    // simple
+    update![PieceFk la = 0 where lg >5](&p.pool).await.unwrap();
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(6)).await.unwrap().la, 0);
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(9)).await.unwrap().la, 0);
+    assert_eq!(PieceFk::get(&p.pool, &uu4!(5)).await.unwrap().la, 50);
 }}
