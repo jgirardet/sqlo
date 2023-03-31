@@ -1,21 +1,13 @@
 A faire:
 
-# Come back to methods
-
-
-#passer à syn 2
-
-# #nutiliser que des macros ?
-
 # Bug:
 
 - Serializer de create fn et fk doit retourner null et non empty string
 
 # à faire peut être :
 
-- a'& str non supporté : il faut supporter les lifetime de la struct pout cela.
-  ensuite supporter a'str dans types
 - to_json method
+- from_json
 
 ## Faire pour tuer le temps:
 
@@ -26,3 +18,7 @@ A faire:
 # Passage à pgsql
 
 - any, all
+
+# plus tard
+
+passer à syn 2
