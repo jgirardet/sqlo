@@ -11,7 +11,7 @@ pub struct Maison {
 #[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 #[sqlo(tablename = "piece")]
 pub struct WithAttrs {
-    #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
+    #[sqlo(primary_key, type_override, insert_fn = "uuid::Uuid::new_v4")]
     pub nb: uuid::Uuid, // keep full path
     #[sqlo(type_override, column = "lg")]
     pub lglg: i32,
@@ -22,7 +22,7 @@ pub struct WithAttrs {
 #[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 #[sqlo(tablename = "maison")]
 pub struct Maison2 {
-    #[sqlo(create_arg, type_override)]
+    #[sqlo(type_override)]
     pub id: i32,
     pub adresse: String,
     pub taille: i64,
@@ -31,7 +31,6 @@ pub struct Maison2 {
 
 #[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 pub struct Adresse {
-    #[sqlo(create_arg)]
     pub id: String,
     pub rue: Option<String>,
     #[sqlo(fk = "Maison", related = "adres")]
@@ -41,7 +40,7 @@ pub struct Adresse {
 #[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 #[sqlo(tablename = "piece")]
 pub struct PieceFk {
-    #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
+    #[sqlo(primary_key, type_override, insert_fn = "uuid::Uuid::new_v4")]
     pub nb: uuid::Uuid, // keep full path
     #[sqlo(type_override)]
     pub lg: i32,
@@ -53,7 +52,7 @@ pub struct PieceFk {
 #[derive(sqlo::Sqlo, PartialEq, Eq, Debug)]
 #[sqlo(tablename = "piece")]
 pub struct PieceFk2 {
-    #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
+    #[sqlo(primary_key, type_override, insert_fn = "uuid::Uuid::new_v4")]
     pub nb: uuid::Uuid, // keep full path
     #[sqlo(type_override)]
     pub lg: i32,

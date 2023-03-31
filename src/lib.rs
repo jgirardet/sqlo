@@ -58,3 +58,11 @@ pub fn update(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         Err(e) => e.to_compile_error().into(),
     }
 }
+
+#[proc_macro]
+pub fn insert(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    match Mode::Insert.process(input) {
+        Ok(ts) => ts.into(),
+        Err(e) => e.to_compile_error().into(),
+    }
+}

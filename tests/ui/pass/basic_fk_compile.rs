@@ -19,7 +19,7 @@ struct Maison1 {
 #[derive(Sqlo, PartialEq, Debug)]
 #[sqlo(tablename = "piece")]
 struct ExpandPiece {
-    #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
+    #[sqlo(primary_key, type_override, insert_fn = "uuid::Uuid::new_v4")]
     nb: uuid::Uuid,
     #[sqlo(fk = "Maison1")]
     la: i64,

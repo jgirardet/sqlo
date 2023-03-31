@@ -13,9 +13,7 @@ pub struct FieldParser {
     pub primary_key: bool,
     #[darling(default)]
     column: Option<String>,
-    create_fn: Option<syn::ExprPath>,
-    #[darling(default)]
-    pub create_arg: bool,
+    insert_fn: Option<syn::ExprPath>,
     pub fk: Option<IdentString>,
     pub related: Option<IdentString>,
 }
@@ -94,8 +92,7 @@ pub struct Field {
     pub type_override: bool,
     pub primary_key: bool,
     #[serde(with = "OptionExprPathSer")]
-    pub create_fn: Option<syn::ExprPath>,
-    pub create_arg: bool,
+    pub insert_fn: Option<syn::ExprPath>,
     #[serde(with = "OptionIdentStringSer")]
     pub fk: Option<IdentString>,
     #[serde(with = "OptionIdentStringSer")]
@@ -114,8 +111,7 @@ impl TryFrom<FieldParser> for Field {
             primary_key: fp.primary_key,
             fk: fp.fk()?,
             related: fp.related()?,
-            create_fn: fp.create_fn,
-            create_arg: fp.create_arg,
+            insert_fn: fp.insert_fn,
         })
     }
 }

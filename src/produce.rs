@@ -1,5 +1,5 @@
 use crate::{
-    methods::{create::impl_create, delete::impl_delete, get::impl_get, save::impl_save},
+    methods::{delete::impl_delete, get::impl_get, save::impl_save},
     sqlo::Sqlo,
 };
 use proc_macro2::TokenStream;
@@ -22,12 +22,10 @@ pub fn produce(sqlo: &Sqlo) -> TokenStream {
 
 fn impl_crud_queries(sqlo: &Sqlo) -> TokenStream {
     let get = impl_get(sqlo);
-    let create = impl_create(sqlo);
     let save = impl_save(sqlo);
     let delete = impl_delete(sqlo);
     quote!(
             #get
-            #create
             #save
             #delete
     )

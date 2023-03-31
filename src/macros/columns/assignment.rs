@@ -1,3 +1,4 @@
+use darling::util::IdentString;
 use syn::{punctuated::Punctuated, Token};
 
 use crate::macros::{ColumnToSql, Fragment};
@@ -48,6 +49,22 @@ impl ColumnToSql for Assigns {
         &self,
         ctx: &mut crate::macros::Generator,
     ) -> Result<crate::macros::Fragment, crate::error::SqloError> {
-        Fragment::from_iterator(&self.0, ctx)
+        ctx.context.push(crate::macros::Context::Assign);
+        let res = Fragment::from_iterator(&self.0, ctx);
+        ctx.context.pop();
+        res
+    }
+}
+
+impl Assigns {
+    pub fn value(&self, lhs: &IdentString) -> Option<&ColExpr> {
+        for a in &self.0 {
+            if let ColExpr::Ident(ident) = &a.lhs {
+                if ident == lhs {
+                    return Some(&a.rhs);
+                }
+            }
+        }
+        None
     }
 }

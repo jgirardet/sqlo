@@ -12,7 +12,7 @@ use syn::Token;
 #[derive(Sqlo, Debug, PartialEq)]
 #[sqlo(tablename = "maison")]
 struct ExpandMaison {
-    #[sqlo(type_override, create_fn = "uuid::Uuid::new_v4")]
+    #[sqlo(type_override, insert_fn = "uuid::Uuid::new_v4")]
     id: i64,
     // #[sqlo(fk = "Adresse")]
     #[sqlo(column = "adresse")]
@@ -26,7 +26,7 @@ struct ExpandMaison {
 #[derive(Sqlo, PartialEq, Debug)]
 #[sqlo(tablename = "piece")]
 struct ExpandPiece {
-    #[sqlo(primary_key, type_override, create_fn = "uuid::Uuid::new_v4")]
+    #[sqlo(primary_key, type_override, insert_fn = "uuid::Uuid::new_v4")]
     nb: uuid::Uuid, // keep full path
     #[sqlo(type_override, column = "lg")]
     lglg: i32,

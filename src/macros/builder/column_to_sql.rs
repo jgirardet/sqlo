@@ -1,9 +1,10 @@
 use darling::util::IdentString;
+use quote::ToTokens;
 use syn::{Expr, ExprLit, Lit};
 
 use crate::{
     error::SqloError,
-    macros::{Context, Fragment, Generator},
+    macros::{ColExpr, Context, Fragment, Generator},
 };
 
 use super::Mode;
@@ -45,7 +46,15 @@ impl ColumnToSql for &IdentString {
                     .tables
                     .alias_dot_column(&ctx.main_sqlo.ident, self)?
                     .into()),
-                Mode::Update => Ok(ctx.tables.column(&ctx.main_sqlo.ident, self)?.into()),
+                _ => {
+                    // convert ident to value if no column
+                    if ctx.main_sqlo.field(self.as_ident()).is_none() {
+                        return ColExpr::Value(syn::parse2::<syn::Expr>(self.to_token_stream())?)
+                            .column_to_sql(ctx);
+                    }
+
+                    Ok(ctx.tables.column(&ctx.main_sqlo.ident, self)?.into())
+                }
             }
         }
     }

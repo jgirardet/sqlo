@@ -3,7 +3,7 @@ use std::{fmt::Display, str::FromStr};
 use crate::{field::Field, parse::SqloParse, serdable::IdentStringSer, types::is_type_option};
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, ToTokens};
 
 const DATABASE_TYPE: DatabaseType = if cfg!(feature = "sqlite") {
     DatabaseType::Sqlite
@@ -45,33 +45,6 @@ impl TryFrom<SqloParse> for Sqlo {
 }
 
 impl Sqlo {
-    pub fn fields_name_and_type_as_option(&self) -> TokenStream {
-        self.fields
-            .iter()
-            .map(|Field { ident, ty, .. }| {
-                if is_type_option(ty) {
-                    quote! {#ident: #ty,}
-                } else {
-                    quote! { #ident: Option<#ty>, }
-                }
-            })
-            .collect()
-    }
-
-    pub fn as_option_struct(&self) -> (syn::Ident, TokenStream) {
-        let option_class = format_ident!("Option{}", self.ident.as_str());
-        let option_struct_name = option_class.clone();
-        let class_args = self.fields_name_and_type_as_option();
-        (
-            option_struct_name,
-            quote! {
-                struct #option_class {
-                    #class_args
-                }
-            },
-        )
-    }
-
     pub fn to_non_null_columns(&self) -> String {
         let mut res = vec![];
         for field in &self.fields {
@@ -82,37 +55,6 @@ impl Sqlo {
             }
         }
         res.join(",")
-    }
-
-    // Check for null values on Option_struct when using  `RETURNING`
-    // and return the corresponding strut
-    // called as tuple to not forget sqlx_null_checks.
-    pub fn convert_struct_option_to_struct(&self) -> (TokenStream, TokenStream) {
-        let sqlx_null_checks = self
-            .fields
-            .iter()
-            .map(|x| {
-                let ident = x.ident.clone();
-                if !is_type_option(&x.ty) {
-                    return quote! {
-                    if res.#ident.is_none() {return Err(sqlx::Error::RowNotFound)}};
-                }
-                quote! {}
-            })
-            .collect::<TokenStream>();
-
-        let key_values = self
-            .fields
-            .iter()
-            .map(|crate::field::Field { ident, ty, .. }| {
-                if is_type_option(ty) {
-                    return quote! {#ident:res.#ident,};
-                }
-                quote! {#ident:res.#ident.unwrap(),} //unwrap ok because check in sqlx_null_check
-            })
-            .collect::<TokenStream>();
-        let struct_ident = &self.ident;
-        (sqlx_null_checks, quote! [ #struct_ident{#key_values}])
     }
 }
 

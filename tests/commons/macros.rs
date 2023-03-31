@@ -7,6 +7,7 @@ macro_rules! uu4 {
     (6) => {uuid::uuid!("66666666666666666666666666666666")};
     (8) => {uuid::uuid!("88888888888888888888888888888888")};
     (9) => {uuid::uuid!("99999999999999999999999999999999")};
+    (A) => {uuid::uuid!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")};
 }
 
 macro_rules! test_base {

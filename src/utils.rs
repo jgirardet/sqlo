@@ -1,12 +1,3 @@
-use std::fmt::Display;
-
-use proc_macro2::TokenStream;
-use quote::ToTokens;
-
-pub fn compile_error<T: ToTokens, U: Display>(tokens: T, message: U) -> TokenStream {
-    syn::Error::new_spanned(tokens, message).to_compile_error()
-}
-
 macro_rules! parse_possible_bracketed {
     ($input:expr, $reste:ident) => {
         let content;
@@ -18,3 +9,5 @@ macro_rules! parse_possible_bracketed {
          }
     };
 }
+
+pub const INSERT_FN_FLAG: &str = "ERGKE23YUKYUK4590C2";

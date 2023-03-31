@@ -9,4 +9,5 @@ pub enum Context {
     Operation,
     Paren,
     Unary,
+    Assign,
 }

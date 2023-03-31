@@ -1,13 +1,15 @@
 use std::collections::HashSet;
 use std::fmt::Write;
 
+use darling::util::IdentString;
 use itertools::Itertools;
 use syn::Expr;
 
 use super::{Fragment, Generator, Mode, PkValue, QueryParser};
 
 use crate::{
-    macros::{Clause, ColumnToSql},
+    macros::{Clause, ColExpr, ColumnToSql},
+    utils::INSERT_FN_FLAG,
     SqloError,
 };
 
@@ -121,10 +123,49 @@ impl QueryBuilder {
         Ok(())
     }
 
+    pub fn set_values<T: QueryParser>(
+        &mut self,
+        parsed: &T,
+        ctx: &mut Generator,
+    ) -> Result<(), SqloError> {
+        let assigns = parsed.assigns();
+        let mut arguments = Fragment::default();
+        let mut columns = vec![];
+        for f in &ctx.main_sqlo.fields {
+            if let Some(value) = assigns.value(&f.ident) {
+                let val = match value {
+                    ColExpr::Ident(ident) => {
+                        if ident.as_str() == "None" {
+                            continue;
+                        }
+                        value
+                    }
+                    _ => value,
+                };
+                arguments = arguments + val.column_to_sql(ctx)?;
+                columns.push(f.ident.clone());
+            } else if f == &ctx.main_sqlo.pk_field && f.insert_fn.is_some() {
+                // use insert_fn if no pk is given
+                let ident = syn::Ident::new(INSERT_FN_FLAG, proc_macro2::Span::call_site());
+                let arg: syn::Expr = syn::parse_quote! {#ident};
+                arguments = arguments + arg.column_to_sql(ctx)?;
+                let ident_insert_fn = IdentString::new(ident);
+                columns.push(ident_insert_fn);
+            }
+        }
+        let columns = columns.into_iter().join(
+            "
+            ,",
+        );
+        self.subjects = format!("({}) VALUES ({})", columns, &arguments.query);
+        self.arguments.extend_from_slice(&arguments.params);
+        Ok(())
+    }
+
     fn set_tablename(&mut self, ctx: &Generator) -> Result<(), SqloError> {
         self.tablename = match ctx.mode {
             Mode::Select => ctx.tables.tablename_with_alias(&ctx.main_sqlo.ident)?,
-            Mode::Update => ctx.tables.tablename(&ctx.main_sqlo.ident)?,
+            _ => ctx.tables.tablename(&ctx.main_sqlo.ident)?,
         };
         Ok(())
     }
@@ -149,6 +190,10 @@ impl QueryBuilder {
         match ctx.mode {
             Mode::Select => self.set_columns(parsed, ctx)?,
             Mode::Update => self.set_assigns(parsed, ctx)?,
+            Mode::Insert => {
+                self.set_values(parsed, ctx)?;
+                return Ok(());
+            }
         };
         for clause in parsed.clauses().iter() {
             match clause {
@@ -190,6 +235,7 @@ impl QueryBuilder {
         let query = match ctx.mode {
             Mode::Select => self.query_select(ctx)?,
             Mode::Update => self.query_update(ctx)?,
+            Mode::Insert => self.query_insert(ctx)?,
         };
         Ok(query.trim().into())
     }
@@ -210,7 +256,6 @@ impl QueryBuilder {
     fn query_update(&self, ctx: &Generator) -> Result<String, SqloError> {
         let subjects = &self.subjects;
         let tablename = &self.tablename;
-        // let joins = self.joins.iter().join(" ");
         let where_query = &self.wwhere;
         let returning_columns = ctx.main_sqlo.to_non_null_columns();
 
@@ -223,5 +268,19 @@ impl QueryBuilder {
         Ok(format!(
             "UPDATE {tablename} SET {subjects}{where_query}{returning}"
         ))
+    }
+
+    fn query_insert(&self, ctx: &Generator) -> Result<String, SqloError> {
+        let subjects = &self.subjects;
+        let tablename = &self.tablename;
+        let returning_columns = ctx.main_sqlo.to_non_null_columns();
+
+        let returning = if ctx.fetch.is_returning() {
+            format!(" RETURNING {}", returning_columns)
+        } else {
+            "".to_string()
+        };
+
+        Ok(format!("INSERT INTO {tablename} {subjects}{returning}"))
     }
 }

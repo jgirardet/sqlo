@@ -1,5 +1,6 @@
 mod column_to_sql;
 mod context;
+mod expander;
 mod fetch;
 mod fragment;
 mod generator;
@@ -13,6 +14,7 @@ mod table_aliases;
 
 pub use column_to_sql::ColumnToSql;
 pub use context::Context;
+pub use expander::*;
 pub use fetch::Fetch;
 pub use fragment::Fragment;
 pub use generator::Generator;

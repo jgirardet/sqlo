@@ -3,7 +3,6 @@ use std::{collections::HashSet, ops::Add};
 use syn::Expr;
 
 use super::{ColumnToSql, Generator};
-
 #[derive(Debug, Default)]
 pub struct Fragment {
     pub query: String,

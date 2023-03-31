@@ -1,10 +1,11 @@
-use crate::macros::{SelectParser, UpdateParser};
+use crate::macros::{InsertParser, SelectParser, UpdateParser};
 
 use super::{QueryParser, TableAliases};
 #[derive(Debug, Clone, Copy)]
 pub enum Mode {
     Select,
     Update,
+    Insert,
 }
 
 impl Mode {
@@ -16,6 +17,7 @@ impl Mode {
         match self {
             Self::Select => self.expand(syn::parse::<SelectParser>(input)?),
             Self::Update => self.expand(syn::parse::<UpdateParser>(input)?),
+            Self::Insert => self.expand(syn::parse::<InsertParser>(input)?),
         }
     }
 }

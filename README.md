@@ -33,7 +33,7 @@ struct MyTable {
 let pool = get_my_db_pool().await?;
 
 // create row
-let a = MyTable::create(&pool, "hello", None).await?;
+let a = insert!(. MyTable text="hello")(&pool).await?;
 
 // retrieve row by primary_key
 let mut b = MyTable::get(&pool, a.id).await?
@@ -106,53 +106,27 @@ struct MyTable {
 }
 ```
 
-#### create_fn and create_arg
+#### insert_fn
 
-By default, `Sqlo` relies on Database Backend `auto-increment` feature for primary key when adding a new row with the `create` method. So, by default there is no argument to provide for primary_key.
+Function called with insert! to populate primary key field.
 
-```rust
-#[derive(Sqlo)]
-struct MyTable {
-    id: i64,
-    name: String
-}
-//...
-let instance = MyTable::create(&pool, "some string");
-```
-
-This can be changed in two ways:
-
-- `create_arg`: allows primary_key argument in create
+`insert_fn`: provides callable as string which is called as primary_key value.
 
 ```rust
 #[derive(Sqlo)]
 struct MyTable {
-    #[sqlo(create_arg)]
-    id: i64,
-    name: String
-}
-//...
-let instance = MyTable::create(&pool, 234234, "some string");
-assert_eq!(instance.id, 234234);
-```
-
-- `create_fn`: provides callable as string which is called as primary_key value.
-
-```rust
-#[derive(Sqlo)]
-struct MyTable {
-    #[sqlo(create_fn="uuid::Uuid::new_v4")]
+    #[sqlo(insert_fn="uuid::Uuid::new_v4")]
     id: Uuid,
     name: String
 }
 //...
-let instance = MyTable::create(&pool, "some string");
+let instance = insert!(.MyTable name="some string")(&p.pool).await.unwrap();
 assert_eq!(instance.id, Uuid("someuuidv4"))
 ```
 
 #### type_override
 
-Under the hood `Sqlo` uses sqlx's `query_as!` for `get`, `create` and `update`.
+Under the hood `Sqlo` uses sqlx's `query_as!` for `get`, and `update`.
 This attribute gives you access to [sqlx type override](https://docs.rs/sqlx/latest/sqlx/macro.query_as.html#column-type-override-infer-from-struct-field) so the query uses `select field as "field:_", ...` instead of `select field, ...`?
 
 ## Relations
@@ -230,13 +204,11 @@ struct Employee {
 ```rust
 #[derive(Sqlo)]
 struct MyTable {
-    #[sqlo(create_arg)]
     id: i64,
     name: String,
     some_type: Option<String>
 }
 ///...
-let instance = MyTable::create(23, "a aname", Some("some_type".to_string()));
 ```
 
 ### get
@@ -250,27 +222,6 @@ let row = MyTable::get(&pool,   23).await?
 assert_eq!(row.id, 23);
 ```
 
-### create
-
-Insert a new row.
-
-Handling of primary_key, see [create_fn and create_arg](####create_fn-and-create_arg).
-
-Return: `sqlx::Result<T>`
-
-```rust
-#[derive(Sqlo)]
-struct MyTable {
-    id: i64,
-    name: String,
-    alive: bool,
-    members: Option<i64>
-}
-//...
-let mytable = MyTable::create(&pool, "bla", true, None).await?;
-assert_eq!(mytable.name, "bla".to_string());
-```
-
 ### save
 
 Update a full row or insert it if exists. It's an UPSERT based on primary_key.
@@ -280,7 +231,6 @@ Return: `sqlx::Result<DB::QueryResult>`
 ```rust
 #[derive(Sqlo, Debug, PartialEq)]
 struct MyTable {
-    #[sqlo(create_arg)]
     id: i64,
     name: String,
     alive: bool,
@@ -289,7 +239,7 @@ struct MyTable {
 //...
 let mut mytable = MyTable{id:1, name:"bla".to_string(), alive:true, membres:None};
 mytable.save(&pool).await?;
-// equivalent to MyTable::create(&pool, 1, "bla", true, None).await?
+// equivalent to insert!(Mytable  id=1, name="bla", alive=true)(&pool).await?
 mytable.members = Some(345);
 mytable.save(&pool);
 let mytable2 = MyTable::get(&pool, 1).await?;
@@ -378,6 +328,43 @@ let house = update![. House(house) name= "bla", width=34](&pool).await?;
 update_House!(House[2] height=345)(&pool).await?;
 
 ```
+
+## The `insert!` macro
+
+It supports the followings formats:
+
+```rust
+#[derive[Sqlo, Debug, PartialEq]]
+struct House {
+    #[sqlo(insert_fn="some::func::to_create_ids")]
+    id: i64,
+    name: String,
+    width: i64,
+    height: Some(i64)
+}
+// with all fiekds
+insert![House, id=1, name="bla", width=23, height=34](&pool).await?
+// with all fields, None explicit
+insert![House, id=1, name="bla", width=23, height=None](&pool).await?
+// with all fields, None implicit
+insert![House, id=1, name="bla", width=23](&pool).await?
+// using the `insert_fn` for primary key
+insert![House,  name="bla", width=23, height=None](&pool).await?
+// returning instance
+let house  = insert![. House,  name="bla", width=23, height=None](&pool).await?
+// with variable
+let a  = 1;
+insert![House,id=::a  name="bla", width=23, height=None](&pool).await?
+//or
+insert![House,id=a  name="bla", width=23, height=None](&pool).await?
+
+```
+
+Please remember that `::` isn't mandatory in assignment expressions.
+
+Primary_key can also be ommited, if supported by the DBMS.
+
+Returning instance with  `.` uses `insert.... returning` in SQL.
 
 ## The `select!` marcro
 
