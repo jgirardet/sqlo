@@ -325,9 +325,13 @@ struct House {
 //...
 let house = House::get(&pool, 2);
 let house = update![. House(house) name= "bla", width=34](&pool).await?;
-update_House!(House[2] height=345)(&pool).await?;
-
+let big_height = 345;
+update_House!(House[2] height=big_height)(&pool).await?;
+//or
+update_House!(House[2] height=::big_height)(&pool).await?;
 ```
+
+Remember you have to preceed variables with `::` in comparisons `==, >=, ...` but it's optional in assignment expression `=`.
 
 ## The `insert!` macro
 
@@ -364,7 +368,7 @@ Please remember that `::` isn't mandatory in assignment expressions.
 
 Primary_key can also be ommited, if supported by the DBMS.
 
-Returning instance with  `.` uses `insert.... returning` in SQL.
+Returning instance with `.` uses `insert.... returning` in SQL.
 
 ## The `select!` marcro
 

@@ -168,3 +168,16 @@ Test! {update_where, async fn func(p: PPool) {
     assert_eq!(PieceFk::get(&p.pool, &uu4!(9)).await.unwrap().la, 0);
     assert_eq!(PieceFk::get(&p.pool, &uu4!(5)).await.unwrap().la, 50);
 }}
+
+Test! {update_with_assigment_without_dotdot, async fn func(p: PPool) {
+    // no column named
+    let ta = 234567;
+    let res = update![. Maison[1] taille=ta](&p.pool).await.unwrap();
+    assert_eq!(res.id, 1);
+    assert_eq!(res.taille, 234567);
+    // if column named
+    #[allow(unused_variables)]
+    let id= 5;
+    let res = update![. Maison[1] taille=id](&p.pool).await.unwrap();
+    assert_eq!(res.taille, 1); // column is used
+}}
