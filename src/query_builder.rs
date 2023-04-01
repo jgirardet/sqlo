@@ -11,7 +11,7 @@ pub fn commma_sep_with_parenthes_literal_list(list: &[&str]) -> String {
 }
 
 pub fn qmarks(nb: usize, db: &DatabaseType) -> String {
-    (0..nb).into_iter().map(|_| db.get_qmark()).join(",")
+    (0..nb).map(|_| db.get_qmark()).join(",")
 }
 
 pub fn qmarks_with_col(cols: &[&str], db: &DatabaseType) -> String {

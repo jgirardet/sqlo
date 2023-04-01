@@ -2,19 +2,14 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Token;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum Fetch {
+    #[default]
     One,
     All,
     Stream,
     Optional,
     None,
-}
-
-impl Default for Fetch {
-    fn default() -> Self {
-        Fetch::One
-    }
 }
 
 impl syn::parse::Parse for Fetch {

@@ -72,7 +72,7 @@ impl VirtualFile {
 
     fn write_entity(&self, sqlo: &Sqlo) -> io::Result<()> {
         let content = serde_json::to_vec_pretty(&sqlo)?;
-        std::fs::write(&self.path.join(&sqlo.ident.to_string()), content)?;
+        std::fs::write(self.path.join(sqlo.ident.to_string()), content)?;
         Ok(())
     }
 

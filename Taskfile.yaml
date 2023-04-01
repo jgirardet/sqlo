@@ -64,9 +64,9 @@ tasks:
           }
 
   remove_editor_db_file:
-    - precondition: test -f {{.EDITOR_DB_FILE}}
-      cmds:
-        - rm {{.EDITOR_DB_FILE}}
+    precondition: test -f /tmp/sqlo.sqlite #{{.EDITOR_DB_FILE}}
+    cmds:
+      - rm {{.EDITOR_DB_FILE}}
 
   create_editor_db_file:
     cmds:
@@ -79,7 +79,7 @@ tasks:
       DATABASE_URL: "sqlite://{{.SQLITE_DB}}"
     cmds:
       - cmds: rm -rf .sqlo/
-      - task: migrate
+        task: migrate
         vars: { DATABASE_URL: "{{.DATABASE_URL}}" }
       - task: run_test
         vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
@@ -112,7 +112,6 @@ tasks:
   editor:
     vars:
       DB_FILE: "/tmp/sqlo.sqlite"
-
     deps: [remove_editor_db_file]
     cmds:
       - task: create_editor_db_file

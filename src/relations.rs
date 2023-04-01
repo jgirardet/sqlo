@@ -176,7 +176,7 @@ impl Relation {
         if !is_the_same_type_or_option(&matching_sqlo.pk_field.ty, &self.ty) {
             return Err(SqloError::new_spanned(
                 &self.ty,
-                &format!(
+                format!(
                     "Field type an foreign key field's type don't match. Expected {} found {}",
                     format_path(&matching_sqlo.pk_field.ty.path),
                     format_path(&self.ty.path)
