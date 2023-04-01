@@ -64,9 +64,8 @@ tasks:
           }
 
   remove_editor_db_file:
-    precondition: test -f /tmp/sqlo.sqlite #{{.EDITOR_DB_FILE}}
     cmds:
-      - rm {{.EDITOR_DB_FILE}}
+      - rm -f {{.EDITOR_DB_FILE}}
 
   create_editor_db_file:
     cmds:
