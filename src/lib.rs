@@ -1,12 +1,12 @@
 mod error;
 #[macro_use]
 mod utils;
+mod database;
 mod field;
 mod macros;
 mod methods;
 mod parse;
 mod produce;
-mod query_builder;
 mod relations;
 mod serdable;
 mod sqlo;

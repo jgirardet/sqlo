@@ -1,15 +1,15 @@
 use crate::{
+    database::{db_ident, qmarks, qmarks_with_col},
     field::Field,
-    query_builder::{commma_sep_with_parenthes_literal_list, qmarks, qmarks_with_col},
-    sqlo::{DatabaseType, Sqlo},
+    sqlo::Sqlo,
 };
+use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::quote;
 
 pub fn impl_save(sqlo: &Sqlo) -> TokenStream {
     let Sqlo {
         tablename,
-        database_type,
         pk_field,
         fields,
         ..
@@ -32,12 +32,13 @@ pub fn impl_save(sqlo: &Sqlo) -> TokenStream {
     let q_self_fields = quote! {#(self.#self_fields),*};
 
     let query = build_sql_query(
-        database_type,
         tablename,
         &q_columns,
         &pk_field.column,
         columns_no_pk.as_slice(),
     );
+
+    let database_type = db_ident();
 
     quote! {
 
@@ -54,17 +55,16 @@ pub fn impl_save(sqlo: &Sqlo) -> TokenStream {
 }
 
 fn build_sql_query(
-    database_type: &DatabaseType,
     tablename: &str,
     columns_array: &[&str],
     pk_column: &str,
     col_if_update: &[&str],
 ) -> String {
-    let mut qmarks = qmarks(columns_array.len(), database_type);
+    let mut qmarks = qmarks(columns_array.len());
     if qmarks.is_empty() {
         qmarks = "NULL".to_string();
     }
-    let col_qmarks_if_update = qmarks_with_col(col_if_update, database_type);
+    let col_qmarks_if_update = qmarks_with_col(col_if_update);
 
     let on_conflict = if columns_array.len() > 1 {
         format!("DO UPDATE SET {col_qmarks_if_update}")
@@ -73,26 +73,43 @@ fn build_sql_query(
     };
 
     let columns = commma_sep_with_parenthes_literal_list(columns_array);
+    // let columns = if columns_array.is_empty() {
+    //     String::new()
+    // } else {
+    //     format!(
+    //         "({})",
+    //         columns_array
+    //             .iter()
+    //             .fold(String::new(), |acc, nex| format!("{},{}", acc, nex))
+    //     )
+    // };
 
     format!("INSERT INTO {tablename} {columns} VALUES({qmarks}) ON CONFLICT ({pk_column}) {on_conflict};")
 }
+fn commma_sep_with_parenthes_literal_list(list: &[&str]) -> String {
+    if list.is_empty() {
+        return "".to_string();
+    }
+    let sep_comad = list.iter().join(",");
+    format!("({sep_comad})")
+}
 
 #[cfg(test)]
+#[cfg(feature = "sqlite")]
 #[allow(non_snake_case)]
 mod crud_save {
     use super::*;
-    const SQLITE: &DatabaseType = &DatabaseType::Sqlite;
     #[test]
     fn test_save_sql_args_query_builder() {
-        assert_eq!(build_sql_query(SQLITE, "latable", &["un","deux"], "lepk", &["col","if","update"]), 
+        assert_eq!(build_sql_query("latable", &["un","deux"], "lepk", &["col","if","update"]), 
         "INSERT INTO latable (un,deux) VALUES(?,?) ON CONFLICT (lepk) DO UPDATE SET col=?,if=?,update=?;")
     }
     macro_rules! test_save_build_query {
-        ($db:tt, $titre:literal, [$($cols:literal),*], $res:literal) => {
+        ($titre:literal, [$($cols:literal),*], $res:literal) => {
             paste::paste! {
                 #[test]
-                fn [<save_query_builder_ $db _ $titre>]() {
-                    assert_eq!(build_sql_query($db, "bla", &[$(&$cols),*], "pk", &["set","col"]), $res)
+                fn [<save_query_builder _ $titre>]() {
+                    assert_eq!(build_sql_query("bla", &[$(&$cols),*], "pk", &["set","col"]), $res)
                 }
             }
         };
@@ -100,21 +117,32 @@ mod crud_save {
 
     test_save_build_query!(
         // sould not be possible I think
-        SQLITE,
         "no_arg",
         [],
         "INSERT INTO bla  VALUES(NULL) ON CONFLICT (pk) DO NOTHING;"
     );
     test_save_build_query!(
-        SQLITE,
         "un_arg",
         ["pk"],
         "INSERT INTO bla (pk) VALUES(?) ON CONFLICT (pk) DO NOTHING;"
     );
     test_save_build_query!(
-        SQLITE,
         "deux_arg",
         ["pk", "deux"],
         "INSERT INTO bla (pk,deux) VALUES(?,?) ON CONFLICT (pk) DO UPDATE SET set=?,col=?;"
     );
+
+    use super::commma_sep_with_parenthes_literal_list;
+
+    #[test]
+    fn is_empty() {
+        assert_eq!(commma_sep_with_parenthes_literal_list(&[]), "")
+    }
+    #[test]
+    fn is_not_empty() {
+        assert_eq!(
+            commma_sep_with_parenthes_literal_list(&["bla", "bli"]),
+            "(bla,bli)"
+        )
+    }
 }

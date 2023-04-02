@@ -32,5 +32,6 @@
         }
     ],
     "rust-analyzer.check.command": "clippy",
-    "rust-analyzer.check.features": "all"
+    "rust-analyzer.check.features": "all",
+    "rust-analyzer.showUnlinkedFileNotification": false
 }

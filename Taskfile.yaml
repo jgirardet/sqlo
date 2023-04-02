@@ -125,9 +125,5 @@ tasks:
     cmds:
       - cargo build --features=sqlite
 
-  test-all:
-    - task: test
-    - task: tests
-
   clippy:
     - cargo clippy --features=sqlite
