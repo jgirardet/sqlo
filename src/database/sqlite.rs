@@ -15,7 +15,7 @@ pub fn qmarks(nb: usize) -> String {
     (0..nb).map(|_| "?").join(",")
 }
 
-pub fn qmarks_with_col(cols: &[&str]) -> String {
+pub fn qmarks_with_col(_: usize, cols: &[&str]) -> String {
     cols.iter().map(|c| format!("{c}=?")).join(",")
 }
 
@@ -50,7 +50,7 @@ mod test_query_builder {
                 #[test]
                 fn [<qmarks_with_col_sqlite _ $($col)*>]() {
                     assert_eq!(
-                        qmarks_with_col(&[$($col),*])
+                        qmarks_with_col(0,&[$($col),*])
                         ,$res.to_string()
                     );
                 }

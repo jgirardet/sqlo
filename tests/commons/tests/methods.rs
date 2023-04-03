@@ -70,13 +70,13 @@ Test! {delete, async fn func(p: PPool) {
     WithAttrs::delete(&p.pool, &u8).await.unwrap();
     assert!(WithAttrs::get(&p.pool, &u8).await.is_err());
 
-    // delete by pk int
-    let m = sqlo::insert!(. Adresse  id="deleteme", rue=None, m_id=1)(&p.pool).await.unwrap();
+    // delete by pk String non Copy
+    let m  = Adresse::get(&p.pool, "1").await.unwrap();
     Adresse::delete(&p.pool, &m.id).await.unwrap();
     assert!(Adresse::get(&p.pool, &m.id).await.is_err());
 
-    // delete by pk String non Copy
-    let m = sqlo::insert!(. Maison  adresse="efef",taille=23 )(&p.pool).await.unwrap();
+    // delete by pk int
+    let m  = Maison::get(&p.pool, 4).await.unwrap();
     Maison::delete(&p.pool, m.id).await.unwrap();
     assert!(Maison::get(&p.pool, m.id).await.is_err());
 }}

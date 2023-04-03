@@ -28,7 +28,7 @@ pub fn impl_delete(sqlo: &Sqlo) -> TokenStream {
         }
 
         /// Delete database row using primary_key
-        pub async fn delete<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, pk: #pk_type ) -> sqlx::Result<sqlx::sqlite::SqliteQueryResult> {
+        pub async fn delete<E: sqlx::Executor<'c, Database = sqlx::#database_type>>(pool: E, pk: #pk_type ) -> sqlx::Result<#sqlx_qr_path> {
             sqlx::query!(#query, pk ).execute(pool).await
         }
     ]

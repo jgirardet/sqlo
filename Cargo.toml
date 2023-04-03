@@ -10,6 +10,8 @@ proc-macro = true
 
 [features]
 sqlite = ["sqlx/sqlite"]
+postgres = ["sqlx/postgres"]
+
 
 [dependencies]
 darling = "0.14"
@@ -22,19 +24,18 @@ proc-macro2 = "1"
 quote = "1"
 regex = "1"
 regex-macro = "0.2"
-serde = {version = "1", features = ["derive"]}
-serde_json = {version = "1"}
-syn = {version = "1", features = ["full"]}# wait darling support it
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+syn = { version = "1", features = ["full"] }     # wait darling support it
 
 [dev-dependencies]
-async-std = {version = "1", features = ["attributes"]}
+async-std = { version = "1", features = ["attributes"] }
 dotenvy = "0.15"
 futures-lite = "1"
-sqlx = {version = "0.6", features = [
+sqlx = { version = "0.6", features = [
   "runtime-async-std-native-tls",
-  "sqlite",
   "uuid",
   "chrono",
-]}
+] }
 trybuild = "1"
-uuid = {version = "1", features = ["v4"]}
+uuid = { version = "1", features = ["v4"] }

@@ -2,7 +2,7 @@ pub struct PPool {
     #[cfg(feature = "sqlite")]
     pub pool: sqlx::SqlitePool,
     #[cfg(feature = "postgres")]
-    pool: sqlx::PgPool,
+    pub pool: sqlx::PgPool,
 }
 
 #[cfg(feature = "postgres")]
