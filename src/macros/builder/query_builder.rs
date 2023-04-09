@@ -237,7 +237,12 @@ impl QueryBuilder {
             Mode::Update => self.query_update(ctx)?,
             Mode::Insert => self.query_insert(ctx)?,
         };
-        Ok(query.trim().into())
+        let query: String = query.trim().into();
+        #[cfg(feature = "sqlite")]
+        let res = query;
+        #[cfg(feature = "postgres")]
+        let res = convert_pg_args(&query);
+        Ok(res)
     }
     pub fn query_select(&self, ctx: &Generator) -> Result<String, SqloError> {
         let distinct = self.get_distinct(ctx);
@@ -283,4 +288,25 @@ impl QueryBuilder {
 
         Ok(format!("INSERT INTO {tablename} {subjects}{returning}"))
     }
+}
+
+#[cfg(feature = "postgres")]
+fn convert_pg_args(query: &str) -> String {
+    let mut res = String::new();
+    let mut rang = 1..u8::MAX as u32;
+    let mut last = '.';
+    for c in query.chars() {
+        if c == '?'
+            // do not replace in type_overide (col? or col?:i32)
+             && !last.is_alphabetic()
+        {
+            res.push('$');
+            res.push(char::from_digit(rang.next().unwrap(), 10).unwrap());
+            //double unwrap is ok : cannot fail
+        } else {
+            res.push(c)
+        }
+        last = c;
+    }
+    res
 }

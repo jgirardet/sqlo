@@ -1,4 +1,4 @@
-#![cfg(feature="sqlite")]
+#![cfg(feature = "sqlite")]
 
 // without any attr
 #[derive(sqlo::Sqlo, Debug, PartialEq, Eq)]

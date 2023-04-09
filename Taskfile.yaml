@@ -20,7 +20,7 @@ tasks:
       DATABASE_URL: "{{.DATABASE_URL}}"
     cmds:
       - rm -rf .sqlo/
-      - cargo test --features={{.FEATURES}} {{.MORE_ARGS}} {{.CLI_ARGS}}
+      - cargo test --features={{.FEATURES}} {{.CLI_ARGS}}
 
   # trybuild:
   #   vars:

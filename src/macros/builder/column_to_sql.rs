@@ -33,13 +33,13 @@ impl ColumnToSql for Expr {
 impl ColumnToSql for &IdentString {
     fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         // only the aliases
-        if ctx.aliases.contains_key(self) {
-            if ctx.context.contains(&Context::Call) {
-                Ok(format! {"{self}"}.into()) // no sqlx text alias in call
-            } else {
-                Ok(ctx.aliases[self].clone().into())
-            }
-        } else {
+        // if ctx.aliases.contains_key(self) {
+            // if ctx.context.contains(&Context::Call) {
+                // Ok(format! {"{self}"}.into()) // no sqlx text alias in call
+            // } else {
+            //     Ok(ctx.aliases[self].clone().into())
+            // }
+        // } else {
             // all ident from main sqlo
             match ctx.mode {
                 Mode::Select => Ok(ctx
@@ -56,6 +56,6 @@ impl ColumnToSql for &IdentString {
                     Ok(ctx.tables.column(&ctx.main_sqlo.ident, self)?.into())
                 }
             }
-        }
+        // }
     }
 }

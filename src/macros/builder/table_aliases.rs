@@ -35,6 +35,7 @@ impl<'a> TableAliases<'a> {
         }
     }
 
+    /// Give the sql column representation with its alias: alias.column
     pub fn alias_dot_column(
         &mut self,
         sqlo_or_related: &IdentString,

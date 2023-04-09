@@ -6,8 +6,8 @@ Test! {insert_simple, async fn func(p: PPool) {
     insert!( Maison id=5, adresse="lieu5", taille=23, piscine= true)(&p.pool).await.unwrap();
     assert_eq!(Maison::get(&p.pool, 5).await.unwrap(), Maison{id:5, adresse:"lieu5".to_string(), taille: 23, piscine:Some(true)});
 
-    // auto pk
-    insert!( Maison adresse="lieu6", taille=23, piscine= true)(&p.pool).await.unwrap();
+    // auto pk;
+    insert!( dbg! Maison adresse="lieu6", taille=23, piscine= true)(&p.pool).await.unwrap();
     assert_eq!(Maison::get(&p.pool, 6).await.unwrap(), Maison{id:6, adresse:"lieu6".to_string(), taille: 23, piscine:Some(true)});
 
     // None implicit

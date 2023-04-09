@@ -69,22 +69,25 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
         // let start to see if it starts with an Ident
         let ident: syn::Ident = input.parse()?;
         if input.peek(Token![.]) {
+            //parse field : ident.field
             input.parse::<Token![.]>()?;
-            //parse field
             let member = input.parse::<syn::Ident>()?;
             ColExprField::new(ident, member, Join::Inner).into()
         } else if input.peek(Token![=]) && input.peek2(Token![.]) {
+            // parse left join ident=.field
             input.parse::<Token![=]>()?;
             input.parse::<Token![.]>()?;
             let member = input.parse::<syn::Ident>()?;
             ColExprField::new(ident, member, Join::Left).into()
         } else if input.peek(syn::token::Paren) {
+            // parse call: ident(...)
             ColExprCall {
                 base: ident.into(),
                 args: input.parse::<ColExprParen>()?,
             }
             .into()
         } else if input.peek(syn::token::Brace) {
+            // parse subquery: exists {...}
             ColExprSubSelect::parse_with_ident(ident.into(), input)?.into()
         } else {
             // nothing more so its a simple identifier
