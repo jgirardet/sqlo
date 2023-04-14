@@ -14,19 +14,19 @@ pub trait ColumnToSql {
 }
 
 impl ColumnToSql for Lit {
-    fn column_to_sql(&self, _ctx: &mut Generator) -> Result<Fragment, SqloError> {
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         let expr: Expr = ExprLit {
             attrs: vec![],
             lit: self.clone(),
         }
         .into();
-        Ok(expr.into())
+        Ok(Fragment::from_expr(expr, ctx))
     }
 }
 
 impl ColumnToSql for Expr {
-    fn column_to_sql(&self, _ctx: &mut Generator) -> Result<Fragment, SqloError> {
-        Ok(self.clone().into())
+    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
+        Ok(Fragment::from_expr(self.clone(), ctx))
     }
 }
 

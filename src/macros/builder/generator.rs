@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use std::collections::HashSet;
-
 use darling::util::IdentString;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -13,11 +11,12 @@ use super::expand_select;
 use super::expand_update;
 use super::mode::Mode;
 use super::query_builder::QueryBuilder;
+use super::Arguments;
 use super::Fetch;
 use super::PkValue;
 use super::QueryParser;
 use super::WhichMacro;
-use super::{Context, Fragment, TableAliases};
+use super::{Context, TableAliases};
 
 pub struct Generator<'a> {
     pub main_sqlo: &'a Sqlo,
@@ -31,6 +30,7 @@ pub struct Generator<'a> {
     pub fetch: Fetch,
     pk_value: PkValue,
     pub query_parts: QueryBuilder,
+    pub arguments: Arguments,
 }
 
 impl<'a> Generator<'a> {
@@ -47,6 +47,7 @@ impl<'a> Generator<'a> {
             context: Vec::default(),
             fetch: Fetch::default(),
             pk_value: PkValue::None,
+            arguments: Arguments::default(),
         }
     }
 
@@ -117,31 +118,26 @@ impl<'a> Generator<'_> {
         Ok(generator)
     }
 
-    pub fn expand(&self) -> Result<TokenStream, SqloError> {
-        let query = self.query_parts.query(self)?;
-        if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
-            println!("query: {}", &query);
-        } else if std::env::var("SQLO_DEBUG_QUERY_ALL").is_ok() {
-            let dd = format!(
-                "query: {} \n args: {:?}",
-                &query, &self.query_parts.arguments
-            );
-            println!("{}", dd);
-        }
+    pub fn expand(&self, #[cfg(debug_assertions)] debug: bool) -> Result<TokenStream, SqloError> {
+        let initial_query = self.query_parts.query(self)?;
+        let arguments = self.arguments.as_result(&initial_query);
+        let query = self.format_query(&initial_query);
+        let fetch = self.fetch;
         let ident = if let Some(ident) = &self.custom_struct {
             ident
         } else {
             &self.main_sqlo.ident
         };
-        let arguments = self.arguments();
-        let fetch = self.fetch;
+
+        #[cfg(debug_assertions)]
+        self.debug(&query, debug);
 
         match self.mode {
             Mode::Select => Ok(expand_select(
                 fetch,
                 ident,
                 query,
-                arguments,
+                arguments.as_slice(),
                 WhichMacro::for_select(self),
             )),
             Mode::Update => {
@@ -150,44 +146,50 @@ impl<'a> Generator<'_> {
                 } else {
                     TokenStream::new()
                 };
-                Ok(expand_update(fetch, ident, query, arguments, move_instance))
+                Ok(expand_update(
+                    fetch,
+                    ident,
+                    query,
+                    arguments.as_slice(),
+                    move_instance,
+                ))
             }
             Mode::Insert => Ok(expand_insert(
                 fetch,
                 ident,
                 query,
-                arguments,
+                arguments.as_slice(),
                 self.main_sqlo,
             )),
         }
     }
 
     #[cfg(debug_assertions)]
-    pub fn debug(&self) {
-        println!(
-            "query: {} \nargs: {:?}",
-            self.query().unwrap_or_else(|e| e.to_string()),
-            self.arguments()
-        );
+    pub fn debug(&self, query: &str, debug: bool) {
+        if std::env::var("SQLO_DEBUG_QUERY").is_ok() {
+            println!("query: {}", &query);
+        } else if std::env::var("SQLO_DEBUG_QUERY_ALL").is_ok() {
+            let dd = format!("query: {} \n args: {:?}", &query, &self.arguments);
+            println!("{}", dd);
+        } else if debug {
+            println!("query: {} \nargs: {:?}", query, self.arguments);
+        }
     }
 
-    pub fn arguments(&self) -> &[syn::Expr] {
-        self.query_parts.arguments.as_slice()
+    #[cfg(feature = "postgres")]
+    fn format_query(&self, query: &str) -> String {
+        query.to_string()
     }
 
-    pub fn query(&self) -> Result<String, SqloError> {
+    #[cfg(not(feature = "postgres"))]
+    fn format_query(&self, query: &str) -> String {
+        let res = query.to_string();
+        regex_macro::regex!(r"\$\d+")
+            .replace_all(&res, "?")
+            .to_string()
+    }
+
+    pub fn raw_query(&self) -> Result<String, SqloError> {
         self.query_parts.query(self)
-    }
-}
-
-impl<'a> TryFrom<Generator<'a>> for Fragment {
-    type Error = SqloError;
-
-    fn try_from(result: Generator<'a>) -> Result<Self, Self::Error> {
-        Ok(Fragment {
-            query: result.query()?,
-            params: result.arguments().into(),
-            joins: HashSet::default(),
-        })
     }
 }

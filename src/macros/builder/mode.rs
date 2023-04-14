@@ -34,11 +34,9 @@ impl Mode {
         let generator =
             crate::macros::Generator::from_sqlo_query_parse(self, parsed, &sqlos, false, tables)?;
 
-        #[cfg(debug_assertions)]
-        if debug {
-            generator.debug();
-        }
-
-        generator.expand()
+        generator.expand(
+            #[cfg(debug_assertions)]
+            debug,
+        )
     }
 }

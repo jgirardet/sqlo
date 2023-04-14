@@ -2,11 +2,13 @@ use std::{collections::HashSet, ops::Add};
 
 use syn::Expr;
 
-use super::{ColumnToSql, Generator};
+use crate::error::SqloError;
+
+use super::{Arguments, ColumnToSql, Generator};
 #[derive(Debug, Default)]
 pub struct Fragment {
     pub query: String,
-    pub params: Vec<syn::Expr>,
+    pub params: Arguments,
     pub joins: HashSet<String>,
 }
 
@@ -15,7 +17,7 @@ impl From<String> for Fragment {
     fn from(s: String) -> Self {
         Fragment {
             query: s,
-            params: vec![],
+            params: Arguments::default(),
             joins: HashSet::default(),
         }
     }
@@ -26,7 +28,7 @@ impl From<&str> for Fragment {
     fn from(s: &str) -> Self {
         Fragment {
             query: s.to_string(),
-            params: vec![],
+            params: Arguments::default(),
             joins: HashSet::default(),
         }
     }
@@ -39,18 +41,19 @@ impl From<(String, String)> for Fragment {
         h.insert(s.1);
         Fragment {
             query: s.0,
-            params: vec![],
+            params: Arguments::default(),
             joins: h,
         }
     }
 }
 
-// take an Expr so its a argument
-impl From<Expr> for Fragment {
-    fn from(expr: Expr) -> Self {
+// take an Expr so it's a argument
+impl Fragment {
+    pub fn from_expr(expr: Expr, ctx: &mut Generator) -> Self {
+        let index = ctx.arguments.insert(&expr);
         Fragment {
-            query: "?".to_string(),
-            params: vec![expr],
+            query: format!("${}", index),
+            params: expr.into(),
             joins: HashSet::default(),
         }
     }
@@ -65,9 +68,10 @@ impl Add<Fragment> for Fragment {
         } else {
             format!("{}, ", self.query)
         };
+
         Fragment {
             query: format!["{}{}", base_query, rhs.query],
-            params: [self.params, rhs.params].concat(),
+            params: self.params + rhs.params,
             joins: HashSet::from_iter(self.joins.into_iter().chain(rhs.joins)),
         }
     }
@@ -77,7 +81,7 @@ impl Fragment {
     pub fn add_no_comma(self, rhs: Fragment) -> Self {
         Fragment {
             query: format!["{} {}", self.query, rhs.query],
-            params: [self.params, rhs.params].concat(),
+            params: self.params + rhs.params,
             joins: HashSet::from_iter(self.joins.into_iter().chain(rhs.joins)),
         }
     }
@@ -105,5 +109,17 @@ impl Fragment {
             res = res + f.column_to_sql(ctx)?
         }
         Ok(res)
+    }
+}
+
+impl<'a> TryFrom<Generator<'a>> for Fragment {
+    type Error = SqloError;
+
+    fn try_from(result: Generator<'a>) -> Result<Self, Self::Error> {
+        Ok(Fragment {
+            query: result.raw_query()?,
+            params: result.arguments,
+            joins: HashSet::default(),
+        })
     }
 }

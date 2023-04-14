@@ -233,16 +233,6 @@ impl Relation {
             join, tablename_plus_alias, lhs, rhs,
         ))
     }
-
-    pub fn get_from_column<'a>(&self, sqlos: &'a Sqlos) -> &'a str {
-        sqlos
-            .get(&self.from)
-            .expect("Error: Entity not found from Relation") //should never happen except on first pass
-            .field(self.field.as_ident())
-            .expect("Sqlo Field not Found, please rebuild")
-            .column
-            .as_str()
-    }
 }
 
 impl Display for Relation {

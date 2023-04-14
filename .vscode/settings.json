@@ -1,17 +1,21 @@
 {
     "rust-analyzer.checkOnSave.features": [
-        "sqlite"
+        // "sqlite"
+        "postgres"
     ],
     "rust-analyzer.cargo.features": [
-        "sqlite"
+        // "sqlite"
+        "postgres"
     ],
     "rust-analyzer.cargo.buildScripts.enable": false,
     "rust-analyzer.procMacro.enable": false,
     "rust-analyzer.server.extraEnv": {
-        "DATABASE_URL": "sqlite:///tmp/sqlo.sqlite"
+        // "DATABASE_URL": "sqlite:///tmp/sqlo.sqlite"
+        "DATABASE_URL": "postgres://postgres:password@localhost:5432/sqlo"
     },
     "rust-analyzer.runnableEnv": {
-        "DATABASE_URL": "sqlite:///tmp/sqlo.sqlite"
+        // "DATABASE_URL": "sqlite:///tmp/sqlo.sqlite"
+        "DATABASE_URL": "postgres://postgres:password@localhost:5432/sqlo"
     },
     "cSpell.enabled": false,
     "cSpell.enableFiletypes": [
@@ -32,5 +36,6 @@
         }
     ],
     "rust-analyzer.check.command": "clippy",
-    "rust-analyzer.check.features": "all"
+    "rust-analyzer.check.features": "all",
+    "rust-analyzer.showUnlinkedFileNotification": false
 }

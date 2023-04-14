@@ -3,12 +3,11 @@ use std::{fmt::Display, str::FromStr};
 use darling::util::IdentString;
 use syn::{LitStr, Token};
 
+use super::ColExpr;
 use crate::{
     macros::{ColumnToSql, Context, Fragment, Generator},
     SqloError,
 };
-
-use super::ColExpr;
 
 #[derive(Debug, Clone)]
 pub struct ColumnCast {
@@ -20,7 +19,32 @@ impl ColumnToSql for ColumnCast {
     fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         ctx.context.push(Context::Cast);
         let expr = self.expr.column_to_sql(ctx)?;
-        let res = expr.add_no_comma(self.alias.column_to_sql(ctx)?);
+
+        // expr needed in column_to_sql for aliascast so we put it here
+        let alias: Fragment = match &self.alias {
+            AliasCast::Ident(ident) => {
+                ctx.aliases.insert(ident.clone(), ident.to_string());
+                Fragment::from(format!(" as {ident}"))
+            }
+            AliasCast::Literal(litstr) => {
+                let re = regex_macro::regex!(r#"^(\w+)[?!]?(?::\w+(?:::\w+)*)?$"#);
+                let alias_str = &litstr.value();
+                if let Some(captures) = re.captures(alias_str) {
+                    if let Some(alias) = captures.get(1) {
+                        let ident: IdentString =
+                            syn::Ident::new(alias.as_str(), litstr.span()).into();
+                        let formated_alias_string = format!("\"{alias_str}\"");
+                        ctx.aliases.insert(ident, expr.query.clone());
+                        Fragment::from(format!(" as {formated_alias_string}"))
+                    } else {
+                        return Err(SqloError::new_spanned(litstr, "invalid alias format"));
+                    }
+                } else {
+                    return Err(SqloError::new_spanned(litstr, "invalid alias format"));
+                }
+            }
+        };
+        let res = expr.add_no_comma(alias);
         ctx.context.pop();
         Ok(res)
     }
@@ -30,31 +54,6 @@ impl ColumnToSql for ColumnCast {
 pub enum AliasCast {
     Ident(IdentString),
     Literal(LitStr),
-}
-
-impl ColumnToSql for AliasCast {
-    fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
-        match self {
-            Self::Ident(ident) => {
-                ctx.aliases.insert(ident.clone(), ident.to_string());
-                Ok(Fragment::from(format!(" as {ident}")))
-            }
-            Self::Literal(litstr) => {
-                let re = regex_macro::regex!(r#"^(\w+)[?!]?(?::\w+(?:::\w+)*)?$"#);
-                let alias_str = &litstr.value();
-                if let Some(captures) = re.captures(alias_str) {
-                    if let Some(alias) = captures.get(1) {
-                        let ident: IdentString =
-                            syn::Ident::new(alias.as_str(), litstr.span()).into();
-                        let formated_alias_string = format!("\"{alias_str}\"");
-                        ctx.aliases.insert(ident, formated_alias_string.clone());
-                        return Ok(format!(" as {formated_alias_string}").into());
-                    }
-                }
-                Err(SqloError::new_spanned(litstr, "invalid alias format"))
-            }
-        }
-    }
 }
 
 impl From<&syn::Ident> for AliasCast {

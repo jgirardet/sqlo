@@ -11,11 +11,11 @@ macro_rules! uu4 {
 }
 
 macro_rules! test_base {
-    ($name:ident, $test_fn:item, $backend:ident) => {
+    ($name:ident, $test_fn:item, $backend:ident, $db_path:literal) => {
         paste::paste! {
 
             #[allow(non_snake_case)]
-            #[sqlx::test(migrations = "tests/migrations")]
+            #[sqlx::test(migrations = "tests/migrations/" $db_path)]
             async fn [<$name _ $backend>](pool: sqlx::[<$backend Pool>]) {
                 $test_fn
                 let pol = $crate::PPool{pool};
@@ -28,6 +28,13 @@ macro_rules! test_base {
 #[cfg(feature = "sqlite")]
 macro_rules! Test {
     ($name: ident, $test_fn:item) => {
-        test_base! {$name, $test_fn, Sqlite}
+        test_base! {$name, $test_fn, Sqlite, "sqlite"}
+    };
+}
+
+#[cfg(feature = "postgres")]
+macro_rules! Test {
+    ($name: ident, $test_fn:item) => {
+        test_base! {$name, $test_fn, Pg, "pg"}
     };
 }

@@ -2,66 +2,52 @@
 
 version: "3"
 
-env:
-  SQLITE_MAISON: sqlite-maison
-
 vars:
   EDITOR_DB_FILE: "/tmp/sqlo.sqlite"
+  PG_DATABASE_URL: "postgres://postgres:password@localhost:5432/sqlo"
 
 tasks:
   install_dependencies:
     cmds:
-      - sudo apt install -y build-essential libssl-dev pkg-config -y
       - cargo install sqlx-cli
-  create-sqlite-database:
-    cmds:
-      - tmpfile=$(mktemp /tmp/sqlo-sqlite-tmp.sqlite.XXXXXXX)
-      - export $tmpfile
-  show-db:
-    cmds:
-      - task: create-sqlite-database
-      - echo "tmpfile:${tmpfile}"
-      - echo $tmpfile
-      - echo $SQLITE_DB
 
   migrate:
     cmds:
-      - sqlx migrate run --source tests/migrations/ -D {{.DATABASE_URL}}
-
-  run:
-    env:
-      DATABASE_URL: "{{.DATABASE_URL}}"
-    cmds:
-      - cargo run --features={{.FEATURES}} --example {{.PROJECT}}
+      - sqlx migrate run --source tests/migrations/{{.DB}} --database-url {{.DATABASE_URL}}
 
   run_test:
     env:
       DATABASE_URL: "{{.DATABASE_URL}}"
     cmds:
+      - rm -rf .sqlo/
       - cargo test --features={{.FEATURES}} {{.CLI_ARGS}}
 
-  run_expand:
-    env:
-      DATABASE_URL: "{{.DATABASE_URL}}"
-    cmds:
-      - cargo expand --features={{.FEATURES}} --test expand {{.CLI_ARGS}}
+  # trybuild:
+  #   vars:
+  #     .MORE_ARGS: "-- -- trybuild trybuild={{.CLI_ARGS}}"
+  #   cmds:
+  #     - task: sq-test
+  #     - task: pg-test
 
-  run-example:
-    vars:
-      SQLITE_DB:
-        sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
-      DATABASE_URL: "{{.DB_TYPE}}://{{.SQLITE_DB}}"
+  # trybuild-overwrite:
+  #   env:
+  #     TRYBUILD: "overwrite"
+  #   cmds:
+  #     - task test -- -- trybuild trybuild={{.CLI_ARGS}}
+
+  #########################
+  #        Expand         #
+  #########################
+
+  expand_imp:
+    env:
+      DATABASE_URL: "{{ .DATABASE_URL }}"
     cmds:
-      - echo {{.DATABASE_URL}}
-      - task: migrate
-        vars: { PROJECT: "{{.PROJECT}}", DATABASE_URL: "{{.DATABASE_URL}}" }
-      - task: run
-        vars:
-          {
-            PROJECT: "{{.PROJECT}}",
-            DATABASE_URL: "{{.DATABASE_URL}}",
-            FEATURES: "{{.FEATURES}}",
-          }
+      - cargo expand --features={{.FEATURES}} --test expand
+
+  #########################
+  #        Editor         #
+  #########################
 
   remove_editor_db_file:
     cmds:
@@ -71,63 +57,102 @@ tasks:
     cmds:
       - touch {{.EDITOR_DB_FILE}}
 
-  test:
-    vars:
-      SQLITE_DB:
-        sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
-      DATABASE_URL: "sqlite://{{.SQLITE_DB}}"
-    cmds:
-      - cmds: rm -rf .sqlo/
-        task: migrate
-        vars: { DATABASE_URL: "{{.DATABASE_URL}}" }
-      - task: run_test
-        vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
-
-  tests:
-    cmds:
-      - task test -- --test integration
-
-  trybuild:
-    cmds:
-      - task test -- -- trybuild trybuild={{.CLI_ARGS}}
-
-  trybuild-overwrite:
-    env:
-      TRYBUILD: "overwrite"
-    cmds:
-      - task test -- -- trybuild trybuild={{.CLI_ARGS}}
-
-  expand:
-    vars:
-      SQLITE_DB:
-        sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
-      DATABASE_URL: "sqlite://{{.SQLITE_DB}}"
-    cmds:
-      - task: migrate
-        vars: { DATABASE_URL: "{{.DATABASE_URL}}" }
-      - task: run_expand
-        vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
-
-  editor:
+  editor_imp:
     vars:
       DB_FILE: "/tmp/sqlo.sqlite"
     deps: [remove_editor_db_file]
     cmds:
       - task: create_editor_db_file
       - task: migrate
-        vars: { DATABASE_URL: "sqlite://{{.DB_FILE}}" }
+        vars: { DATABASE_URL: "sqlite://{{.DB_FILE}}", DB: "sqlite" }
+
+  #########################
+  #        Sqlite          #
+  #########################
+
+  sq-test:
+    vars:
+      SQLITE_DB:
+        sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
+      DATABASE_URL: "sqlite://{{.SQLITE_DB}}"
+    env:
+      DATABASE_URL: "{{.DATABASE_URL}}"
+    cmds:
+      - task: migrate
+        vars: { DATABASE_URL: "{{.DATABASE_URL}}", DB: "sqlite" }
+      - task: run_test
+        vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
+
+  sq-reset:
+    cmds:
+      - task: editor_imp
+
+  sq-expand:
+    vars:
+      SQLITE_DB:
+        sh: mktemp /tmp/sqlo-{{.PROJECT}}-XXXX.sqlite
+      DATABASE_URL: "sqlite://{{.SQLITE_DB}}"
+    cmds:
+      - task: migrate
+        vars: { DATABASE_URL: "{{.DATABASE_URL}}", DB: "sqlite" }
+      - task: expand_imp
+        vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
+
+  #########################
+  #        PostreSQl      #
+  #########################
+
+  pg-run:
+    cmds:
+      - docker  run --rm -p 5432:5432 -e POSTGRES_PASSWORD=password -e POSTGRES_DB=sqlo --name sqlo_pg --rm -d postgres:14 -N 1000
+
+  pg-stop:
+    cmds:
+      - docker stop sqlo_pg
+
+  pg-reset:
+    cmds:
+      - task: pg-stop
+      - task: pg-run
+
+  pg-test:
+    cmds:
+      - task: migrate
+        vars: { DATABASE_URL: "{{.PG_DATABASE_URL}}", DB: "pg" }
+      - task: run_test
+        vars:
+          DATABASE_URL: "{{ .PG_DATABASE_URL }}"
+          FEATURES: "postgres"
+
+  pg-expand:
+    cmds:
+      - task: migrate
+        vars: { DATABASE_URL: "{{.PG_DATABASE_URL}}", DB: "pg" }
+      - task: expand_imp
+        vars:
+          DATABASE_URL: "{{.PG_DATABASE_URL}}"
+          FEATURES: "postgres"
+
+  #########################
+  #       All Together    #
+  #########################
+
+  test:
+    - task: sq-test
+    - task: pg-test
 
   check:
-    cmds:
-      - cargo check --features=sqlite
-
-  build:
-    cmds:
-      - cargo build --features=sqlite
-
-  test-all:
-    - task: test
-    - task: tests
+    - cargo check --features=sqlite
+    - cargo check --features=postgres
 
   clippy:
     - cargo clippy --features=sqlite
+    - cargo clippy --features=postgres
+
+  #########################
+  #       utility         #
+  #########################
+
+  expand:
+    - task: expand_imp
+      # vars: { FEATURES: "{{.CLI_ARGS}}" }

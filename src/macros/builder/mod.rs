@@ -1,3 +1,4 @@
+mod arguments;
 mod column_to_sql;
 mod context;
 mod expander;
@@ -12,6 +13,7 @@ mod query_builder;
 mod query_parser;
 mod table_aliases;
 
+pub use arguments::Arguments;
 pub use column_to_sql::ColumnToSql;
 pub use context::Context;
 pub use expander::*;

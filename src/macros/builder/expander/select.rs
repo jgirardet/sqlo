@@ -10,7 +10,7 @@ pub fn expand_select(
     fetch: Fetch,
     ident: &IdentString,
     query: String,
-    arguments: &[Expr],
+    arguments: &[&Expr],
     wich_macro: WhichMacro,
 ) -> TokenStream {
     match fetch {

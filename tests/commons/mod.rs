@@ -1,6 +1,5 @@
 #[macro_use]
 mod macros;
-#[macro_use]
 mod entities;
 mod helper;
 mod tests;

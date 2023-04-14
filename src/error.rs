@@ -65,6 +65,15 @@ impl From<std::io::Error> for SqloError {
     }
 }
 
+impl From<std::fmt::Error> for SqloError {
+    fn from(e: std::fmt::Error) -> Self {
+        SqloError {
+            msg: e.to_string(),
+            span: Span::call_site(),
+        }
+    }
+}
+
 impl From<SqloError> for std::io::Error {
     fn from(e: SqloError) -> Self {
         std::io::Error::new(std::io::ErrorKind::Other, e.to_string())

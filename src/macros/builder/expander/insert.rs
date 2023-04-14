@@ -11,7 +11,7 @@ pub fn expand_insert(
     fetch: Fetch,
     ident: &IdentString,
     query: String,
-    arguments: &[Expr],
+    arguments: &[&Expr],
     main_sqlo: &Sqlo,
 ) -> TokenStream {
     match fetch {
@@ -59,7 +59,7 @@ fn expand_with_insert_fn(
     fetch: Fetch,
     ident: &IdentString,
     query: String,
-    arguments: &[Expr],
+    arguments: &[&Expr],
     main_sqlo: &Sqlo,
     which_macro: WhichMacro,
 ) -> TokenStream {
@@ -73,6 +73,7 @@ fn expand_with_insert_fn(
     let insert_fn_toks = quote! {let insert_fn = #insert_fn();};
     let arguments: Vec<Expr> = arguments
         .iter()
+        .cloned()
         .map(|m| match m {
             Expr::Path(ExprPath { path, .. }) => {
                 if let Some(ident) = path.get_ident() {
