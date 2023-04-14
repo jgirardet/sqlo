@@ -24,39 +24,11 @@ pub fn db_query_result_path() -> Expr {
 }
 
 #[cfg(test)]
-mod test_query_builder {
-    use super::*;
-
-    macro_rules! test_qmarks {
-        ($nb:literal  $res:literal) => {
-            paste::paste! {
-
-                #[test]
-                fn [<qmarks_sqlite_  $nb>]() {
-                    assert_eq!(qmarks($nb),$res);
-                }
-            }
-        };
-    }
+mod test_database_sqlite {
 
     test_qmarks!(1 "?" );
     test_qmarks!(2 "?,?");
     test_qmarks!(0 "" );
-
-    macro_rules! test_qmarks_with_col {
-        ($($col:literal),*; $res:literal) => {
-            paste::paste!{
-
-                #[test]
-                fn [<qmarks_with_col_sqlite _ $($col)*>]() {
-                    assert_eq!(
-                        qmarks_with_col(0,&[$($col),*])
-                        ,$res.to_string()
-                    );
-                }
-            }
-            };
-    }
 
     test_qmarks_with_col!("bla","bli"; "bla=?,bli=?");
     test_qmarks_with_col!("bla"; "bla=?");

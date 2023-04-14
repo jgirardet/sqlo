@@ -11,6 +11,7 @@ mod parsers;
 mod query_builder;
 mod query_parser;
 mod table_aliases;
+mod arguments;
 
 pub use column_to_sql::ColumnToSql;
 pub use context::Context;
@@ -24,3 +25,4 @@ pub use operator::Operator;
 pub use parsers::*;
 pub use query_parser::{PkValue, QueryParser};
 pub use table_aliases::TableAliases;
+pub use arguments::Arguments;

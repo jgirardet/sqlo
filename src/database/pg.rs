@@ -30,7 +30,7 @@ pub fn db_query_result_path() -> Expr {
 }
 
 #[cfg(test)]
-mod test_database_sqlite {
+mod test_database_pg {
 
     test_qmarks!(1 "$1" );
     test_qmarks!(2 "$1,$2");

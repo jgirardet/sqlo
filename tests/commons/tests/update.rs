@@ -37,6 +37,7 @@ Test! {update_instance, async fn func(p: PPool) {
     // test update with update like instance syntax
     update![Maison(r) taille = 23](&p.pool).await.unwrap();
     assert_eq!(Maison::get(&p.pool, 1).await.unwrap().taille, 23);
+    assert_eq!(Maison::get(&p.pool, 2).await.unwrap().taille, 102);
 }}
 
 Test! {update_returning_pk, async fn func(p: PPool) {
@@ -45,7 +46,6 @@ Test! {update_returning_pk, async fn func(p: PPool) {
     assert_eq!(Maison::get(&p.pool, 1).await.unwrap().taille, 53);
     assert_eq!(t.taille, 53);
     // with uuid
-    // let pk = uu4!{uu3!{1};
     let r  = update![. WithAttrs[uu4!{1}] lglg = 53](&p.pool).await.unwrap();
     assert_eq!(WithAttrs::get(&p.pool, &uu4!{1}).await.unwrap().lglg, 53);
     assert_eq!(r.lglg, 53);

@@ -8,7 +8,7 @@ Sqlo is another attempt to make a nice/pleasant API in Rust using relational dat
 
 Sqlo is built on top of sqlx and uses sqlx macros so you keep all the power of sqlx at compile time with less boiler plate.
 
-Right now, only sqlite is supported. PR welcomed :-)
+Right now, Sqlite and Postgres are supported. PR welcomed :-)
 
 ## Install
 
@@ -481,7 +481,7 @@ sqlx::query![r#"SELECT id, count(width) as "total!:i32" group by "total!:i32" "#
 select![. House id, count(width) as "total!:i32" group_by total]
 ```
 
-as a convenience shortcut `!` and `?` can be used without quotes on alias or directly on field:
+As a convenience shortcut `!` and `?` can be used without quotes on alias or directly on field:
 
 ```rust
 select![. House id as id!, count(width) as total?]
@@ -560,7 +560,15 @@ Since JOIN type needs to stick the same please pay attention to it.
 ```rust
 select![* House id, therooms.id where therooms=.bed == true] // BAD you use to different joins INNER and LEFT (sqlx will fail)
 select![* House id, therooms=.id where therooms=.bed == true] // GOOD : the join is expressed in the same way
+```
 
+Note About LEFT JOINS and Postgres:
+[With Postgres, sqlx can't make any assumption of nullability](https://github.com/launchbadge/sqlx/issues/367#issuecomment-799829096) and might
+get the error `Decode(UnexpectedNullError)`.
+So you have to infer nullability yourself adding `?` :
+
+```rust
+select![* House id, therooms=.id as "rooms_id?"]
 ```
 
 ### Using Rust items as parameters:

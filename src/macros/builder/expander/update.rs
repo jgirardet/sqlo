@@ -8,7 +8,7 @@ pub fn expand_update(
     fetch: Fetch,
     ident: &IdentString,
     query: String,
-    arguments: &[Expr],
+    arguments: &[&Expr],
     move_instance: TokenStream,
 ) -> TokenStream {
     match fetch {

@@ -64,7 +64,7 @@ tasks:
     cmds:
       - task: create_editor_db_file
       - task: migrate
-        vars: { DATABASE_URL: "{{.PG_DATABASE_URL}}", DB: "pg" }
+        vars: { DATABASE_URL: "sqlite://{{.DB_FILE}}", DB: "sqlite" }
 
   #########################
   #        Sqlite          #
@@ -82,6 +82,10 @@ tasks:
         vars: { DATABASE_URL: "{{.DATABASE_URL}}", DB: "sqlite" }
       - task: run_test
         vars: { DATABASE_URL: "{{.DATABASE_URL}}", FEATURES: "sqlite" }
+
+  sq-reset:
+    cmds:
+      - task: editor_imp
 
   sq-expand:
     vars:
@@ -152,6 +156,3 @@ tasks:
   expand:
     - task: expand_imp
       # vars: { FEATURES: "{{.CLI_ARGS}}" }
-
-  editor:
-    - task: editor_imp
