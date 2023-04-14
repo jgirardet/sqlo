@@ -1,7 +1,7 @@
 mod insert;
 mod methods;
-mod update;
 mod sqlo_select;
+mod update;
 
 pub use insert::*;
 pub use methods::*;
