@@ -1,12 +1,6 @@
 A faire:
 
-- permettre les alias dans where et autres avec pg: il faudrait mettre le colexpr du cast dans les aliass réécrir le content. ou est ce une mauvaise idée :
-  - soit aggregate et donc c having.
-  - soit c un fonction (genre repplace) et plutôt subquery ?
-  - en tous cas ligne 429: alias with call qui serait mieux remplacé
-  - ou on garde la tokenstream et on la réinject pour la réinterpréter ?
-- force type with pg argument
-  \_ add ! and ? for joins
+- Querybuilder commencer petre bien dégueux...
 
 # Bug:
 

@@ -8,7 +8,7 @@ use syn::Expr;
 use super::{Fragment, Generator, Mode, PkValue, QueryParser};
 
 use crate::{
-    macros::{Clause, ColExpr, ColumnToSql},
+    macros::{Clause, ColExpr, ColExprOp, ColumnToSql},
     utils::INSERT_FN_FLAG,
     SqloError,
 };
@@ -23,55 +23,65 @@ pub struct QueryBuilder {
     having: String,
     limit: String,
     tablename: String,
-    pub arguments: Vec<Expr>,
     pub customs: bool,
 }
 
 impl QueryBuilder {
-    pub fn extend(&mut self, qr: Fragment) {
-        self.arguments.extend(qr.params);
+    pub fn extend(&mut self, qr: Fragment, ctx: &mut Generator) {
+        ctx.arguments.extend(qr.params);
         self.joins.extend(qr.joins);
     }
 
-    fn link_related_entity<T: QueryParser>(&mut self, parsed: &T, ctx: &Generator) {
+    fn link_related_entity<T: QueryParser>(
+        &mut self,
+        parsed: &T,
+        ctx: &mut Generator,
+    ) -> Result<(), SqloError> {
         match parsed.pk_value() {
             PkValue::Bracketed(pk) => {
-                let prefix = if self.wwhere.is_empty() {
-                    " WHERE "
-                } else {
-                    " AND "
+                let ident = get_ident_from_related(ctx);
+                let op = ColExprOp {
+                    lhs: Box::new(ident.into()),
+                    op: super::Operator::Eq,
+                    rhs: Box::new(ColExpr::Value(pk)),
                 };
-                let ident = if let Some(relation) = &ctx.related {
-                    relation.get_from_column(ctx.sqlos)
-                } else {
-                    &ctx.main_sqlo.pk_field.column
-                };
-                write!(self.wwhere, "{}{}=?", prefix, ident)
-                    .expect("Error formatting update query");
-
-                self.arguments.push(pk);
+                self.append_related_fragment_to_query(op, ctx)
             }
             PkValue::Parenthezide(pk) => {
-                let prefix = if self.wwhere.is_empty() {
-                    " WHERE "
-                } else {
-                    " AND "
-                };
-                let ident = if let Some(relation) = &ctx.related {
-                    relation.get_from_column(ctx.sqlos)
-                } else {
-                    &ctx.main_sqlo.pk_field.column
-                };
-                write!(self.wwhere, "{}{}=?", prefix, ident)
-                    .expect("Error formatting update query");
+                let ident = get_ident_from_related(ctx);
                 if let Expr::Path(p) = pk {
                     let pk_field = &ctx.main_sqlo.pk_field.ident;
                     let with_pk: Expr = syn::parse_quote! {#p.#pk_field};
-                    self.arguments.push(with_pk)
+                    let op = ColExprOp {
+                        lhs: Box::new(ident.into()),
+                        op: super::Operator::Eq,
+                        rhs: Box::new(ColExpr::Value(with_pk)),
+                    };
+                    self.append_related_fragment_to_query(op, ctx)
+                } else {
+                    Err(SqloError::new_spanned(
+                        pk,
+                        "Unsupported format. Must be an instance of derived Sqlo struct",
+                    ))
                 }
             }
-            PkValue::None => {} // nothing to be seen here
+            PkValue::None => Ok(()), // nothing to be seen here
         }
+    }
+
+    fn append_related_fragment_to_query(
+        &mut self,
+        op: ColExprOp,
+        ctx: &mut Generator,
+    ) -> Result<(), SqloError> {
+        let frag = op.column_to_sql(ctx)?;
+        if self.wwhere.is_empty() {
+            self.wwhere = format!(" WHERE {}", &frag.query)
+        } else {
+            write!(self.wwhere, " AND {}", &frag.query)?;
+        }
+        self.extend(frag, ctx);
+        Ok(())
     }
 
     pub fn set_columns<T: QueryParser>(
@@ -107,7 +117,7 @@ impl QueryBuilder {
                 |acc: Result<Fragment, SqloError>, nex| Ok(acc? + nex.column_to_sql(ctx)?),
             )?;
             self.subjects = columns.query.clone();
-            self.extend(columns);
+            self.extend(columns, ctx);
         }
         Ok(())
     }
@@ -119,7 +129,7 @@ impl QueryBuilder {
     ) -> Result<(), SqloError> {
         let qr = parsed.assigns().column_to_sql(ctx)?;
         self.subjects = qr.query.clone();
-        self.extend(qr);
+        self.extend(qr, ctx);
         Ok(())
     }
 
@@ -158,7 +168,7 @@ impl QueryBuilder {
             ,",
         );
         self.subjects = format!("({}) VALUES ({})", columns, &arguments.query);
-        self.arguments.extend_from_slice(&arguments.params);
+        self.extend(arguments, ctx);
         Ok(())
     }
 
@@ -201,33 +211,32 @@ impl QueryBuilder {
                 Clause::Where(x) => {
                     let qr = x.column_to_sql(ctx)?;
                     self.wwhere = qr.query.clone();
-                    self.extend(qr);
+                    self.extend(qr, ctx);
                 }
                 Clause::GroupBy(x) => {
                     let qr = x.column_to_sql(ctx)?;
                     self.group_by = qr.query.clone();
-                    self.extend(qr);
+                    self.extend(qr, ctx);
                 }
                 Clause::Having(x) => {
                     let qr = x.column_to_sql(ctx)?;
                     self.having = qr.query.clone();
-                    self.extend(qr);
+                    self.extend(qr, ctx);
                 }
                 Clause::OrderBy(x) => {
                     let qr = x.column_to_sql(ctx)?;
                     self.order_by = qr.query.clone();
-                    self.extend(qr);
+                    self.extend(qr, ctx);
                 }
                 Clause::Limit(x) => {
                     let qr = x.column_to_sql(ctx)?;
                     self.limit = qr.query.clone();
-                    self.extend(qr);
+                    self.extend(qr, ctx);
                 }
             }
         }
 
-        // self.link_related_in_where(parsed, ctx);
-        self.link_related_entity(parsed, ctx);
+        self.link_related_entity(parsed, ctx)?;
         Ok(())
     }
 
@@ -238,10 +247,7 @@ impl QueryBuilder {
             Mode::Insert => self.query_insert(ctx)?,
         };
         let query: String = query.trim().into();
-        #[cfg(feature = "sqlite")]
         let res = query;
-        #[cfg(feature = "postgres")]
-        let res = convert_pg_args(&query);
         Ok(res)
     }
     pub fn query_select(&self, ctx: &Generator) -> Result<String, SqloError> {
@@ -290,23 +296,10 @@ impl QueryBuilder {
     }
 }
 
-#[cfg(feature = "postgres")]
-fn convert_pg_args(query: &str) -> String {
-    let mut res = String::new();
-    let mut rang = 1..u8::MAX as u32;
-    let mut last = '.';
-    for c in query.chars() {
-        if c == '?'
-            // do not replace in type_overide (col? or col?:i32)
-             && !last.is_alphabetic()
-        {
-            res.push('$');
-            res.push(char::from_digit(rang.next().unwrap(), 10).unwrap());
-            //double unwrap is ok : cannot fail
-        } else {
-            res.push(c)
-        }
-        last = c;
+fn get_ident_from_related(ctx: &Generator) -> IdentString {
+    if let Some(relation) = ctx.related {
+        relation.field.clone()
+    } else {
+        ctx.main_sqlo.pk_field.ident.clone()
     }
-    res
 }
