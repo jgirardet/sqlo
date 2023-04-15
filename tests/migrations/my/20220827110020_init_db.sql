@@ -1,42 +1,39 @@
--- Add migration script here
-PRAGMA foreign_keys = ON;
-
-
+-- mysql migration script
 CREATE TABLE maison (
-  id INTEGER NOT NULL PRIMARY KEY,
+  id int auto_increment  PRIMARY KEY,
   adresse TEXT NOT NULL,
-  taille INTEGER NOT NULL, 
-  piscine BOOLEAN
+  taille INT NOT NULL, 
+  piscine BOOLEAN 
 );
 
 CREATE TABLE piece (
-  nb UUID NOT NULL PRIMARY KEY,
-  lg INTEGER NOT NULL,
-  la INTEGER NOT NULL,
-  maison_id INTEGER NOT NULL,
+  nb BINARY(16) PRIMARY KEY,
+  lg INT NOT NULL,
+  la INT NOT NULL,
+  maison_id INT NOT NULL,
   FOREIGN KEY(maison_id) REFERENCES maison(id)
 );
 
 CREATE TABLE adresse (
-  id TEXT NOT NULL PRIMARY KEY,
+  id varchar(255) NOT NULL PRIMARY KEY,
   rue TEXT,
-  m_id INTEGER NOT NULL,
+  m_id INT NOT NULL,
   FOREIGN KEY(m_id) REFERENCES maison(id)
 );
 
-CREATE TABLE IF NOT EXISTS id_unique_int (
-  id INTEGER NOT NULL PRIMARY KEY
-);
+-- CREATE TABLE IF NOT EXISTS id_unique_int (
+--   id INT NOT NULL PRIMARY KEY
+-- );
 
-CREATE TABLE IF NOT EXISTS id_unique_uuid (
-  id UUID NOT NULL PRIMARY KEY
-);
+-- CREATE TABLE IF NOT EXISTS id_unique_uuid (
+--   id UUID NOT NULL PRIMARY KEY
+-- );
 
 
-CREATE TABLE IF NOT EXISTS with_a_blob (
-  id INTEGER NOT NULL PRIMARY KEY,
-  data BLOB NOT NULL
-);
+-- CREATE TABLE IF NOT EXISTS with_a_blob (
+--   id INT NOT NULL PRIMARY KEY,
+--   data BLOB  NOT NULL
+-- );
 
 
 INSERT INTO maison (id, adresse, taille) VALUES 
@@ -66,8 +63,8 @@ INSERT INTO adresse (id, rue, m_id) VALUES
   
 
   CREATE TABLE IF NOT EXISTS lit ( 
-    id INTEGER NOT NULL PRIMARY KEY,
-    surface INTEGER NOT NULL
+    id INT NOT NULL PRIMARY KEY,
+    surface INT NOT NULL
     ); 
 
 INSERT INTO lit (id, surface) VALUES
@@ -77,14 +74,14 @@ INSERT INTO lit (id, surface) VALUES
   (4, 234);
   
 CREATE TABLE IF NOT EXISTS self_relation ( 
-    id INTEGER NOT NULL PRIMARY KEY,
+    id INT  PRIMARY KEY,
     name TEXT NOT NULL,
-    salary INTEGER NOT NULL,
-    manager_id INTEGER,
+    salary INT NOT NULL,
+    manager_id INT,
   FOREIGN KEY(manager_id) REFERENCES self_relation(id)
     ); 
 
 INSERT INTO self_relation VALUES
+  (3, 'papa', 1200, NULL),
   (1, 'axel', 12, 3),
-  (2, 'margaux', 10, 1),
-  (3, 'papa', 1200, NULL);
+  (2, 'margaux', 10, 1);

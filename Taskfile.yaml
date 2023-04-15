@@ -167,7 +167,7 @@ tasks:
   my-expand:
     cmds:
       - task: migrate
-        vars: { DATABASE_URL: "{{.MY_DATABASE_URL}}", DB: "pg" }
+        vars: { DATABASE_URL: "{{.MY_DATABASE_URL}}", DB: "my" }
       - task: expand_imp
         vars:
           DATABASE_URL: "{{.MY_DATABASE_URL}}"

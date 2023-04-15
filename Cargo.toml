@@ -11,6 +11,7 @@ proc-macro = true
 [features]
 sqlite = ["sqlx/sqlite"]
 postgres = ["sqlx/postgres"]
+mysql = ["sqlx/mysql"]
 
 
 [dependencies]
@@ -30,13 +31,15 @@ syn = { version = "1", features = ["full"] }     # wait darling support it
 indexmap = "1.9"
 
 [dev-dependencies]
-async-std = { version = "1", features = ["attributes"] }
-dotenvy = "0.15"
-futures-lite = "1"
 sqlx = { version = "0.6", features = [
   "runtime-async-std-native-tls",
   "uuid",
   "chrono",
+  "bigdecimal",
 ] }
+async-std = { version = "1", features = ["attributes"] }
+dotenvy = "0.15"
+futures-lite = "1"
 trybuild = "1"
 uuid = { version = "1", features = ["v4"] }
+bigdecimal = "0.3"

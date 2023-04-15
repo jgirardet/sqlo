@@ -60,6 +60,7 @@ pub fn impl_save(sqlo: &Sqlo) -> TokenStream {
     }
 }
 
+#[cfg(not(feature = "mysql"))]
 fn build_sql_query(
     tablename: &str,
     columns_array: &[&str],
@@ -80,8 +81,27 @@ fn build_sql_query(
 
     let columns = commma_sep_with_parenthes_literal_list(columns_array);
 
-    format!("INSERT INTO {tablename} {columns} VALUES({qmarks}) ON CONFLICT ({pk_column}) {on_conflict};")
+    return format!("INSERT INTO {tablename} {columns} VALUES({qmarks}) ON CONFLICT ({pk_column}) {on_conflict};");
 }
+
+#[cfg(feature = "mysql")]
+fn build_sql_query(
+    tablename: &str,
+    columns_array: &[&str],
+    _pk_column: &str,
+    col_if_update: &[&str],
+) -> String {
+    let mut qmarks = qmarks(columns_array.len());
+    if qmarks.is_empty() {
+        qmarks = "NULL".to_string();
+    }
+    let col_qmarks_if_update = qmarks_with_col(1, col_if_update);
+
+    let columns = commma_sep_with_parenthes_literal_list(columns_array);
+
+    format!("INSERT INTO {tablename} {columns} VALUES({qmarks}) ON DUPLICATE KEY UPDATE {col_qmarks_if_update};")
+}
+
 fn commma_sep_with_parenthes_literal_list(list: &[&str]) -> String {
     if list.is_empty() {
         return "".to_string();
@@ -91,11 +111,11 @@ fn commma_sep_with_parenthes_literal_list(list: &[&str]) -> String {
 }
 
 // postgres can reuse args ($1,$2,...) in update where sqlite can't
-#[cfg(feature = "sqlite")]
+#[cfg(not(feature = "postgres"))]
 fn update_args(sqlo: &Sqlo) -> Vec<&IdentString> {
     sqlo.fields
         .iter()
-        .filter(|f| &f.ident != &sqlo.pk_field.ident)
+        .filter(|f| f.ident != sqlo.pk_field.ident)
         .map(|f| &f.ident)
         .collect::<Vec<_>>()
 }

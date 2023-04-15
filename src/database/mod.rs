@@ -10,3 +10,8 @@ pub use sqlite::*;
 mod pg;
 #[cfg(feature = "postgres")]
 pub use pg::*;
+
+#[cfg(feature = "mysql")]
+mod my;
+#[cfg(feature = "mysql")]
+pub use my::*;

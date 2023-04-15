@@ -110,7 +110,7 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
     let a = A { a: 2 };
     nb_result!(p,PieceFk, lg > ::a.a, 7);
     // // use String
-    let adr = "adresse2".to_string();
+    let adr = "adresse3".to_string();
     nb_result!(p,Maison, adresse == ::adr, 1);
     // // rhs uses field not vs
     #[allow(unused_variables)]
@@ -142,7 +142,7 @@ Test! {select_test_wherein, async fn func(p: PPool) {
 
 Test! {select_test_where_like, async fn func(p: PPool) {
     let res = select![*Maison where adresse # "adr%"](&p.pool).await.unwrap();
-    assert_eq!(res.len(), 4);
+    assert_eq!(res.len(), 3);
     let res = select![*Maison where adresse # "%dress%"](&p.pool).await.unwrap();
     assert_eq!(res.len(), 4);
     let res = select![*Maison where adresse # "%dresse1%"](&p.pool).await.unwrap();
@@ -188,14 +188,14 @@ Test! {select_test_where_foreign_key, async fn func(p: PPool) {
 
 Test! {select_test_where_call, async fn func(p:PPool){
     // simple
-    let res = select![.Maison where trim(adresse, "adr") == "esse2"](&p.pool).await.unwrap();
-    assert_eq!(res.adresse, "adresse2");
+    let res = select![.Maison where trim(adresse) == "adresse2"](&p.pool).await.unwrap();
+    assert_eq!(res.adresse, "   adresse2    ");
     // call n column and where, use of context::Call
-    let res = select![.Maison replace(adresse, "2", "XX") as "adresse?:String" where upper(adresse) == "ADRESSE2"](&p.pool).await.unwrap();
+    let res = select![.Maison replace(adresse, "3", "XX") as "adresse?:String" where upper(adresse) == "ADRESSE3"](&p.pool).await.unwrap();
     assert_eq!(res.adresse, Some("adresseXX".into()));
     // with fk
-    let res = select![.Maison where trim(adres.rue, "adr") == "esse2"](&p.pool).await.unwrap();
-    assert_eq!(res.adresse, "adresse2");
+    let res = select![.Maison where trim(adres.rue) == "adresse2"](&p.pool).await.unwrap();
+    assert_eq!(res.adresse, "   adresse2    ");
 }}
 
 Test! {select_cutoms_fields, async fn func(p: PPool) {
@@ -285,7 +285,7 @@ Test! {select_cutoms_cast, async fn func(p: PPool) {
   assert![res[0].p >0 ];
   assert![res[0].a.is_some()];
   // Non nullable without alias
-  let res = select![*SelfRelation manager_id! where manager_id != None](&p.pool).await.unwrap();
+  let res = select![*SelfRelation manager_id! where manager_id != None order_by -manager_id](&p.pool).await.unwrap();
   assert_eq!(res[0].manager_id, 3);
   //  nullable without alias
   let res = select![*SelfRelation id?](&p.pool).await.unwrap();
@@ -328,7 +328,10 @@ Test! {select_customs_call, async fn func(p: PPool) {
   assert_eq!(res.abs, 6.5);
   // call with rust variable outside function
   let aaa = "1";
-    let res = sqlx::query![r#"SELECT  $1 as "bla!:String" FROM maison a"#, aaa].fetch_one(&p.pool).await.unwrap();
+  #[cfg(not(feature="postgres"))]
+  let res = sqlx::query![r#"SELECT  ? as "bla!:String" FROM maison a"#, aaa].fetch_one(&p.pool).await.unwrap();
+  #[cfg(feature="postgres")]
+  let res = sqlx::query![r#"SELECT  $1 as "bla!:String" FROM maison a"#, aaa].fetch_one(&p.pool).await.unwrap();
   assert_eq!(res.bla, "1");
   // works in sqlite without &str
   #[cfg(feature="sqlite")]
@@ -341,15 +344,20 @@ Test! {select_customs_call, async fn func(p: PPool) {
 
 Test! {select_customs_binary_operation, async fn func(p: PPool) {
     // binary
-  let res = select![.Maison id + 3 as id_plus_3 where id == 2](&p.pool).await.unwrap();
-  assert_eq!(res.id_plus_3, Some(5));
+  let res = select![.Maison id + 3 as "id_plus_3!:i32" where id == 2](&p.pool).await.unwrap();
+  assert_eq!(res.id_plus_3, 5);
   // complex binary
   let a = 22;
   let res = select![.Maison ::a + id - abs(5.0)  as "total:f64" where id==2](&p.pool).await.unwrap();
   assert_eq!(res.total, Some(19.0)); //2 + 22  -5
-  // test all arythmetique ops
-  let res = select![.Maison id / id * id + id - id as "total!"  where id==1](&p.pool).await.unwrap();
+  // test mul et div
+  let res = select![.Maison id * id as "total!"  where id==1](&p.pool).await.unwrap();
   assert_eq!(res.total, 1);
+  let res = select![.Maison id / id as "total!"  where id==1](&p.pool).await.unwrap();
+  #[cfg(not(feature="mysql"))]
+  assert_eq!(res.total, 1);
+  #[cfg(feature="mysql")]
+  assert_eq!(res.total, 1.into()); //uses bigdecimal
   // test all equlity ops
   let res = select![.Maison id<2 as "total!:bool" where id ==1 ](&p.pool).await.unwrap();
   assert!(res.total);
@@ -364,10 +372,14 @@ Test! {select_customs_binary_operation, async fn func(p: PPool) {
   let res = select![.Maison id!=2 as "total!:bool"  where id==1](&p.pool).await.unwrap();
   assert!(res.total);
   // op inside call
-  let res = select![.Maison sign(sign(-id)) as "c!:f64" where id==1](&p.pool).await.unwrap();
-  assert_eq!(res.c, -1.0);
-  // binary asterisk
-  let res = select![.Maison id * 3 as id_plus_3 where id==2](&p.pool).await.unwrap();
+  #[cfg(not(feature="mysql"))]
+  {let res = select![.Maison sign(sign(-id)) as "c!:f64" where id==1](&p.pool).await.unwrap();
+  assert_eq!(res.c, -1.0);}
+  #[cfg(feature="mysql")]
+  {let res = select![.Maison sign(sign(-id)) as "c!" where id==1](&p.pool).await.unwrap();
+  assert_eq!(res.c, -1);}
+//   // binary asterisk
+  let res = select![.Maison id * 3 as "id_plus_3:i32" where id==2](&p.pool).await.unwrap();
   assert_eq!(res.id_plus_3, Some(6));
 }}
 
@@ -380,7 +392,7 @@ struct B {
     bb: i64,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 struct Hav {
     total: i64,
     maison_id: i32,
@@ -388,16 +400,12 @@ struct Hav {
 
 Test! {select_customs_struct_custom_with_query_as, async fn func(p: PPool) {
 
-    #[cfg(feature="postgres")]
-    let res = select![. B, Maison count(*) as "bb!"](&p.pool).await.unwrap();
-    #[cfg(feature="postgres")]
-    assert_eq!(res.bb, 4);
+    #[cfg(not(feature="sqlite"))]
+    {let res = select![. B, Maison count(*) as "bb!"](&p.pool).await.unwrap();
+    assert_eq!(res.bb, 4);}
     #[cfg(feature="sqlite")]
-    let res = select![. B, Maison count(*) as "bb:i64"](&p.pool).await.unwrap();
-    #[cfg(feature="sqlite")]
-    assert_eq!(res.bb, 4);
-    // let res = select![. A, Maison count(*) as "a!:i32"](&p.pool).await.unwrap();
-    // assert_eq!(res.a, 4);
+    {let res = select![. B, Maison count(*) as "bb:i64"](&p.pool).await.unwrap();
+    assert_eq!(res.bb, 4);}
 }}
 
 Test! {select_order_by, async fn func(p:PPool) {
@@ -430,7 +438,7 @@ Test! {select_order_by, async fn func(p:PPool) {
    assert_eq!(res[0].lg, 9);
    // fk custom
 //    let res = select![.Maison count(lespieces.lg) as total order_by -total](&p.pool).await.unwrap(); à fixer ??
-   let res = select![.Maison count(lespieces.lg) as total! order_by -count(lespieces.lg)](&p.pool).await.unwrap();
+   let res = select![.Maison count(lespieces.lg) as total! order_by -total](&p.pool).await.unwrap();
    assert_eq!(res.total, 9);
    // with where + fk
    let res = select![*Maison where lespieces.lg > 7  order_by -taille](&p.pool).await.unwrap();
@@ -485,7 +493,7 @@ Test! {select_limit, async fn func(p:PPool) {
     assert_eq![res[0].lg, 6];
     assert_eq![res[1].lg, 5];
     // with order by, force class  type, bracket
-    let res = select![*Maison, Maison id as "id!", taille as "taille!", adresse as "adresse!", piscine as "piscine"
+    let res = select![*Maison, Maison id as "id!", taille as "taille!", adresse as "adresse!", piscine as "piscine?:bool"
     order_by[-taille] limit[2,1]](&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].id, 3];
@@ -516,23 +524,23 @@ Test! {select_group_by, async fn func(p:PPool) {
 
 Test! {select_having, async fn func(p:PPool){
     // standard
-    let res = select![*Hav, PieceFk maison_id as "maison_id:_" , sum(lg) as "total!:_" group_by maison_id having sum(lg)>11 order_by maison_id](&p.pool).await.unwrap();
+    let res = select![ * Hav,  PieceFk maison_id as "maison_id!:_"  , count(lg) as "total!:_" group_by maison_id having total>=3 order_by maison_id](&p.pool).await.unwrap();
     assert_eq![res.len(), 2];
     assert_eq![res[0].maison_id, 1];
-    assert_eq![res[0].total, 18];
+    assert_eq![res[0].total, 4];
     assert_eq![res[1].maison_id, 2];
-    assert_eq![res[1].total, 16];
+    assert_eq![res[1].total, 3];
     // fk
-    let res2 = sqlo::select![*Hav,Maison id as "maison_id:_", sum(lespieces.lg) as "total!:_" group_by id having sum(lespieces.lg)>11](&p.pool).await.unwrap();
-    let res3 = sqlx::query_as!(Hav, r#"SELECT DISTINCT maison.id as "maison_id:_", sum(piece.lg)  as "total!:_" FROM maison INNER JOIN piece ON maison.id=piece.maison_id GROUP BY maison.id HAVING sum(piece.lg) > 11"#)
+    let res2 = sqlo::select![*Hav,Maison id as "maison_id:_", count(lespieces.lg) as "total!:_" group_by id having total>=3 order_by maison_id](&p.pool).await.unwrap();
+    let res3 = sqlx::query_as!(Hav, r#"SELECT DISTINCT maison.id as "maison_id:_", count(piece.lg)  as "total!:_" FROM maison INNER JOIN piece ON maison.id=piece.maison_id GROUP BY maison.id HAVING count(piece.lg) >= 3 ORDER BY maison.id"#)
     .fetch_all(&p.pool).await.unwrap();
     assert_eq![res, res2];
     assert_eq![res, res3];
-    // // two conditions
-    let res = select![*Hav,PieceFk maison_id as "maison_id:_", sum(lg) as "total!:_" group_by maison_id having sum(lg)>11 && sum(lg) <18](&p.pool).await.unwrap();
+    // // // two conditions
+    let res = select![*Hav,PieceFk maison_id as "maison_id:_", count(lg) as "total!:_" group_by maison_id having total >3 && total < 5](&p.pool).await.unwrap();
     assert_eq![res.len(), 1];
-    assert_eq![res[0].maison_id, 2];
-    assert_eq![res[0].total, 16];
+    assert_eq![res[0].maison_id, 1];
+    assert_eq![res[0].total, 4];
 }}
 
 Test! {select_sub_select, async fn func(p:PPool){

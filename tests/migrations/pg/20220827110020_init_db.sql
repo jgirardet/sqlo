@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS with_a_blob (
 
 INSERT INTO maison (id, adresse, taille) VALUES 
   (1, 'adresse1', 101),
-  (2, 'adresse2', 102),
+  (2, '   adresse2    ', 102),
   (3, 'adresse3', 103),
   (4, 'adresse4', 104);
 
@@ -58,7 +58,7 @@ INSERT INTO piece VALUES
 
 INSERT INTO adresse (id, rue, m_id) VALUES 
   ('1', 'adresse1',1),
-  ('2', 'adresse2',2),
+  ('2', '    adresse2    ',2),
   ('3', 'adresse3',3);
   
 

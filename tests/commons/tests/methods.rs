@@ -1,5 +1,4 @@
 use crate::{Adresse, Maison, Maison2, PPool, WithAttrs};
-
 Test! {pseudo_hidden_methods, async fn func(p: PPool) {
     //test tablname
     //test utils as instance

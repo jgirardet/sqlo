@@ -31,6 +31,7 @@ Test! {insert_simple, async fn func(p: PPool) {
 
 }}
 
+#[cfg(not(feature = "mysql"))]
 Test! {insert_returning, async fn func(p: PPool) {
     // one
     let maison = insert!(. Maison id=5, adresse="lieu5", taille=23, piscine= true)(&p.pool).await.unwrap();
@@ -43,9 +44,12 @@ Test! {insert_returning, async fn func(p: PPool) {
 
 Test! {insert_with_create_fn, async fn func(p: PPool) {
    // fetch_one
-   let res = insert![. PieceFk2 lg=2, la= 53, maison_id=1](&p.pool).await.unwrap();
-   assert_eq!(PieceFk2::get(&p.pool, &res.nb).await.unwrap(), res);
-   // execute
+   #[cfg(not(feature = "mysql"))]
+   {
+       let res = insert![. PieceFk2 lg=2, la= 53, maison_id=1](&p.pool).await.unwrap();
+       assert_eq!(PieceFk2::get(&p.pool, &res.nb).await.unwrap(), res);
+    }
+       // execute
    insert![PieceFk2 lg=9999, la=11111, maison_id=1](&p.pool).await.unwrap();
    assert_eq!(sqlo::select![.PieceFk2 where la==11111](&p.pool).await.unwrap().lg, 9999);
    // same args

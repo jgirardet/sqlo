@@ -1,21 +1,25 @@
 {
     "rust-analyzer.checkOnSave.features": [
         // "sqlite"
-        "postgres"
+        // "postgres"
+        "mysql"
     ],
     "rust-analyzer.cargo.features": [
         // "sqlite"
-        "postgres"
+        // "postgres"
+        "mysql"
     ],
     "rust-analyzer.cargo.buildScripts.enable": false,
     "rust-analyzer.procMacro.enable": false,
     "rust-analyzer.server.extraEnv": {
         // "DATABASE_URL": "sqlite:///tmp/sqlo.sqlite"
-        "DATABASE_URL": "postgres://postgres:password@localhost:5432/sqlo"
+        // "DATABASE_URL": "postgres://postgres:password@localhost:5432/sqlo"
+        "DATABASE_URL": "mysql://root:password@localhost:3306/sqlo"
     },
     "rust-analyzer.runnableEnv": {
         // "DATABASE_URL": "sqlite:///tmp/sqlo.sqlite"
-        "DATABASE_URL": "postgres://postgres:password@localhost:5432/sqlo"
+        // "DATABASE_URL": "postgres://postgres:password@localhost:5432/sqlo"
+        "DATABASE_URL": "mysql://root:password@localhost:3306/sqlo"
     },
     "cSpell.enabled": false,
     "cSpell.enableFiletypes": [

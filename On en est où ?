@@ -1,10 +1,13 @@
 A faire:
+
 - mysql
 
 - Querybuilder commencer petre bien dégueux...
+- requete par select![.Maison[1]]
 
 # Bug:
 
+- fonction comme trim de mysql qui nécessite une grammaire particulière (leading, dfrom, ...)
 - rediscuter le typeoverride au bout du compte ?
 - delete with foreign key (delete maison[1])
 - Serializer de create fn et fk doit retourner null et non empty string

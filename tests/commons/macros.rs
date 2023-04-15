@@ -38,3 +38,10 @@ macro_rules! Test {
         test_base! {$name, $test_fn, Pg, "pg"}
     };
 }
+
+#[cfg(feature = "mysql")]
+macro_rules! Test {
+    ($name: ident, $test_fn:item) => {
+        test_base! {$name, $test_fn, MySql, "my"}
+    };
+}

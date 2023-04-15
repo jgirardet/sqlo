@@ -26,7 +26,7 @@ impl Arguments {
     }
 
     // Return arguments as a sequence matching query pattern
-    #[cfg(feature = "sqlite")]
+    #[cfg(not(feature = "postgres"))]
     pub fn as_result(&self, query: &str) -> Vec<&Expr> {
         get_indexes_form_query(query)
             .iter()

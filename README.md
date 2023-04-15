@@ -8,7 +8,7 @@ Sqlo is another attempt to make a nice/pleasant API in Rust using relational dat
 
 Sqlo is built on top of sqlx and uses sqlx macros so you keep all the power of sqlx at compile time with less boiler plate.
 
-Right now, Sqlite and Postgres are supported. PR welcomed :-)
+Right now, Sqlite, Postgres, MySql are supported. PR welcomed :-)
 
 ## Install
 
@@ -269,7 +269,7 @@ myrow.some_field = 1; // compile_error
 
 ## Macros: Introduction
 
-Sqlo supports `select!` and `update!` macro.
+Sqlo supports `select!`, `insert` and `update!` macro.
 We try keep API consistent to make it easy to remember and use.
 In this chapter we'll explain the core principles of using those macros, next chapter will explain each one.
 
@@ -312,6 +312,7 @@ update![TableStruct(instance) field1=value1, field2=value2](&pool).await?
 // To reuse instance you have to specify a return (fetch_one, fetch_all, fetch)
 let instance = update![. TableStruct(instance) field1=value1, field2=value2](&pool).await?
 //  not the dot `.` meaning fetch_one
+// only with sqlite and postgres
 ```
 
 ```rust
@@ -369,6 +370,7 @@ Please remember that `::` isn't mandatory in assignment expressions.
 Primary_key can also be ommited, if supported by the DBMS.
 
 Returning instance with `.` uses `insert.... returning` in SQL.
+Actually not fully fonctional with [MariaDB](https://github.com/launchbadge/sqlx/issues/2457)
 
 ## The `select!` marcro
 
@@ -734,3 +736,6 @@ select![dbg! * House where width >30]...
   - task check
 - Every command has its database only variant : sq-check, sq-test, pg-test, pg-setup, ... Supported prefixes sq, pg and my.
 - Due to some specificities in SQL syntax, each database backend has is own migrations file but the content is at the end the same.
+- Use "SQLO_DEBUG_QUERY" en variable and/or `dbg!` to print queries.
+- Get output with the following format:
+    `task sq-test -- some_tests -- --nocapture`
