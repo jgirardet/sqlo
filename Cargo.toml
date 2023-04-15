@@ -11,7 +11,7 @@ readme = "README.md"
 repository = "https://github.com/jgirardet/sqlo"
 keywords = ["sqlx", "orm", "postgres", "sqlite", "mysql"]
 categories = ["database-implementations"]
-
+exclude = [".vscode/", ".sqlo/", "tests/", "TODO", "target/"]
 
 [lib]
 name = "sqlo"
