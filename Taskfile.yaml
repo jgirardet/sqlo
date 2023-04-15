@@ -5,6 +5,7 @@ version: "3"
 vars:
   EDITOR_DB_FILE: "/tmp/sqlo.sqlite"
   PG_DATABASE_URL: "postgres://postgres:password@localhost:5432/sqlo"
+  MY_DATABASE_URL: "mysql://root:password@localhost:3306/sqlo"
 
 tasks:
   install_dependencies:
@@ -87,6 +88,10 @@ tasks:
     cmds:
       - task: editor_imp
 
+  sq-run:
+    cmds:
+      - task: sq-reset
+
   sq-expand:
     vars:
       SQLITE_DB:
@@ -134,25 +139,69 @@ tasks:
           FEATURES: "postgres"
 
   #########################
+  #         MySQL         #
+  #########################
+
+  my-run:
+    cmds:
+      - docker  run --rm -p 3306:3306 -e MARIADB_ROOT_PASSWORD=password -e MARIADB_DATABASE=sqlo --name sqlo_my -d mariadb:10
+
+  my-stop:
+    cmds:
+      - docker stop sqlo_my
+
+  my-reset:
+    cmds:
+      - task: my-stop
+      - task: my-run
+
+  my-test:
+    cmds:
+      - task: migrate
+        vars: { DATABASE_URL: "{{.MY_DATABASE_URL}}", DB: "my" }
+      - task: run_test
+        vars:
+          DATABASE_URL: "{{ .MY_DATABASE_URL }}"
+          FEATURES: "mysql"
+
+  my-expand:
+    cmds:
+      - task: migrate
+        vars: { DATABASE_URL: "{{.MY_DATABASE_URL}}", DB: "pg" }
+      - task: expand_imp
+        vars:
+          DATABASE_URL: "{{.MY_DATABASE_URL}}"
+          FEATURES: "mysql"
+
+  #########################
   #       All Together    #
   #########################
 
   test:
     - task: sq-test
     - task: pg-test
+    - task: my-test
+
+  reset:
+    - task: sq-reset
+    - task: pg-reset
+    - task: my-reset
+
+  run:
+    - task: sq-run
+    - task: pg-run
+    - task: my-run
+
+  stop:
+    - task: pg-stop
+    - task: my-stop
 
   check:
     - cargo check --features=sqlite
     - cargo check --features=postgres
+    - cargo check --features=mysql
 
   clippy:
     - cargo clippy --features=sqlite
     - cargo clippy --features=postgres
-
-  #########################
-  #       utility         #
-  #########################
-
-  expand:
-    - task: expand_imp
-      # vars: { FEATURES: "{{.CLI_ARGS}}" }
+    - cargo clippy --features=mysql

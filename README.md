@@ -721,3 +721,16 @@ Debug a single one with `dbg!`.
 ```rust
 select![dbg! * House where width >30]...
 ```
+
+## Contributing
+
+- install[taskfile](https://taskfile.dev)
+- setup development database:
+  - task run: setup databases
+  - task stop: unsetup databases
+  - task reset: unsetup + setup
+  - task test: run all tests on every databases
+  - task clippy
+  - task check
+- Every command has its database only variant : sq-check, sq-test, pg-test, pg-setup, ... Supported prefixes sq, pg and my.
+- Due to some specificities in SQL syntax, each database backend has is own migrations file but the content is at the end the same.
