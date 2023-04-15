@@ -2,6 +2,16 @@
 edition = "2021"
 name = "sqlo"
 version = "0.1.0"
+license-file = "LICENSE"
+description = """Syntactic sugar for sqlx. 
+Sqlo is another attempt to make a nice/pleasant API in Rust using relational database.
+Sqlo is built on top of sqlx and uses sqlx macros so you keep all the power of sqlx at compile time with less boiler plate.
+Right now, Sqlite, Postgres and MySql are supported"""
+readme = "README.md"
+repository = "https://github.com/jgirardet/sqlo"
+keywords = ["sqlx", "orm", "postgres", "sqlite", "mysql"]
+categories = ["database-implementations"]
+
 
 [lib]
 name = "sqlo"
