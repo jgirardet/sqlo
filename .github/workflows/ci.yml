@@ -67,10 +67,12 @@ jobs:
           toolchain: stable
           override: true
 
-      - uses: actions-rs/cargo@v1
+      - name: install sqlix-cli
+        uses: actions-rs/install@v0.1
         with:
-          command: install
-          args: sqlx-cli
+          crate: sqlx-cli
+          version: latest
+          use-tool-cache: true
 
       - uses: arduino/setup-task@v1
         with:
@@ -79,6 +81,31 @@ jobs:
       - run: task pg-run
       - run: task pg-test
 
+  mysql:
+    name: Mysql
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: install sqlix-cli
+        uses: actions-rs/install@v0.1
+        with:
+          crate: sqlx-cli
+          version: latest
+          use-tool-cache: true
+
+      - uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: task my-run
+      - run: task my-test
   # postgres:
   #   name: Postgres
   #   runs-on: ubuntu-22.04
