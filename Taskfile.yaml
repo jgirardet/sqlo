@@ -200,3 +200,6 @@ tasks:
     - cargo clippy --features=sqlite
     - cargo clippy --features=postgres
     - cargo clippy --features=mysql
+
+  release:
+    - cargo release --no-publish {{.CLI_ARGS}} # add -x [level] to release
