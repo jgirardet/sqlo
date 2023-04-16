@@ -55,8 +55,7 @@ pub fn parse_field_member(input: ParseStream) -> syn::Result<IdentString> {
 
 pub fn parse_optional_field_member(input: ParseStream) -> syn::Result<Option<IdentString>> {
     if input.peek(Token![.]) {
-        input.parse::<Token![.]>()?;
-        input.call(parse_identstring).map(|x| x.into())
+        input.call(parse_field_member).map(|x| x.into())
     } else {
         Ok(None)
     }
