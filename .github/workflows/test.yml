@@ -79,6 +79,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: task pg-run
+      - run: sleep 20
       - run: task pg-test
 
   mysql:
@@ -105,6 +106,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: task my-run
+      - run: sleep 20
       - run: task my-test
 
   publish:
