@@ -81,7 +81,7 @@ fn build_sql_query(
 
     let columns = commma_sep_with_parenthes_literal_list(columns_array);
 
-    return format!("INSERT INTO {tablename} {columns} VALUES({qmarks}) ON CONFLICT ({pk_column}) {on_conflict};");
+    format!("INSERT INTO {tablename} {columns} VALUES({qmarks}) ON CONFLICT ({pk_column}) {on_conflict};")
 }
 
 #[cfg(feature = "mysql")]

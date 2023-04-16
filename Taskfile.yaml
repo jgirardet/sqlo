@@ -196,11 +196,6 @@ tasks:
     - task: pg-stop
     - task: my-stop
 
-  check:
-    - cargo check --features=sqlite
-    - cargo check --features=postgres
-    - cargo check --features=mysql
-
   clippy:
     - cargo clippy --features=sqlite
     - cargo clippy --features=postgres
