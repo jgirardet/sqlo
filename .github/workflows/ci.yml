@@ -12,7 +12,7 @@ jobs:
     name: Check
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -36,7 +36,7 @@ jobs:
     name: Sqlite
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -44,11 +44,34 @@ jobs:
           toolchain: stable
           override: true
 
+      - uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: sqlx-cli
+
       - uses: arduino/setup-task@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: task sq-test
+
+  # postgres:
+  #   name: Postgres
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: minimal
+  #         toolchain: stable
+  #         override: true
+
+  #     - uses: arduino/setup-task@v1
+  #       with:
+  #         repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  #     - run: task sq-test
 #   test:
 #     name: Unit Test
 #     runs-on: ubuntu-22.04
