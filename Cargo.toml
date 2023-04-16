@@ -2,6 +2,7 @@
 edition = "2021"
 name = "sqlo"
 version = "0.2.0"
+license = "MIT"
 license-file = "LICENSE"
 description = """Syntactic sugar for sqlx. 
 Sqlo is another attempt to make a nice/pleasant API in Rust using relational database.
