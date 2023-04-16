@@ -45,9 +45,9 @@ Main features:
 ```toml
 #Cargo.toml
 sqlo = {version="0.1.0", features=["sqlite"]}
-// or
+# or
 sqlo = {version="0.1.0", features=["postgres"]}
-// or
+# or
 sqlo = {version="0.1.0", features=["mysql"]}
 ```
 
