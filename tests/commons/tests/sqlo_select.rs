@@ -11,6 +11,9 @@ Test! {select_with_pk, async fn func(p: PPool) {
     assert_eq!(res.id, 1);
     assert_eq!(res.adresse, "adresse1");
     assert_eq!(res.taille, 101);
+    // only pk
+    let res2 = select![.Maison[1]](&p.pool).await.unwrap();
+    assert_eq!(res, res2);
 }}
 
 Test! {select_with_attribute, async fn func(p: PPool) {
@@ -118,11 +121,18 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
     nb_result!(p,Maison, id<= taille, 4);
     nb_result!(p,Maison, id == ::taille, 1);
     nb_result!(p,Maison, id == taille, 0);
+    // use variable since no field exist
+    #[allow(unused_variables)]
+    let bla = 1;
+    nb_result!(p, Maison, id==bla, 1);
+
     // long patha
     mod moda {
         pub const A:i32= 1;
     }
     nb_result!(p,Maison, id == ::moda::A, 1);
+
+
 }}
 
 Test! {select_test_where_parethesis, async fn func(p: PPool) {

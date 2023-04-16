@@ -1,32 +1,24 @@
-A faire:
+# TODO
 
-- mysql
-
-- Querybuilder commencer petre bien dégueux...
-- requete par select![.Maison[1]]
-
-# Bug:
+## Bug:
 
 - fonction comme trim de mysql qui nécessite une grammaire particulière (leading, dfrom, ...)
-- rediscuter le typeoverride au bout du compte ?
-- delete with foreign key (delete maison[1])
 - Serializer de create fn et fk doit retourner null et non empty string
 
-# à faire peut être :
+## todo, maybe
+
+- indexing, fielding without ::
+- Querybuilder commence par être bien dégueux...
+- rediscuter le typeoverride au bout du compte ?
+- delete with foreign key (delete maison[1])
+- Pg: any, all
+- move to syn2 (when darling' ready)
+
+## ideas
 
 - to_json method
 - from_json
 
-## Faire pour tuer le temps:
-
--test sqlo\*set de query
+## missing tests:
 
 - test Vec<u8>
-
-# Passage à pgsql
-
-- any, all
-
-# plus tard
-
-passer à syn 2

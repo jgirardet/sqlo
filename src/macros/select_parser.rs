@@ -2,10 +2,10 @@ use darling::util::IdentString;
 
 #[cfg(debug_assertions)]
 use super::parse_dbg_symbol;
-use super::{parse_bracketed, Fetch, PkValue, QueryParser};
+use super::{parse_bracketed, parse_optional_field_member, Fetch, PkValue, QueryParser};
 
 use crate::macros::{
-    parse_field_member, parse_optional_columns, parse_optional_group_by, parse_optional_having,
+    parse_optional_columns, parse_optional_group_by, parse_optional_having,
     parse_optional_ident_with_comma, parse_optional_limit_page, parse_optional_order_by,
     parse_optional_where, parse_sqlo_struct_ident,
 };
@@ -40,10 +40,7 @@ impl syn::parse::Parse for SelectParser {
         let entity = input.call(parse_sqlo_struct_ident)?;
         // or  ident[pk].related
         let pk_value = input.call(parse_bracketed)?;
-        let related = match pk_value {
-            PkValue::None => None,
-            _ => Some(input.call(parse_field_member)?),
-        };
+        let related = input.call(parse_optional_field_member)?;
 
         // parse optional custom colums
         let customs = input

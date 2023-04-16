@@ -40,21 +40,18 @@ impl ColumnToSql for &IdentString {
                 Ok(ctx.aliases[self].clone().into())
             }
         } else {
+            // convert ident to value if no column
+            if ctx.main_sqlo.field(self.as_ident()).is_none() {
+                return ColExpr::Value(syn::parse2::<syn::Expr>(self.to_token_stream())?)
+                    .column_to_sql(ctx);
+            }
             // all ident from main sqlo
             match ctx.mode {
                 Mode::Select => Ok(ctx
                     .tables
                     .alias_dot_column(&ctx.main_sqlo.ident, self)?
                     .into()),
-                _ => {
-                    // convert ident to value if no column
-                    if ctx.main_sqlo.field(self.as_ident()).is_none() {
-                        return ColExpr::Value(syn::parse2::<syn::Expr>(self.to_token_stream())?)
-                            .column_to_sql(ctx);
-                    }
-
-                    Ok(ctx.tables.column(&ctx.main_sqlo.ident, self)?.into())
-                }
+                _ => Ok(ctx.tables.column(&ctx.main_sqlo.ident, self)?.into()),
             }
         }
     }

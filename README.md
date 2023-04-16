@@ -1,34 +1,79 @@
-# sqlo
+<h1 align="center">🧁   Sqlo   🍰</h1>
+<div align="center">
+ <strong>
+   Syntactic sugar for sqlx.
+ </strong>
+</div>
 
-Syntactic sugar for sqlx.
+<br />
+
+#### Contents
+
+- [Install](#install)
+- [Deriving Sqlo](#deriving-sqlo)
+- [Relations](#relations)
+- [Methods](#methods): **[get](#get) [save](#save) [delete](#delete) [remove](#remove)**
+- [Macros](#macros-introduction): **[insert!](#the-insert-macro) [update!](#the-update-macro) [select!](#the-select-marcro)**
+- [Clauses](#clauses):
+  [where](#the-where-clause)
+  [join](#relationship)
+  [goupe by](#the-group-by-clause)
+  [having](#the-having-clause)
+  [pagination](#limitoffset-and-pagination)
+  [subquery](#subqueries)
 
 ## What is it ?
 
-Sqlo is another attempt to make a nice/pleasant API in Rust using relational database.
+**Sqlo** is another attempt to make a nice/pleasant API in Rust using relational database.
 
-Sqlo is built on top of sqlx and uses sqlx macros so you keep all the power of sqlx at compile time with less boiler plate.
+**Sqlo** is built on top of _sqlx_ and uses sqlx macros so you keep all the power of _sqlx_ at compile time with less boiler plate.
 
-Right now, Sqlite, Postgres, MySql are supported. PR welcomed :-)
+Right now, Sqlite, Postgres, MySql are supported.
+
+It has some ORM-like capabilities without being a real ORM.
+
+Main features:
+
+- Almost no boilerplate.
+- `get, save, delete` methods at hand.
+- Intuitive, easy to use macros api : `select!, insert!, update!` : write _Sq queryl_ with _Rust_ code using _Rust_ syntax and structs.
+- Quick access to foreinkeys for a given row.
+- supports sqlite, postgres and mysql
 
 ## Install
 
 ```toml
 #Cargo.toml
 sqlo = {version="0.1.0", features=["sqlite"]}
+// or
+sqlo = {version="0.1.0", features=["postgres"]}
+// or
+sqlo = {version="0.1.0", features=["mysql"]}
 ```
 
 ## How it works ?
 
+Given this Sql database.
+
+```sql
+CREATE TABLE my_table (
+  id INTEGER PRIMARY KEY,
+  test TEXT NOT NULL,
+  maybe INTEGER
+);
+```
+
 Just derive `Sqlo` macro:
 
 ```rust
-#[derive(Sqlo, PartialEq, Debug)]
+#[derive(Sqlo, PartialEq)]
 struct MyTable {
     id: i64,
     text: String,
     maybe: Option<i64>,
 }
 ...
+use sqlo::{select, update, insert};
 //
 let pool = get_my_db_pool().await?;
 
@@ -37,6 +82,8 @@ let a = insert!(. MyTable text="hello")(&pool).await?;
 
 // retrieve row by primary_key
 let mut b = MyTable::get(&pool, a.id).await?
+//or
+let mut b = select!(.MyTable[1])(&pool).await // the `.` means fetch_one
 assert_eq!(a,b);
 
 // update a full row with instance
@@ -45,29 +92,32 @@ b.save(&pool).await?;
 
 // select: where order limit
 let items : Vec<Maison> = select![* Maison where text=="bla" order_by -id limit 50](&pool).await?;
+// `*` means fetch_all, use `+` for fetch, `.` for `fetch_one`
 
 // select: sql function, group_by, force non null alias.
-let items = select![*PieceFk maison_id, count(*) as total! group_by maison_id order_by total](&p.pool).await?;
+let items = select![*PieceFk maison_id, count(*) as total! group_by maison_id having total >3 order_by total](&p.pool).await?;
+// or
+let items = select![*PieceFk maison_id, count(*) as "total!:i32" group_by maison_id having total >3 order_by total](&p.pool).await?;
+// Aliases can be reused along the query
 
 
-// update selected fields only
-let b = update[. MyTable(b) text="I'm Back", maybe=Some(12)](&pool).await?;
+// update with instance (parenthesis)
+update![ MyTable(b) text="I'm Back", maybe=Some(12)](&pool).await?; // No `.,+,*` means `execute`.
+// or with primary_key (brackets)
+let c = update[. MyTable[b.id] text="I'm Back", maybe=Some(12)](&pool).await?; // `.` means fetch_one
 
-// or the same by primary_key
-let pk = b.id;
-let c = update![. MyTable[pk], text="I'm reBack", maybe=None](&pool).await?;
 
 // remove by instance
 c.remove(&pool).await?
 //or delete with pk
-MyTable.delete(&pool, pk).await?
+MyTable::delete(&pool, pk).await?
 ```
 
-## Attributes
+## Deriving Sqlo
 
 #### Struct attributes
 
-Every attributes (struct or field) are expected under the `sqlo` attribute.
+Every attributes (struct or field) are expected under the `Sqlo` attribute.
 
 ##### tablename
 
@@ -126,8 +176,7 @@ assert_eq!(instance.id, Uuid("someuuidv4"))
 
 #### type_override
 
-Under the hood `Sqlo` uses sqlx's `query_as!` for `get`, and `update`.
-This attribute gives you access to [sqlx type override](https://docs.rs/sqlx/latest/sqlx/macro.query_as.html#column-type-override-infer-from-struct-field) so the query uses `select field as "field:_", ...` instead of `select field, ...`?
+Under the hood when `Sqlo` uses `sqlx::query_as!`, it will use type override for the column [sqlx type override](https://docs.rs/sqlx/latest/sqlx/macro.query_as.html#column-type-override-infer-from-struct-field) so it gives `select field as "field:_", ...` instead of `select field, ...`.
 
 ## Relations
 
@@ -173,7 +222,7 @@ Entities and Relations are kept in a `.sqlo` directory which is created at compi
 
 The `fk` literal can be identifier (`"MyRoom"`) or a path (`"mycrate::mydir::MyRoom"`).
 
-Use SELF joins declaring `fk` in the same struct:
+Use self-joins declaring `fk` in the same struct:
 
 ```rust
 #[derive(Sqlo)]
@@ -239,9 +288,10 @@ struct MyTable {
 //...
 let mut mytable = MyTable{id:1, name:"bla".to_string(), alive:true, membres:None};
 mytable.save(&pool).await?;
-// equivalent to insert!(Mytable  id=1, name="bla", alive=true)(&pool).await?
+// doesn't exists then equivalent to insert!(Mytable  id=1, name="bla", alive=true)(&pool).await?
 mytable.members = Some(345);
 mytable.save(&pool);
+// equivalent to update!(MyTable(mytable) members=Some(345))(&p.pool).await?
 let mytable2 = MyTable::get(&pool, 1).await?;
 assert_eq!(mytable, mytable2);
 ```
@@ -274,12 +324,15 @@ We try keep API consistent to make it easy to remember and use.
 In this chapter we'll explain the core principles of using those macros, next chapter will explain each one.
 
 - Macros only act as syntactic sugar to sqlx macros `sqlx::query! and sqlx:query_as!`.
-  Sqlo macro content is translated to sqlx content :
+- Macros return a closure which takes an `sqlx Executor` as unique argument. Return type is the same as `fetch_one, fetch_all, fetch, execute, ...` depending what you use.
+- It's rust syntax not sql: that's why we use `==` instead of `=`.
+
+- Sqlo macro content is translated to sqlx content :
 
 ```rust
 select![. House where room >23](&pool)
 // is replaced with
-sqlx::query_as!(House, "select house h where h.room > ?", 23).fetch_one(&pool)
+sqlx::query_as!(House, "select * from house h where h.room > ?", 23).fetch_one(&pool)
 ```
 
 It means, after sqlo's checks, sqlx's checks will occur as usual.
@@ -287,15 +340,13 @@ It means, after sqlo's checks, sqlx's checks will occur as usual.
 - Every literal, variable arguments, ... are passed as argument to sqlx macros.
 
 - sqlx method call's choice is donc using punctuations sign like in regular at the beggining of the query. It follows welle known regular expressions syntax:
-  - nothing -> execute (returns nothing)
-  - **\.** -> fetch_one (one)
-  - **\*** -> fetch_all (zero or more)
-  - **\?** -> fetch_optional (one or zero)
-  - **\+** -> fetch (one or more.)
+  - nothing -> _execute_ (returns nothing)
+  - **\.** -> _fetch_one_ (one)
+  - **\*** -> _fetch_all_ (zero or more)
+  - **\?** -> _fetch_optional_ (one or zero)
+  - **\+** -> _fetch_ (one or more.)
 
 Please refer to [sqlx doc](https://docs.rs/sqlx/latest/sqlx/macro.query.html) for more about it.
-
-- It's rust syntax not sql: that's why we use `==` instead of `=`.
 
 ## The `update!` macro
 
@@ -332,8 +383,6 @@ update_House!(House[2] height=big_height)(&pool).await?;
 update_House!(House[2] height=::big_height)(&pool).await?;
 ```
 
-Remember you have to preceed variables with `::` in comparisons `==, >=, ...` but it's optional in assignment expression `=`.
-
 ## The `insert!` macro
 
 It supports the followings formats:
@@ -365,8 +414,6 @@ insert![House,id=a  name="bla", width=23, height=None](&pool).await?
 
 ```
 
-Please remember that `::` isn't mandatory in assignment expressions.
-
 Primary_key can also be ommited, if supported by the DBMS.
 
 Returning instance with `.` uses `insert.... returning` in SQL.
@@ -380,7 +427,6 @@ Select queries are performed with the `select!` macro.
 // query returning a derived sqlo struct
 let res: Vec<MyStruct> select![* MyStruct where myfield > 1](&pool).await.unwrap();
 // select * from mystruct_table where mystruct_table.myfield >1
-
 
 // query some specific values/column
 let res = select![. MyStruct max(some_field) as bla where something == 23](&pool).await.unwrap();
@@ -451,16 +497,17 @@ assert_eq!(total.all, 5);
 
 - we support the following "column" format:
   - identifier (`id`, `width`, ...): a field.
-  - a field access (`therooms.bed`): access a related field. It wil add a [INNER JOIN](###INNER-JOIN)
+  - a field access (`therooms.bed`): access a related field. It wil add a [INNER JOIN](#using-join)
+  - a field access (`therooms=.bed`): access a related field. It wil add a [LEFT JOIN](#using-join)
   - a field acces with the struct name: `House.width`
   - a sql function (`sum(id)`, `replace(adresse, "1", "345")`)
   - a binary operation(`id + 3`)
   - unary: `-id`, `-1`, ...
-  - case: [case when then](###Case-When-Then)
+  - case: use rust `match`  [case when then](###Case-When-Then)
 
 In the "select" part of the query (the columns queried), function, operation, unary must be followed by `as` with an identifier.
 
-Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case, it must be escaped with a `::` :
+Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case could  be escaped with a `::`  if needed:
 
 ```rust
 let myvar = "bla".to_string();
@@ -497,6 +544,52 @@ select![. House id!, count(width) as total?]
 select![.House count(*)]
 ```
 
+### Using Rust items as parameters:
+
+Rust items can be passed to expressions. If a field and a variable have the same name, add `::` before the name to force usage of the variable instead of field.
+
+```rust
+// Variables
+let width = 34;
+select![* House where height == ::width] // Right hand part of the expression will refere to the variable width not the field `width` of struct House
+select![* House where width == ::width]
+
+select![.House where id == ::width] // variable width is used
+// sql : select * from house where id=? (? will be 34 as parameter)
+select![.House where id == width] // variable width is ignored, column name wil be used in sql
+// sql : select * from house where id=width
+```
+
+For now index and other struct field usage must use `::`.
+
+```rust
+// Indexing
+let array = [1 , 2, 3]
+select![. House where width == ::array[0]]
+
+// struct field
+struct A {b:i32}
+let a = A{b:2}
+select![. House where width == ::a.b]
+```
+
+```rust
+
+```
+
+### Case When Then
+
+We use rust `match` expression but without braces and `_` as else collector.
+
+```rust
+select[.House id, match width 33=>"small", 100=>"big", _=>"don't know" as "how_big:String"]
+//sqlx::query![r#"SELECT id, CASE width WHEN ? THEN ? WHEN ? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "dont know"]
+select[.House id, match width<33=>"small", width<100=>"big", _=>"very big" as "how_big:String"]
+//sqlx::query![r#"SELECT id, CASE WHEN house.width<? THEN ? WHEN house.width<? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "very big"]
+```
+
+## Clauses
+
 ### The WHERE clause
 
 It's an aggregate of binary expressions, here are some use cases, by SQL usage:
@@ -520,7 +613,7 @@ It's an aggregate of binary expressions, here are some use cases, by SQL usage:
 
 You can access related row/collections via a "virtual field", the specified with [`fk` attribute](#relations).
 
-Sqlo supports two of working with relationships.
+Sqlo supports two way of working with relationships.
 
 - the first one without `JOIN` wich allowes you a direct query to some related entries.
 - the second one uses `JOIN` like in regular queries.
@@ -545,8 +638,8 @@ JOIN is automagically added to queries when using a related field.
 
 Select JOIN type with the following:
 
-    - INNER JOIN with `.` ex: `therooms.bed`
-    - LEFT JOIN with `=.` (think about the inclusie `=` in rust range) ex: `therooms=.bed`
+- INNER JOIN with `.` ex: `therooms.bed`
+- LEFT JOIN with `=.` (think about the inclusie `=` in rust range) ex: `therooms=.bed`
 
 ```rust
 select![* House where therooms.bed == true]
@@ -571,34 +664,6 @@ So you have to infer nullability yourself adding `?` :
 
 ```rust
 select![* House id, therooms=.id as "rooms_id?"]
-```
-
-### Using Rust items as parameters:
-
-To pass local rust item, use leading `::`.
-
-```rust
-// Variables
-let width = 1;
-select![* House where height == ::width] // Right hand part of the expression will refere to the variable width not the field of house
-select![* House where width == ::width] //
-
-// Indexing
-let array = [1 , 2, 3]
-select![. House where width == ::array[0]]
-
-// struct field
-struct A {b:i32}
-let a = A{b:2}
-select![. House where width == ::a.b]
-```
-
-```rust
-let width = 34;
-select![.House where id == ::width] // variable width is used
-// sql : select * from house where id=? (? will be 34 as parameter)
-select![.House where id == width] // variable width is ignored, column name wil be used in sql
-// sql : select * from house where id=width
 ```
 
 ### The Group By clause
@@ -677,7 +742,7 @@ assert_eq!(limit, page);
 Subqueries are done using braces `{}`.
 
 ```rust
-select![*House where zipcode in {ZipCodeTable zip where zip > 260}].fetch_all...
+select![*House where zipcode in {ZipCodeTable zip where zip > 260}](&pool)...
 // transltates to
 // sqlx::query_as!(House, "select * from house where zipcode in (select distinct zip from zip_table where zip > ?)", 260 ).fetch_all...
 ```
@@ -689,7 +754,7 @@ select![*House id, {HouseKind count(*) where width == House.width} as kind_total
 // a few notes here :
 // - it needs an alias since it's returned
 // - use the struct name to leverage ambigous fields (here width)
-// - no `as` is required in the subquery
+// - no `as` is required in the subquery since it's not returned
 ```
 
 It supports `exists` keyword:
@@ -698,27 +763,16 @@ It supports `exists` keyword:
 select![*House where zipcode where exists {ZipCodeTable zip where zip > 260}].fetch_all...
 ```
 
-### Case When Then
-
-We use rust `match` expression but without braces and `_` as else collector.
-
-```rust
-select[.House id, match width 33=>"small", 100=>"big", _=>"don't know" as "how_big:String"]
-//sqlx::query![r#"SELECT id, CASE width WHEN ? THEN ? WHEN ? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "dont know"]
-select[.House id, match width<33=>"small", width<100=>"big", _=>"very big" as "how_big:String"]
-//sqlx::query![r#"SELECT id, CASE WHEN house.width<? THEN ? WHEN house.width<? THEN ? ELSE ? END as "how_big:String""#,33,"small",100, "big", "very big"]
-```
-
-### Debugging Queries
+## Debugging Queries
 
 Debug all queries vith env variable :
 
 - SQLO_DEBUG_QUERY: will show you how queries are translated
-- SQLO_DEBUG_QUERY: will show you how queries are translated + the params
+- SQLO_DEBUG_QUERY_ALL: will show you how queries are translated + the params
 
 or
 
-Debug a single one with `dbg!`.
+In macrs, debug a single one with `dbg!`.
 
 ```rust
 select![dbg! * House where width >30]...
@@ -726,16 +780,25 @@ select![dbg! * House where width >30]...
 
 ## Contributing
 
-- install[taskfile](https://taskfile.dev)
+Every contribution is warmly welcomed.
+Please open an issue first to discuss it before you spend some time on it.
+
+### steps
+- install [taskfile](https://taskfile.dev)
+- clone the repo
 - setup development database:
   - task run: setup databases
   - task stop: unsetup databases
   - task reset: unsetup + setup
-  - task test: run all tests on every databases
-  - task clippy
-  - task check
-- Every command has its database only variant : sq-check, sq-test, pg-test, pg-setup, ... Supported prefixes sq, pg and my.
-- Due to some specificities in SQL syntax, each database backend has is own migrations file but the content is at the end the same.
-- Use "SQLO_DEBUG_QUERY" en variable and/or `dbg!` to print queries.
-- Get output with the following format:
-    `task sq-test -- some_tests -- --nocapture`
+- Make you changes
+- test it with  task test: run all tests on every databases
+- some formatting: 
+    - task clippy
+    - cargo fmt
+- remarques :
+    - Every command has its database only variant : sq-check, sq-test, pg-test, pg-setup, ... Supported prefixes sq, pg and my.
+    - Due to some specificities in SQL syntax, each database backend has is own migrations file but the content is at the end the same.
+    - [help to debug queries](#debugging-queries)
+- Get output in tests with the following format:
+  `task sq-test -- some_tests -- --nocapture`
+- push the PR.
