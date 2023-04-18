@@ -240,7 +240,7 @@ Test! {select_cutoms_fields_related_join, async fn func(p: PPool) {
   let res = select![*Maison lespieces.lg where lespieces.lg > 2](&p.pool).await.unwrap();
   assert_eq!(res.len(), 7);
   // plain struct join
-  let res = select![*Maison where adres.id >2](&p.pool).await.unwrap();
+  let res = select![*Maison where adres.id >"2"](&p.pool).await.unwrap();
   assert_eq!(res[0].id, 3);
 
   // with join and where alias
