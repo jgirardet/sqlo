@@ -57,7 +57,8 @@ Test! {update_returning_instance, async fn func(p: PPool) {
     let r = Maison::get(&p.pool, 1).await.unwrap();
     // test update with update like instance syntax
     let t  = update![. Maison(r) taille = 53](&p.pool).await.unwrap();
-    assert_eq!(Maison::get(&p.pool, 1).await.unwrap().taille, 53);
+    // assert_eq!(Maison::get()&p.pool, 1).await.unwrap().taille, 53);
+    assert_eq!(select![. Maison[1] taille](&p.pool).await.unwrap().taille, 53);
     assert_eq!(t.taille, 53);
 
 }}
