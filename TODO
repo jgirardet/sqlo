@@ -8,6 +8,8 @@
 ## todo, maybe
 
 - indexing, fielding without ::
+- composite primary key
+- reverse struct join
 - Querybuilder commence par être bien dégueux...
 - rediscuter le typeoverride au bout du compte ?
 - delete with foreign key (delete maison[1])
