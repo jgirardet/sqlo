@@ -2,8 +2,8 @@
 CREATE TABLE maison (
   id int auto_increment  PRIMARY KEY,
   adresse TEXT NOT NULL,
-  taille INT NOT NULL, 
-  piscine BOOLEAN 
+  taille INT NOT NULL,
+  piscine BOOLEAN
 );
 
 CREATE TABLE piece (
@@ -36,7 +36,7 @@ CREATE TABLE adresse (
 -- );
 
 
-INSERT INTO maison (id, adresse, taille) VALUES 
+INSERT INTO maison (id, adresse, taille) VALUES
   (1, 'adresse1', 101),
   (2, '   adresse2    ', 102),
   (3, 'adresse3', 103),
@@ -56,30 +56,30 @@ INSERT INTO piece VALUES
   (X'99999999999999999999999999999999',9,90, 1);
 
 
-INSERT INTO adresse (id, rue, m_id) VALUES 
+INSERT INTO adresse (id, rue, m_id) VALUES
   ('1', 'adresse1',1),
   ('2', '    adresse2    ',2),
   ('3', 'adresse3',3);
-  
 
-  CREATE TABLE IF NOT EXISTS lit ( 
+
+  CREATE TABLE IF NOT EXISTS lit (
     id INT NOT NULL PRIMARY KEY,
     surface INT NOT NULL
-    ); 
+    );
 
 INSERT INTO lit (id, surface) VALUES
   (1, 234),
   (2, 100),
   (3, 450),
   (4, 234);
-  
-CREATE TABLE IF NOT EXISTS self_relation ( 
+
+CREATE TABLE IF NOT EXISTS self_relation (
     id INT  PRIMARY KEY,
     name TEXT NOT NULL,
     salary INT NOT NULL,
     manager_id INT,
   FOREIGN KEY(manager_id) REFERENCES self_relation(id)
-    ); 
+    );
 
 INSERT INTO self_relation VALUES
   (3, 'papa', 1200, NULL),

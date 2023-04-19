@@ -503,11 +503,11 @@ assert_eq!(total.all, 5);
   - a sql function (`sum(id)`, `replace(adresse, "1", "345")`)
   - a binary operation(`id + 3`)
   - unary: `-id`, `-1`, ...
-  - case: use rust `match`  [case when then](###Case-When-Then)
+  - case: use rust `match` [case when then](###Case-When-Then)
 
 In the "select" part of the query (the columns queried), function, operation, unary must be followed by `as` with an identifier.
 
-Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case could  be escaped with a `::`  if needed:
+Sql function'a parameters can bien identifier field, field access, literal (`"text"`) or any rust expression (array indexing, instance field access, simple variable). In this last case could be escaped with a `::` if needed:
 
 ```rust
 let myvar = "bla".to_string();
@@ -784,21 +784,23 @@ Every contribution is warmly welcomed.
 Please open an issue first to discuss it before you spend some time on it.
 
 ### steps
+
 - install [taskfile](https://taskfile.dev)
+- install [pre-commit](https://pre-commit.com/)
 - clone the repo
 - setup development database:
   - task run: setup databases
   - task stop: unsetup databases
   - task reset: unsetup + setup
 - Make you changes
-- test it with  task test: run all tests on every databases
-- some formatting: 
-    - task clippy
-    - cargo fmt
+- test it with task test: run all tests on every databases
+- some formatting:
+  - task clippy
+  - cargo fmt
 - remarques :
-    - Every command has its database only variant : sq-check, sq-test, pg-test, pg-setup, ... Supported prefixes sq, pg and my.
-    - Due to some specificities in SQL syntax, each database backend has is own migrations file but the content is at the end the same.
-    - [help to debug queries](#debugging-queries)
+  - Every command has its database only variant : sq-check, sq-test, pg-test, pg-setup, ... Supported prefixes sq, pg and my.
+  - Due to some specificities in SQL syntax, each database backend has is own migrations file but the content is at the end the same.
+  - [help to debug queries](#debugging-queries)
 - Get output in tests with the following format:
   `task sq-test -- some_tests -- --nocapture`
 - push the PR.

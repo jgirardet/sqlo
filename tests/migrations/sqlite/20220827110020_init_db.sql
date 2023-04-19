@@ -5,7 +5,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE maison (
   id INTEGER NOT NULL PRIMARY KEY,
   adresse TEXT NOT NULL,
-  taille INTEGER NOT NULL, 
+  taille INTEGER NOT NULL,
   piscine BOOLEAN
 );
 
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS with_a_blob (
 );
 
 
-INSERT INTO maison (id, adresse, taille) VALUES 
+INSERT INTO maison (id, adresse, taille) VALUES
   (1, 'adresse1', 101),
   (2, '   adresse2    ', 102),
   (3, 'adresse3', 103),
@@ -59,30 +59,30 @@ INSERT INTO piece VALUES
   (X'99999999999999999999999999999999',9,90, 1);
 
 
-INSERT INTO adresse (id, rue, m_id) VALUES 
+INSERT INTO adresse (id, rue, m_id) VALUES
   ('1', 'adresse1',1),
   ('2', '    adresse2    ',2),
   ('3', 'adresse3',3);
-  
 
-  CREATE TABLE IF NOT EXISTS lit ( 
+
+  CREATE TABLE IF NOT EXISTS lit (
     id INTEGER NOT NULL PRIMARY KEY,
     surface INTEGER NOT NULL
-    ); 
+    );
 
 INSERT INTO lit (id, surface) VALUES
   (1, 234),
   (2, 100),
   (3, 450),
   (4, 234);
-  
-CREATE TABLE IF NOT EXISTS self_relation ( 
+
+CREATE TABLE IF NOT EXISTS self_relation (
     id INTEGER NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
     salary INTEGER NOT NULL,
     manager_id INTEGER,
   FOREIGN KEY(manager_id) REFERENCES self_relation(id)
-    ); 
+    );
 
 INSERT INTO self_relation VALUES
   (1, 'axel', 12, 3),

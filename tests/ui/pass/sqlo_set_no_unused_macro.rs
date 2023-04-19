@@ -11,4 +11,3 @@ async fn main() {
     let _a = "omjk";
 }
 //fail if unuwsed_macro warning appears
-    

@@ -7,5 +7,5 @@ struct IdUniqueInt {
 
 #[async_std::main]
 async fn main() {
-set_IdUniqueInt!()
+    set_IdUniqueInt!()
 }

@@ -1,4 +1,3 @@
-
 #[derive(sqlo::Sqlo)]
 struct Maison {
     id: i64,

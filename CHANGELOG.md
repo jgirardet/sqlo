@@ -4,6 +4,8 @@
 
 - Features:
   - Use indexing in select! without `::`
+- Divers:
+  - Use pre-commit to force fmt and clippy.
 
 ## 0.2
 

@@ -1,6 +1,6 @@
 #![deny(unused_macros)]
 use sqlo::Sqlo;
-use sqlx::{SqliteConnection, Connection};
+use sqlx::{Connection, SqliteConnection};
 
 #[derive(Debug, PartialEq, Sqlo)]
 struct Maison {
@@ -14,11 +14,10 @@ struct Maison {
 #[async_std::main]
 async fn main() {
     let mut conn = SqliteConnection::connect(&std::env::var("DATABASE_URL").unwrap())
-    .await.unwrap();
+        .await
+        .unwrap();
     let pool = &mut conn;
 
-    
     let _m = Maison::get(pool, 1).await.unwrap();
     // sqlo_set!(m; taille=23);
-
 }
