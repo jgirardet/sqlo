@@ -44,25 +44,18 @@ impl ColumnToSql for ColExprSubSelect {
     }
 }
 
-impl ColExprSubSelect {
-    pub fn parse_with_ident(
-        ident: IdentString,
-        input: syn::parse::ParseStream,
-    ) -> syn::Result<Self> {
+impl syn::parse::Parse for ColExprSubSelect {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let func = if input.peek(syn::Ident) {
+            Some(input.parse::<syn::Ident>()?.into())
+        } else {
+            None
+        };
         let content;
         braced!(content in input);
         Ok(Self {
             tokens: content.parse::<proc_macro2::TokenStream>()?,
-            func: Some(ident),
-        })
-    }
-
-    pub fn parse_without_ident(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let content;
-        braced!(content in input);
-        Ok(Self {
-            tokens: content.parse::<proc_macro2::TokenStream>()?,
-            func: None,
+            func,
         })
     }
 }

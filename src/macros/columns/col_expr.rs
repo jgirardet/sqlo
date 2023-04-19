@@ -7,7 +7,6 @@ use syn::{
 use crate::{
     error::SqloError,
     macros::{unarize, ColumnToSql, Fragment, Generator, Operator},
-    relations::Join,
 };
 
 use super::{
@@ -68,30 +67,16 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
     let res = if input.peek(syn::Ident) {
         // let start to see if it starts with an Ident
         let fork = input.fork();
-        if fork.peek(Token![.]) {
-            //parse field : ident.field
-            let ident = input.parse::<syn::Ident>()?;
-            input.parse::<Token![.]>()?;
-            let member = input.parse::<syn::Ident>()?;
-            ColExprField::new(ident, member, Join::Inner).into()
-        } else if fork.peek(Token![=]) && fork.peek2(Token![.]) {
-            // parse left join ident=.field
-            let ident = input.parse::<syn::Ident>()?;
-            input.parse::<Token![=]>()?;
-            input.parse::<Token![.]>()?;
-            let member = input.parse::<syn::Ident>()?;
-            ColExprField::new(ident, member, Join::Left).into()
+        fork.parse::<syn::Ident>()?;
+        if fork.peek(Token![.]) || (fork.peek(Token![=]) && fork.peek2(Token![.])) {
+            //parse joins as field: base.member or base=.member
+            ColExprField::parse(input)?.into()
         } else if fork.peek(syn::token::Paren) {
             // parse call: ident(...)
-            ColExprCall {
-                base: input.parse::<syn::Ident>()?.into(),
-                args: input.parse::<ColExprParen>()?,
-            }
-            .into()
+            ColExprCall::parse(input)?.into()
         } else if fork.peek(syn::token::Brace) {
             // parse subquery: exists {...}
-            let ident = input.parse::<syn::Ident>()?;
-            ColExprSubSelect::parse_with_ident(ident.into(), input)?.into()
+            ColExprSubSelect::parse(input)?.into()
         } else if fork.peek(syn::token::Bracket) {
             ColExpr::Value(input.parse::<ExprIndex>()?.into())
         } else {
@@ -110,7 +95,7 @@ fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
         input.parse::<Token![*]>()?;
         ColExpr::Asterisk
     } else if input.peek(syn::token::Brace) {
-        ColExprSubSelect::parse_without_ident(input)?.into()
+        ColExprSubSelect::parse(input)?.into()
     } else if input.peek(Token![match]) {
         ColExprCase::parse(input)?.into()
     } else {

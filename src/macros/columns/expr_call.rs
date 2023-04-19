@@ -40,3 +40,12 @@ impl ColumnToSql for ColExprCall {
         Ok(res)
     }
 }
+
+impl syn::parse::Parse for ColExprCall {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Ok(ColExprCall {
+            base: input.parse::<syn::Ident>()?.into(),
+            args: input.parse::<ColExprParen>()?,
+        })
+    }
+}

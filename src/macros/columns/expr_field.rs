@@ -1,5 +1,6 @@
 use darling::util::IdentString;
 use proc_macro2::{Punct, Spacing};
+use syn::Token;
 
 use crate::{
     error::SqloError,
@@ -49,5 +50,20 @@ impl ColumnToSql for ColExprField {
         let column = ctx.tables.alias_dot_column(&self.base, &self.member)?;
         ctx.context.pop();
         Ok((column, join).into())
+    }
+}
+
+impl syn::parse::Parse for ColExprField {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let ident = input.parse::<syn::Ident>()?;
+        let join = if input.peek(Token![=]) {
+            input.parse::<Token![=]>()?;
+            Join::Left
+        } else {
+            Join::Inner
+        };
+        input.parse::<Token![.]>()?;
+        let member = input.parse::<syn::Ident>()?;
+        Ok(ColExprField::new(ident, member, join))
     }
 }
