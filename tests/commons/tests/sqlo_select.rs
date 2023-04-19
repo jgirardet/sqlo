@@ -109,6 +109,8 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
     assert_eq!(res.len(), 1);
     nb_result!(p,PieceFk, lg == ::array[1], 1);
     nb_result!(p,PieceFk, lg > ::array[1], 8);
+    let res2 = select![*PieceFk where lg == array[1]](&p.pool).await.unwrap();
+    assert_eq!(res, res2);
     // // field as arg
     let a = A { a: 2 };
     nb_result!(p,PieceFk, lg > ::a.a, 7);

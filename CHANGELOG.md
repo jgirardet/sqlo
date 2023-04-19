@@ -2,6 +2,9 @@
 
 ## next
 
+- Features:
+  - Use indexing in select! without `::`
+
 ## 0.2
 
 - Features :

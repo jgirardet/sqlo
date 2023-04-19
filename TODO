@@ -3,11 +3,10 @@
 ## Bug:
 
 - fonction comme trim de mysql qui nécessite une grammaire particulière (leading, dfrom, ...)
-- Serializer de create fn et fk doit retourner null et non empty string
 
 ## todo, maybe
 
-- indexing, fielding without ::
+- fielding without ::
 - composite primary key
 - reverse struct join
 - Querybuilder commence par être bien dégueux...

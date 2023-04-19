@@ -67,31 +67,36 @@ impl syn::parse::Parse for ColExpr {
 fn parse_initial(input: syn::parse::ParseStream) -> syn::Result<ColExpr> {
     let res = if input.peek(syn::Ident) {
         // let start to see if it starts with an Ident
-        let ident: syn::Ident = input.parse()?;
-        if input.peek(Token![.]) {
+        let fork = input.fork();
+        if fork.peek(Token![.]) {
             //parse field : ident.field
+            let ident = input.parse::<syn::Ident>()?;
             input.parse::<Token![.]>()?;
             let member = input.parse::<syn::Ident>()?;
             ColExprField::new(ident, member, Join::Inner).into()
-        } else if input.peek(Token![=]) && input.peek2(Token![.]) {
+        } else if fork.peek(Token![=]) && fork.peek2(Token![.]) {
             // parse left join ident=.field
+            let ident = input.parse::<syn::Ident>()?;
             input.parse::<Token![=]>()?;
             input.parse::<Token![.]>()?;
             let member = input.parse::<syn::Ident>()?;
             ColExprField::new(ident, member, Join::Left).into()
-        } else if input.peek(syn::token::Paren) {
+        } else if fork.peek(syn::token::Paren) {
             // parse call: ident(...)
             ColExprCall {
-                base: ident.into(),
+                base: input.parse::<syn::Ident>()?.into(),
                 args: input.parse::<ColExprParen>()?,
             }
             .into()
-        } else if input.peek(syn::token::Brace) {
+        } else if fork.peek(syn::token::Brace) {
             // parse subquery: exists {...}
+            let ident = input.parse::<syn::Ident>()?;
             ColExprSubSelect::parse_with_ident(ident.into(), input)?.into()
+        } else if fork.peek(syn::token::Bracket) {
+            ColExpr::Value(input.parse::<ExprIndex>()?.into())
         } else {
             // nothing more so its a simple identifier
-            ColExpr::Ident(ident.into())
+            ColExpr::Ident(input.parse::<syn::Ident>()?.into())
         }
     // it wasn't  an Ident, so is it something else ?
     } else if input.peek(Lit) {
