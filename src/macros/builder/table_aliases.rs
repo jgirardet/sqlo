@@ -18,6 +18,21 @@ impl<'a> TableAliases<'a> {
         }
     }
 
+    pub fn contains(&self, sqlo_or_related: &IdentString) -> bool {
+        self.tables.contains_key(sqlo_or_related)
+    }
+
+    pub fn get(&self, sqlo_or_related: &IdentString) -> Result<(&char, &IdentString), SqloError> {
+        if let Some((ref c, ref ident)) = self.tables.get(sqlo_or_related) {
+            Ok((c, ident))
+        } else {
+            Err(SqloError::new_spanned(
+                sqlo_or_related,
+                "Invalid alias or identifier",
+            ))
+        }
+    }
+
     pub fn insert_sqlo(&mut self, sqlo: &IdentString) {
         self.tables
             .insert(sqlo.clone(), (self.get_next_alias(), sqlo.clone()));
@@ -41,64 +56,49 @@ impl<'a> TableAliases<'a> {
         sqlo_or_related: &IdentString,
         field: &IdentString,
     ) -> Result<String, SqloError> {
-        if let Some((c, sqlo_ident)) = self.tables.get(sqlo_or_related) {
-            let column_name = self
-                .sqlos
-                .get(sqlo_ident)?
-                .field(field.as_ident())
-                .ok_or_else(|| {
-                    SqloError::new_spanned(field, format!("No field {} in {}", &field, &sqlo_ident))
-                })?
-                .column
-                .to_string();
-            Ok(format!("{c}.{column_name}"))
-        } else {
-            Err(SqloError::new_spanned(sqlo_or_related, "Not Found"))
-        }
+        let (c, sqlo_ident) = self.get(sqlo_or_related)?;
+        let column_name = self
+            .sqlos
+            .get(sqlo_ident)?
+            .field(field.as_ident())
+            .ok_or_else(|| {
+                SqloError::new_spanned(field, format!("No field {} in {}", &field, &sqlo_ident))
+            })?
+            .column
+            .to_string();
+        Ok(format!("{c}.{column_name}"))
     }
 
-    pub fn contains(&self, sqlo_or_related: &IdentString) -> bool {
-        self.tables.contains_key(sqlo_or_related)
-    }
     pub fn column(
         &mut self,
         sqlo_or_related: &IdentString,
         field: &IdentString,
     ) -> Result<String, SqloError> {
-        if let Some((_, sqlo_ident)) = self.tables.get(sqlo_or_related) {
-            let column_name = self
-                .sqlos
-                .get(sqlo_ident)?
-                .field(field.as_ident())
-                .ok_or_else(|| {
-                    SqloError::new_spanned(field, format!("No field {} in {}", &field, &sqlo_ident))
-                })?
-                .column
-                .to_string();
-            Ok(column_name)
-        } else {
-            Err(SqloError::new_spanned(sqlo_or_related, "Not Found"))
-        }
+        let (_, sqlo_ident) = self.get(sqlo_or_related)?;
+        let column_name = self
+            .sqlos
+            .get(sqlo_ident)?
+            .field(field.as_ident())
+            .ok_or_else(|| {
+                SqloError::new_spanned(field, format!("No field {} in {}", &field, &sqlo_ident))
+            })?
+            .column
+            .to_string();
+        Ok(column_name)
     }
 
     pub fn tablename_with_alias(&self, sqlo_or_related: &IdentString) -> Result<String, SqloError> {
-        if let Some((c, sqlo_ident)) = self.tables.get(sqlo_or_related) {
-            Ok(format!(
-                "{} {}",
-                &self.sqlos.get(sqlo_ident).unwrap().tablename,
-                c
-            ))
-        } else {
-            Err(SqloError::new_spanned(sqlo_or_related, "Not Found"))
-        }
+        let (c, sqlo_ident) = self.get(sqlo_or_related)?;
+        Ok(format!(
+            "{} {}",
+            &self.sqlos.get(sqlo_ident).unwrap().tablename,
+            c
+        ))
     }
 
     pub fn tablename(&self, sqlo_or_related: &IdentString) -> Result<String, SqloError> {
-        if let Some((_, sqlo_ident)) = self.tables.get(sqlo_or_related) {
-            Ok(self.sqlos.get(sqlo_ident).unwrap().tablename.to_string())
-        } else {
-            Err(SqloError::new_spanned(sqlo_or_related, "Not Found"))
-        }
+        let (_, sqlo_ident) = self.get(sqlo_or_related)?;
+        Ok(self.sqlos.get(sqlo_ident).unwrap().tablename.to_string())
     }
 
     fn get_next_alias(&self) -> char {
