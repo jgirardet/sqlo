@@ -49,7 +49,7 @@ Test! {update_returning_pk, async fn func(p: PPool) {
     // with uuid
     let r  = update![. WithAttrs[uu4!{1}] lglg = 53](&p.pool).await.unwrap();
     assert_eq!(r.lglg, 53);
-    let res = WithAttrs::get(&p.pool, $uu4![1]).await.unwrap();
+    let res = WithAttrs::get(&p.pool, &uu4![1]).await.unwrap();
     assert_eq!(res.lglg, 53);
 }}
 
