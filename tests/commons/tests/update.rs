@@ -48,8 +48,9 @@ Test! {update_returning_pk, async fn func(p: PPool) {
     assert_eq!(t.taille, 53);
     // with uuid
     let r  = update![. WithAttrs[uu4!{1}] lglg = 53](&p.pool).await.unwrap();
-    assert_eq!(WithAttrs::get(&p.pool, &uu4!{1}).await.unwrap().lglg, 53);
     assert_eq!(r.lglg, 53);
+    let res = WithAttrs::get(&p.pool, $uu4![1]).await.unwrap();
+    assert_eq!(res.lglg, 53);
 }}
 
 #[cfg(not(feature = "mysql"))]
