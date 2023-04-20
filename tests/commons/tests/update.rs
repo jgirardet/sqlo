@@ -41,19 +41,6 @@ Test! {update_instance, async fn func(p: PPool) {
 }}
 
 #[cfg(not(feature = "mysql"))]
-Test! {update_returning_pk, async fn func(p: PPool) {
-    // test update with update like instance syntax
-   let t  = update![. Maison[1] taille = 53](&p.pool).await.unwrap();
-    assert_eq!(Maison::get(&p.pool, 1).await.unwrap().taille, 53);
-    assert_eq!(t.taille, 53);
-    // with uuid
-    let r  = update![. WithAttrs[uu4!{1}] lglg = 53](&p.pool).await.unwrap();
-    assert_eq!(r.lglg, 53);
-    let res = WithAttrs::get(&p.pool, &uu4![1]).await.unwrap();
-    assert_eq!(res.lglg, 53);
-}}
-
-#[cfg(not(feature = "mysql"))]
 Test! {update_returning_instance, async fn func(p: PPool) {
     let r = Maison::get(&p.pool, 1).await.unwrap();
     // test update with update like instance syntax
@@ -62,6 +49,19 @@ Test! {update_returning_instance, async fn func(p: PPool) {
     let res = Maison::get(&p.pool,1).await.unwrap();
     assert_eq!(res.taille, 53);
 
+}}
+
+#[cfg(not(feature = "mysql"))]
+Test! {update_returning_pk, async fn func(p: PPool) {
+    // test update with update like instance syntax
+   let t  = update![. Maison[1] taille = 54](&p.pool).await.unwrap();
+    assert_eq!(Maison::get(&p.pool, 1).await.unwrap().taille, 54);
+    assert_eq!(t.taille, 54);
+    // with uuid
+    let r  = update![. WithAttrs[uu4!{1}] lglg = 56](&p.pool).await.unwrap();
+    assert_eq!(r.lglg, 56);
+    let res = WithAttrs::get(&p.pool, &uu4![1]).await.unwrap();
+    assert_eq!(res.lglg, 56);
 }}
 
 Test! {update_pk_various_types, async fn func(p: PPool) {
