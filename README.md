@@ -560,17 +560,22 @@ select![.House where id == width] // variable width is ignored, column name wil 
 // sql : select * from house where id=width
 ```
 
-For now index and other struct field usage must use `::`.
+Same thing for indexing et field access.
 
 ```rust
 // Indexing
 let array = [1 , 2, 3]
+select![. House where width == array[0]]
+// equivalent to
 select![. House where width == ::array[0]]
 
 // struct field
 struct A {b:i32}
-let a = A{b:2}
-select![. House where width == ::a.b]
+let aaa = A{bb:2}
+select![. House where width == ::aaa.bb]
+//equivalent to
+select![. House where width == aaa.bb]
+// if aaa.bb is relatedfk+column access it will preceed aaa instance.
 ```
 
 ```rust

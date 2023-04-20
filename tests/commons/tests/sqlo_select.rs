@@ -111,13 +111,17 @@ Test! {select_test_where_rust_var_as_arg, async fn func(p: PPool) {
     nb_result!(p,PieceFk, lg > ::array[1], 8);
     let res2 = select![*PieceFk where lg == array[1]](&p.pool).await.unwrap();
     assert_eq!(res, res2);
-    // // field as arg
-    let a = A { a: 2 };
-    nb_result!(p,PieceFk, lg > ::a.a, 7);
-    // // use String
+    // field as arg with ::
+    let zz = A { a: 2 };
+    let res = select![* PieceFk where lg > ::zz.a](&p.pool).await.unwrap();
+    assert_eq!(res.len(), 7);
+    // field as arg without ::
+    let res = select![* PieceFk where lg > zz.a](&p.pool).await.unwrap();
+    assert_eq!(res.len(), 7);
+    // use String
     let adr = "adresse3".to_string();
     nb_result!(p,Maison, adresse == ::adr, 1);
-    // // rhs uses field not vs
+    // rhs uses field not vs
     #[allow(unused_variables)]
     let taille = 1;
     nb_result!(p,Maison, id<= taille, 4);
@@ -196,6 +200,14 @@ Test! {select_test_where_foreign_key, async fn func(p: PPool) {
     // join in wherre taken in account
     nb_result!(p, Maison, taille>100 && lespieces.lg >=8, 2);
     nb_result!(p, Maison, lespieces.lg>4 && adres.rue == "adresse1", 1);
+
+    // join preceeds value
+    #[allow(dead_code)]
+    struct Lg {lg:i32}
+    #[allow(unused_variables)]
+    let lespieces = Lg {lg:0};
+    let res = select![* Maison where id  == lespieces.lg](&p.pool).await.unwrap();
+    assert_eq!(res.len(), 1);
 }}
 
 Test! {select_test_where_call, async fn func(p:PPool){
@@ -238,16 +250,18 @@ Test! {select_cutoms_fields_related_join, async fn func(p: PPool) {
   // with join alone
   let res = select![*Maison lespieces.lg](&p.pool).await.unwrap();
   assert_eq!(res.len(), 9);
+  // relation preceeds value
+  #[allow(dead_code)]
+  struct Lg {lg:i32}
+  #[allow(unused_variables)]
+  let lespieces = Lg {lg:0};
+  select![*Maison lespieces.lg](&p.pool).await.unwrap();
   // with join and where
   let res = select![*Maison lespieces.lg where lespieces.lg > 2](&p.pool).await.unwrap();
   assert_eq!(res.len(), 7);
   // plain struct join
   let res = select![*Maison where adres.id >"2"](&p.pool).await.unwrap();
   assert_eq!(res[0].id, 3);
-
-  // with join and where alias
-//   let res = select![*Maison upper(id,id) as bla where bla > 2](&p.pool).await.unwrap();
-//   assert_eq!(res.len(), 7);
   // left join field
   let res = select![*Maison id, lespieces.lg](&p.pool).await.unwrap();
   assert_eq!(res.len(),9);

@@ -3,7 +3,8 @@
 ## next
 
 - Features:
-  - Use indexing in select! without `::`
+  - Use indexing (array[1]) in select! without `::`
+  - Use field access (instance.field) in select! without `::`
 - Divers:
   - Use pre-commit to force fmt and clippy.
 

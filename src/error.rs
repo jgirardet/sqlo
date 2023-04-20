@@ -17,6 +17,10 @@ impl SqloError {
         }
     }
 
+    pub fn msg(&self) -> &str {
+        &self.msg
+    }
+
     pub fn new_spanned<T: ToTokens, U: Display>(tokens: T, message: U) -> Self {
         syn::Error::new_spanned(tokens, message).into()
     }

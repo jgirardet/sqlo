@@ -28,7 +28,7 @@ impl<'a> TableAliases<'a> {
         } else {
             Err(SqloError::new_spanned(
                 sqlo_or_related,
-                "Invalid alias or identifier",
+                "Sqlo: Invalid alias or identifier",
             ))
         }
     }
@@ -62,7 +62,10 @@ impl<'a> TableAliases<'a> {
             .get(sqlo_ident)?
             .field(field.as_ident())
             .ok_or_else(|| {
-                SqloError::new_spanned(field, format!("No field {} in {}", &field, &sqlo_ident))
+                SqloError::new_spanned(
+                    field,
+                    format!("SqlorFieldError: no field {} in {}", &field, &sqlo_ident),
+                )
             })?
             .column
             .to_string();
@@ -80,7 +83,10 @@ impl<'a> TableAliases<'a> {
             .get(sqlo_ident)?
             .field(field.as_ident())
             .ok_or_else(|| {
-                SqloError::new_spanned(field, format!("No field {} in {}", &field, &sqlo_ident))
+                SqloError::new_spanned(
+                    field,
+                    format!("SqlorFieldError: no field {} in {}", &field, &sqlo_ident),
+                )
             })?
             .column
             .to_string();

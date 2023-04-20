@@ -37,13 +37,25 @@ impl quote::ToTokens for ColExprField {
 impl ColumnToSql for ColExprField {
     fn column_to_sql(&self, ctx: &mut Generator) -> Result<Fragment, SqloError> {
         ctx.context.push(Context::Field);
+        // first find if it's a relation
         let relation = match ctx.sqlos.get_relation(&ctx.main_sqlo.ident, &self.base) {
             Ok(rel) => rel,
             Err(_) => {
-                return Ok(ctx
-                    .tables
-                    .alias_dot_column(&self.base, &self.member)?
-                    .into());
+                // no relation then it could be a sqlo ident
+                return match ctx.tables.alias_dot_column(&self.base, &self.member) {
+                    Ok(res) => Ok(res.into()),
+                    Err(err) => {
+                        // left join (=.) can't be value, we buble up field error (if base is sqlo or a related fk)
+                        if matches!(self.join, Join::Left) || err.msg().contains("SqloFieldError") {
+                            // we track error content because non error variant
+                            Err(err)
+                        } else {
+                            // inner join(.) but base is unknown so we use it as Value
+                            let expr: syn::Expr = syn::parse_quote!(#self);
+                            Ok(Fragment::from_expr(expr, ctx))
+                        }
+                    }
+                };
             }
         };
         let join = relation.to_join(self.join, ctx)?;

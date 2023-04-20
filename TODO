@@ -6,7 +6,6 @@
 
 ## todo, maybe
 
-- fielding without ::
 - composite primary key
 - reverse struct join
 - Querybuilder commence par être bien dégueux...
