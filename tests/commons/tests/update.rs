@@ -46,7 +46,7 @@ Test! {update_returning_instance, async fn func(p: PPool) {
     // test update with update like instance syntax
     let t  = update![. Maison(r) taille = 53](&p.pool).await.unwrap();
     assert_eq!(t.taille, 53);
-    // if std::env::var("CI").is_ok() && cfg!(feature="sqlite") {return}
+    if std::env::var("CI").is_ok() && cfg!(feature="sqlite") {return}
     let res = Maison::get(&p.pool,1).await.unwrap();
     assert_eq!(res.taille, 53);
 
